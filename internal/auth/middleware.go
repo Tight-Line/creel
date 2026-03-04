@@ -16,7 +16,8 @@ var publicMethods = map[string]bool{
 }
 
 // UnaryInterceptor returns a gRPC unary server interceptor that authenticates requests.
-func UnaryInterceptor(apiKeyValidator *APIKeyValidator) grpc.UnaryServerInterceptor {
+// It tries API key validation first, then OIDC if configured.
+func UnaryInterceptor(apiKeyValidator *APIKeyValidator, oidcValidator *OIDCValidator) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
@@ -39,8 +40,12 @@ func UnaryInterceptor(apiKeyValidator *APIKeyValidator) grpc.UnaryServerIntercep
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "validating API key: %v", err)
 			}
+		} else if oidcValidator != nil && oidcValidator.HasProviders() {
+			principal, err = oidcValidator.Validate(ctx, token)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "validating OIDC token: %v", err)
+			}
 		}
-		// TODO: OIDC validation for non-API-key tokens (Step 4)
 
 		if principal == nil {
 			return nil, status.Error(codes.Unauthenticated, "invalid or missing credentials")
