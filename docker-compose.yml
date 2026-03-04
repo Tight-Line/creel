@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: creel
+      POSTGRES_PASSWORD: creel
+      POSTGRES_DB: creel
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U creel"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  creel:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8443:8443"
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      CREEL_METADATA_POSTGRES_URL: "postgres://creel:creel@postgres:5432/creel?sslmode=disable"
+    command: ["creel", "--config", "/etc/creel/creel.yaml", "--migrate"]
+    volumes:
+      - ./creel.example.yaml:/etc/creel/creel.yaml:ro
+
+volumes:
+  pgdata:

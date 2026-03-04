@@ -21,6 +21,9 @@ spec:
         - name: creel
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "--config"
+            - "/etc/creel/creel.yaml"
           ports:
             - name: grpc
               containerPort: {{ .Values.service.grpc.port }}
@@ -29,12 +32,22 @@ spec:
             - name: metrics
               containerPort: {{ .Values.service.metrics.port }}
           livenessProbe:
-            httpGet:
-              path: /healthz
-              port: rest
+            grpc:
+              port: {{ .Values.service.grpc.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 30
           readinessProbe:
-            httpGet:
-              path: /readyz
-              port: rest
+            grpc:
+              port: {{ .Values.service.grpc.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/creel
+              readOnly: true
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-creel-config

@@ -17,6 +17,7 @@ auth:
   oidcIssuer: ""
   oidcAudience: creel
   principalClaim: email
+  bootstrapKeyHash: ""
 
 metadata:
   postgresUrl: ""

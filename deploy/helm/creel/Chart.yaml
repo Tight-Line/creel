@@ -7,3 +7,8 @@ appVersion: "0.1.0"
 maintainers:
   - name: Tight Line Software
     url: https://www.tightlinesoftware.com
+dependencies:
+  - name: postgresql
+    version: "~16"
+    repository: https://cloudnative-pg.github.io/charts
+    condition: postgresql.enabled
