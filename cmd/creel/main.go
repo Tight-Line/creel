@@ -1,13 +1,22 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
+	pb "github.com/Tight-Line/creel/gen/creel/v1"
+	"github.com/Tight-Line/creel/internal/auth"
 	"github.com/Tight-Line/creel/internal/config"
+	"github.com/Tight-Line/creel/internal/server"
 	"github.com/Tight-Line/creel/internal/store"
 )
+
+// version is set at build time via -ldflags.
+var version = "dev"
 
 func main() {
 	if err := run(); err != nil {
@@ -33,7 +42,6 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
-
 	fmt.Printf("creel: config loaded (grpc_port=%d)\n", cfg.Server.GRPCPort)
 
 	if err := store.RunMigrations(cfg.Metadata.PostgresURL, "migrations"); err != nil {
@@ -45,7 +53,49 @@ func run() error {
 		return nil
 	}
 
-	// TODO: initialize stores, auth, gRPC server
-	fmt.Println("creel: server not yet implemented")
-	return nil
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Open database pool.
+	pool, err := store.NewPool(ctx, cfg.Metadata.PostgresURL)
+	if err != nil {
+		return fmt.Errorf("opening database pool: %w", err)
+	}
+	defer pool.Close()
+
+	// Set up auth.
+	staticKeys := auth.StaticKeysFromConfig(cfg.Auth.APIKeys)
+	accountStore := store.NewSystemAccountStore(pool)
+	apiKeyValidator := auth.NewAPIKeyValidator(staticKeys, accountStore)
+
+	var oidcValidator *auth.OIDCValidator
+	if len(cfg.Auth.Providers) > 0 {
+		oidcValidator, err = auth.NewOIDCValidator(ctx, cfg.Auth.Providers, cfg.Auth.PrincipalClaim, cfg.Auth.GroupsClaim)
+		if err != nil {
+			return fmt.Errorf("initializing OIDC: %w", err)
+		}
+	}
+
+	// Create and wire server.
+	srv := server.New(cfg.Server.GRPCPort, apiKeyValidator, oidcValidator)
+	adminServer := server.NewAdminServer(pool, accountStore, version)
+	pb.RegisterAdminServiceServer(srv.GRPCServer(), adminServer)
+
+	// Handle shutdown signals.
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- srv.Run()
+	}()
+
+	select {
+	case sig := <-sigCh:
+		fmt.Printf("\ncreel: received %v, shutting down...\n", sig)
+		srv.GracefulStop()
+		return nil
+	case err := <-errCh:
+		return err
+	}
 }
