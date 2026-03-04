@@ -12,6 +12,7 @@ import (
 	"github.com/Tight-Line/creel/internal/auth"
 	"github.com/Tight-Line/creel/internal/config"
 	"github.com/Tight-Line/creel/internal/server"
+	"github.com/Tight-Line/creel/internal/retrieval"
 	"github.com/Tight-Line/creel/internal/store"
 	"github.com/Tight-Line/creel/internal/vector/pgvector"
 )
@@ -91,10 +92,13 @@ func run() error {
 	topicServer := server.NewTopicServer(topicStore, authorizer)
 	docServer := server.NewDocumentServer(docStore, authorizer)
 	chunkServer := server.NewChunkServer(chunkStore, docStore, vectorBackend, authorizer)
+	searcher := retrieval.NewSearcher(chunkStore, authorizer, vectorBackend)
+	retrievalServer := server.NewRetrievalServer(searcher)
 	pb.RegisterAdminServiceServer(srv.GRPCServer(), adminServer)
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), topicServer)
 	pb.RegisterDocumentServiceServer(srv.GRPCServer(), docServer)
 	pb.RegisterChunkServiceServer(srv.GRPCServer(), chunkServer)
+	pb.RegisterRetrievalServiceServer(srv.GRPCServer(), retrievalServer)
 
 	// Handle shutdown signals.
 	sigCh := make(chan os.Signal, 1)
