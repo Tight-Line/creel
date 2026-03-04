@@ -14,6 +14,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - uses: bufbuild/buf-setup-action@v1
+      - run: buf generate
+      - run: go mod tidy
       - uses: golangci/golangci-lint-action@v6
         with:
           version: latest
