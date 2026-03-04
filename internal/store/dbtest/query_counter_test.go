@@ -144,7 +144,7 @@ func TestSearchQueryCount(t *testing.T) {
 
 	// Search across all topics (no topic filter).
 	counter.Reset()
-	results, err := searcher.Search(ctx, principal, nil, fakeEmbedding(0, embDim), 15)
+	results, err := searcher.Search(ctx, principal, nil, fakeEmbedding(0, embDim), 15, nil)
 	if err != nil {
 		t.Fatalf("search (all topics) failed: %v", err)
 	}
@@ -162,7 +162,7 @@ func TestSearchQueryCount(t *testing.T) {
 
 	// Search with explicit topic filter (subset).
 	counter.Reset()
-	results, err = searcher.Search(ctx, principal, topicIDs[:2], fakeEmbedding(0, embDim), 15)
+	results, err = searcher.Search(ctx, principal, topicIDs[:2], fakeEmbedding(0, embDim), 15, nil)
 	if err != nil {
 		t.Fatalf("search (filtered topics) failed: %v", err)
 	}
@@ -171,6 +171,19 @@ func TestSearchQueryCount(t *testing.T) {
 
 	if filteredCount > maxQueries {
 		t.Errorf("search (filtered topics) used %d queries (max %d); likely N+1 regression", filteredCount, maxQueries)
+	}
+
+	// Search with a metadata filter; should not add extra queries.
+	counter.Reset()
+	results, err = searcher.Search(ctx, principal, nil, fakeEmbedding(0, embDim), 15, map[string]any{"key": "value"})
+	if err != nil {
+		t.Fatalf("search (metadata filter) failed: %v", err)
+	}
+	metaCount := counter.Count()
+	t.Logf("search (metadata filter): %d results, %d queries", len(results), metaCount)
+
+	if metaCount > maxQueries {
+		t.Errorf("search (metadata filter) used %d queries (max %d); likely N+1 regression", metaCount, maxQueries)
 	}
 }
 

@@ -79,9 +79,25 @@ func (b *Backend) Search(ctx context.Context, query []float64, filter vector.Fil
 	args := []any{pgvec.NewVector(vec)}
 	argIdx := 2
 
+	var hasWhere bool
 	if len(filter.ChunkIDs) > 0 {
 		q += fmt.Sprintf(` WHERE chunk_id = ANY($%d)`, argIdx)
 		args = append(args, filter.ChunkIDs)
+		argIdx++
+		hasWhere = true
+	}
+
+	if len(filter.Metadata) > 0 {
+		metaJSON, err := json.Marshal(filter.Metadata)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling metadata filter: %w", err)
+		}
+		if hasWhere {
+			q += fmt.Sprintf(` AND metadata @> $%d`, argIdx)
+		} else {
+			q += fmt.Sprintf(` WHERE metadata @> $%d`, argIdx)
+		}
+		args = append(args, metaJSON)
 		argIdx++
 	}
 
