@@ -80,6 +80,11 @@ migrations/         SQL migrations (golang-migrate)
 proto/              protobuf definitions
 ```
 
+## Git Workflow
+
+- **Never merge a PR without CI passing.** Always wait for all CI checks to go green before merging. No exceptions unless the human explicitly says to skip.
+- This repo only allows rebase merges (no squash, no merge commits).
+
 ## Key Interfaces
 
 - `store.DBTX`: database interface (Exec/Query/QueryRow/Begin) accepted by all stores. `*pgxpool.Pool` and `dbtest.QueryCounter` both satisfy it.
