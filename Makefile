@@ -1,4 +1,4 @@
-.PHONY: all build test vet lint proto-gen proto-lint clean
+.PHONY: all build test vet lint proto-gen proto-lint clean run
 
 all: lint vet test build
 
@@ -21,6 +21,9 @@ proto-gen:
 
 proto-lint:
 	buf lint
+
+run: build
+	./bin/creel --config creel.yaml
 
 clean:
 	rm -rf bin/
