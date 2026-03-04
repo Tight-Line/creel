@@ -807,7 +807,7 @@ creel/
 - [x] pgvector backend conformance tests
 - [x] Basic RAG search (single topic, no link traversal)
 - [x] ACL filtering in search (restrict to accessible topics)
-- [ ] Metadata filtering in search results
+- [x] Metadata filtering in search results
 - [x] Dockerfile (multi-stage, multi-arch)
 - [x] Docker Compose with all current backends (PostgreSQL/pgvector)
 - [x] Basic Helm chart (deployment, service, configmap)
