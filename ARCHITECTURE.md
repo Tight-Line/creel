@@ -369,6 +369,8 @@ Configuration stored in `~/.creel/config.yaml`. Supports multiple named profiles
 
 gRPC as the primary protocol for performance and strong typing. REST via grpc-gateway for broad compatibility. Proto files are the source of truth for both.
 
+For detailed method signatures, request/response shapes, permission requirements, and behavioral specifications for all 28 RPC methods, see [API_REFERENCE.md](API_REFERENCE.md).
+
 ### 5.2 Service Definitions
 
 ```protobuf
