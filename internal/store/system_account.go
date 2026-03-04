@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Tight-Line/creel/internal/auth"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/Tight-Line/creel/internal/auth"
 )
 
 // SystemAccountStore handles system account and key persistence.
@@ -55,7 +56,7 @@ func (s *SystemAccountStore) Create(ctx context.Context, name, description strin
 	if err != nil {
 		return nil, "", fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var acct SystemAccount
 	err = tx.QueryRow(ctx,
@@ -129,7 +130,7 @@ func (s *SystemAccountStore) RotateKey(ctx context.Context, accountID string, gr
 	if err != nil {
 		return "", fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	if gracePeriod > 0 {
 		graceExpiry := time.Now().Add(gracePeriod)
