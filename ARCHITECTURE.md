@@ -51,12 +51,14 @@ Creel runs in your infrastructure. The primary distribution is a Helm chart. It 
 
 ### Components
 
-- **Auth Proxy**: validates OIDC tokens, resolves principal identity, attaches principal context to requests. Does not manage identities; delegates to external IdP.
+- **Auth Proxy**: validates OIDC tokens, resolves principal identity and group memberships, attaches principal context to requests. Does not manage identities; delegates to external IdP.
+- **Authorizer**: decides whether a principal can perform an action on a resource. Built-in implementation evaluates `TopicGrant` rows against both individual principal refs and group refs (resolved from OIDC `groups` claim). Pluggable interface allows delegation to external engines (SpiceDB, OpenFGA, OPA) in future.
 - **Topic CRUD**: create/read/update/delete topics, documents, chunks. Manages sharing grants (principal + permission level per topic).
 - **Link Engine**: creates/deletes chunk-to-chunk links. Handles compaction redirects (link targets that point to compacted chunks resolve to their summary chunk, recursively).
 - **Retrieval Engine**: dual-mode retrieval. RAG mode: semantic similarity search with optional link traversal and reranking. Context mode: temporal ordering with compaction awareness. Both modes enforce ACLs.
 - **Compactor API**: accepts client-provided summaries, tombstones old chunks, creates summary chunks, transfers outbound links from compacted chunks to summary.
-- **Admin API**: principal management (list topics, sharing grants), health checks, metrics.
+- **Admin API**: system account management (create, rotate, revoke API keys), health checks, metrics.
+- **CLI** (`creel`): command-line interface for admin operations and debugging. Single binary, authenticates via API key or OIDC token. Covers system account management, topic/grant administration, and diagnostic commands.
 - **Event Bus**: internal pub/sub for async operations (auto-link suggestions on ingest, compaction notifications). Initially in-process; can be externalized (NATS, Redis Streams) for horizontal scaling.
 - **Vector Backend Interface**: Go interface that any vector store must implement. Reference implementation: pgvector.
 
@@ -66,8 +68,10 @@ Creel runs in your infrastructure. The primary distribution is a Helm chart. It 
 
 **Principal** (external; not stored in Creel)
 
-- Identity resolved from OIDC token
-- Creel stores principal references (subject claim) in ACL grants, not principal records
+- Identity resolved from OIDC token (configurable claim: `sub`, `email`, or custom)
+- Group memberships resolved from OIDC `groups` claim (claim name is configurable)
+- Creel stores principal references in ACL grants, not principal records
+- A principal ref is a typed string: `user:nick@example.com` or `group:ml-team`
 
 **Topic**
 
@@ -89,12 +93,14 @@ topic {
 topic_grant {
   id:          uuid
   topic_id:    uuid -> topic
-  principal:   principal_ref
+  principal:   principal_ref (e.g. "user:nick@example.com" or "group:ml-team")
   permission:  enum(read, write, admin)
   granted_by:  principal_ref
   created_at:  timestamp
 }
 ```
+
+Grant resolution: a principal matches a grant if the grant's `principal` field matches either the principal's identity (`user:...`) or any of the principal's groups (`group:...`) as reported by the OIDC token's groups claim. The highest matching permission wins.
 
 Permission semantics:
 
@@ -203,14 +209,69 @@ type SearchResult struct {
 
 ACL enforcement happens in the Creel server, not the backend. The server resolves which topic IDs the principal can access, fetches the chunk IDs in those topics from PostgreSQL, and passes them as a filter to the vector backend. This keeps ACL logic centralized and backends simple.
 
+### 3.4 Authorizer Interface
+
+```go
+// Principal represents an authenticated identity with group memberships.
+type Principal struct {
+    ID     string   // e.g. "user:nick@example.com"
+    Groups []string // e.g. ["group:ml-team", "group:engineering"]
+}
+
+type Action string
+
+const (
+    ActionRead  Action = "read"
+    ActionWrite Action = "write"
+    ActionAdmin Action = "admin"
+)
+
+// Authorizer decides whether a principal can perform an action on a resource.
+type Authorizer interface {
+    // Check returns true if the principal has at least the requested permission.
+    Check(ctx context.Context, principal Principal, action Action, topicID string) (bool, error)
+
+    // AccessibleTopics returns all topic IDs the principal can access at the given
+    // permission level or higher. Used for list filtering and search scoping.
+    AccessibleTopics(ctx context.Context, principal Principal, action Action) ([]string, error)
+}
+```
+
+The built-in `GrantAuthorizer` evaluates `TopicGrant` rows: a principal matches a grant iff the grant targets the principal's ID or any of their groups. The interface is designed so that external authorization engines (SpiceDB, OpenFGA, OPA) can be plugged in later without changing the rest of the server.
+
 ## 4. Required Features for v1
 
 ### 4.1 Principal & Auth
 
 - OIDC token validation (configurable issuer, audience, claims mapping)
 - Principal identity extracted from token claims (sub, email, or custom claim; configurable)
-- API key auth as fallback for service-to-service calls
-- No built-in identity management
+- Group membership extracted from token claims (`groups` by default; claim name configurable)
+- Grants can target individual principals (`user:...`) or groups (`group:...`)
+- `Authorizer` interface with built-in implementation (TopicGrant table + group claim resolution)
+- No built-in identity management; no built-in group management
+- **No identity linking**: each (provider, principal_claim value) tuple is a distinct identity. If a person authenticates as `user:nmarden@avvo.com` via one IdP and `user:nick@marden.org` via another, Creel treats those as two separate principals. Identity federation (mapping multiple upstream identities to a single canonical principal) should be handled at the IdP layer, e.g. via Dex, Authelia, or IdP-to-IdP federation. Shared access across identities can also be achieved through group grants.
+
+#### How authentication works at the wire level
+
+Every request to Creel carries an `Authorization: Bearer <token>` header. Creel supports two token types:
+
+**OIDC JWTs (for humans and OIDC-capable services):**
+The caller obtains a JWT from their IdP through a standard OAuth2 flow (browser-based login, CLI device flow, client credentials grant, etc.). Creel never participates in this flow; it only validates the resulting token. At startup, Creel fetches each configured provider's public signing keys from their well-known OIDC discovery endpoint (`https://{issuer}/.well-known/openid-configuration`) and caches them, refreshing periodically. On each request, Creel validates the token's cryptographic signature against the cached keys, checks expiry and audience, and extracts the principal identity and group memberships from the token's claims. This is pure local computation with no per-request round-trip to the IdP. The tradeoff is that token revocation at the IdP is not instantaneous; Creel will accept a revoked token until it expires (typically 5-60 minutes depending on IdP configuration).
+
+**API keys (for system accounts):**
+System accounts are managed through the Admin API (create, rotate, revoke). Each system account has a name, a principal identity (e.g., `system:ingestion-pipeline`), and one or more API keys. Keys are stored as hashes in PostgreSQL. On each request, Creel recognizes the key by its prefix (`creel_ak_...`), verifies the hash, and resolves the associated system principal. No IdP is involved. Key rotation supports a configurable grace period where both old and new keys are valid. Revocation is immediate.
+
+System accounts are first-class principals that receive topic grants like any other principal. A bootstrap API key can be configured in the config file to create the initial admin system account; after that, all system account management happens through the API.
+
+#### System Account Management
+
+The Admin API provides:
+
+- Create system account (name, description); returns API key
+- List system accounts
+- Rotate key (generate new key; old key valid for configurable grace period)
+- Revoke key (immediate)
+- Delete system account
 
 ### 4.2 Topic Management
 
@@ -272,6 +333,35 @@ ACL enforcement happens in the Creel server, not the backend. The server resolve
 - Prometheus metrics (request latency, chunk counts, link counts, backend latency)
 - Configuration via environment variables and config file
 - Embedding provider configuration (for server-side embedding; optional; supports OpenAI, Ollama, etc. via interface)
+
+### 4.9 CLI
+
+Single binary (`creel`) for admin operations and debugging. Connects to a Creel server over gRPC; authenticates via API key or OIDC token.
+
+```
+creel config set-endpoint https://creel.internal:8443
+creel config set-key creel_ak_...
+
+# System account management
+creel admin create-account --name ingestion-pipeline --description "Nightly doc ingestion"
+creel admin list-accounts
+creel admin rotate-key --account ingestion-pipeline --grace 3600
+creel admin revoke-key --account ingestion-pipeline
+
+# Topic & grant management
+creel topic create --slug ml-research --name "ML Research"
+creel topic list
+creel topic grant --topic ml-research --principal group:ml-team --permission write
+creel topic grant --topic ml-research --principal system:ingestion-pipeline --permission write
+creel topic grants --topic ml-research
+
+# Diagnostics
+creel health
+creel search --topic ml-research --query "transformer architecture" --top-k 5
+creel context --document ml-research/session-2026-03-04 --last 20
+```
+
+Configuration stored in `~/.creel/config.yaml`. Supports multiple named profiles for managing different Creel instances.
 
 ## 5. API Surface
 
@@ -450,6 +540,30 @@ Single Helm chart installs:
 - Secret references for OIDC config, API keys, vector backend credentials
 - Ingress/Service for gRPC + REST
 
+**Backend dependencies** follow a two-mode pattern for every supported backend (PostgreSQL, Qdrant, Weaviate, etc.):
+
+1. **Embedded**: install via subchart using the upstream/canonical Helm chart for that backend (e.g., `postgresql` from the CloudNativePG operator chart, `qdrant/qdrant` from Qdrant's official chart). No Bitnami charts; always prefer the vendor's own chart or a well-maintained community chart.
+2. **External**: point to an existing instance via `values.yaml`. Connection details (host, port, credentials) reference a Kubernetes Secret. Example:
+
+```yaml
+postgresql:
+  enabled: false           # do not install subchart
+  external:
+    host: my-pg.example.com
+    port: 5432
+    database: creel
+    secretName: creel-pg-credentials   # keys: username, password
+
+qdrant:
+  enabled: false
+  external:
+    host: qdrant.example.com
+    port: 6334
+    apiKeySecretName: creel-qdrant-credentials  # key: api-key
+```
+
+As new vector backends are added, each must have both an embedded subchart option and an external connection option in `values.yaml`.
+
 ### 7.2 Configuration
 
 ```yaml
@@ -460,12 +574,17 @@ server:
   metrics_port: 9090
 
 auth:
-  oidc_issuer: https://accounts.google.com
-  oidc_audience: creel
-  principal_claim: email
-  api_keys:
+  providers:                        # multiple IdPs supported
+    - issuer: https://accounts.google.com
+      audience: creel
+    - issuer: https://login.microsoftonline.com/{tenant}/v2.0
+      audience: creel
+  principal_claim: email            # which token claim is the principal ID
+  groups_claim: groups              # which token claim carries group memberships
+  api_keys:                         # for service-to-service calls
     - name: my-service
       key_hash: sha256:...
+      principal: user:my-service@system   # identity this key authenticates as
 
 metadata:
   postgres_url: postgres://...
@@ -491,10 +610,57 @@ compaction:
 
 ### 7.3 Docker Images
 
-- `ghcr.io/tight-line/creel:latest` - server
+- `ghcr.io/tight-line/creel:latest` - server (also includes `creel-cli` binary)
 - `ghcr.io/tight-line/creel-mcp:latest` - MCP server
 
 Multi-arch (amd64, arm64).
+
+### 7.4 Local Development (Docker Compose)
+
+`docker-compose.yml` runs the Creel server plus **every supported backend**, so developers and CI can test against all of them without external dependencies.
+
+**Standing rule**: when a new vector backend is added, it must be added to `docker-compose.yml` and to the CI integration test matrix before the backend is considered complete.
+
+Baseline services:
+
+- **PostgreSQL** (with pgvector extension); serves as both metadata store and pgvector backend
+- **Qdrant**
+- **Weaviate**
+
+As backends are added (e.g., Milvus, Chroma), they get a new service block in Compose and a new entry in the CI test matrix. Each backend runs its conformance test suite as part of `make test-integration`.
+
+Example structure:
+
+```yaml
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_DB: creel
+      POSTGRES_USER: creel
+      POSTGRES_PASSWORD: creel
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports: ["6333:6333", "6334:6334"]
+
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:latest
+    ports: ["8081:8080", "50051:50051"]
+    environment:
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: /var/lib/weaviate
+
+  creel:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+    depends_on: [postgres, qdrant, weaviate]
+    ports: ["8443:8443", "8080:8080", "9090:9090"]
+    environment:
+      CREEL_METADATA_POSTGRES_URL: postgres://creel:creel@postgres:5432/creel?sslmode=disable
+```
 
 ## 8. Implementation Phases
 
@@ -560,8 +726,10 @@ creel/
 ├── go.mod
 ├── go.sum
 ├── cmd/
-│   └── creel/
-│       └── main.go
+│   ├── creel/
+│   │   └── main.go             # server entrypoint
+│   └── creel-cli/
+│       └── main.go             # CLI entrypoint
 ├── proto/
 │   └── creel/
 │       └── v1/
@@ -609,7 +777,116 @@ creel/
 └── docs/
 ```
 
-## 10. Verification
+## 10. v1 Build-out Checklist
+
+### Phase 1: Foundation
+
+- [ ] CI/CD pipeline (GitHub Actions: lint, test, build)
+- [ ] PostgreSQL schema migrations (golang-migrate)
+- [ ] Protobuf codegen pipeline (buf or protoc)
+- [ ] Configuration loading (YAML + env vars)
+- [ ] Auth middleware: OIDC token validation (JWKS fetch + cache + periodic refresh)
+- [ ] Auth middleware: API key validation (hash lookup in PostgreSQL)
+- [ ] Principal context extraction (identity + groups from token claims)
+- [ ] Authorizer interface definition
+- [ ] Built-in GrantAuthorizer (TopicGrant table, individual + group matching)
+- [ ] System account management (create, list, delete)
+- [ ] API key lifecycle (rotate with grace period, revoke)
+- [ ] Bootstrap API key (config file, for initial admin setup)
+- [ ] Topic CRUD (create, get, list, update, delete)
+- [ ] Topic grants: individual principal grants (user:...)
+- [ ] Topic grants: group grants (group:...)
+- [ ] ACL enforcement on topic operations via Authorizer
+- [ ] Document CRUD (create, get, list, update, delete)
+- [ ] Chunk ingestion (single, with pre-computed embedding)
+- [ ] Chunk ingestion (batch, with pre-computed embeddings)
+- [ ] Vector backend interface definition
+- [ ] pgvector backend implementation
+- [ ] pgvector backend conformance tests
+- [ ] Basic RAG search (single topic, no link traversal)
+- [ ] ACL filtering in search (restrict to accessible topics)
+- [ ] Metadata filtering in search results
+- [ ] Dockerfile (multi-stage, multi-arch)
+- [ ] Docker Compose with all current backends (PostgreSQL/pgvector)
+- [ ] Basic Helm chart (deployment, service, configmap)
+- [ ] Helm: PostgreSQL via canonical subchart (CloudNativePG or upstream; no Bitnami)
+- [ ] Helm: external PostgreSQL option (host, port, secretName in values.yaml)
+- [ ] Health endpoint
+- [ ] gRPC server wiring (all Phase 1 services)
+- [ ] CLI: project scaffold (cobra or similar)
+- [ ] CLI: config management (endpoint, API key, profiles)
+- [ ] CLI: `creel health`
+- [ ] CLI: `creel admin create-account / list-accounts / rotate-key / revoke-key`
+- [ ] CLI: `creel topic create / list / grant / grants`
+- [ ] CLI: `creel search` and `creel context` (basic)
+
+### Phase 2: Linking & Traversal
+
+- [ ] Link CRUD (create, delete, list outbound + backlinks)
+- [ ] Link ACL enforcement (read on both endpoints' topics)
+- [ ] Auto-link on ingest (similarity search across accessible topics)
+- [ ] Configurable auto-link threshold
+- [ ] Permission-gated link traversal in RAG search
+- [ ] Configurable traversal depth
+- [ ] Reranking pool with linked chunks
+- [ ] Compaction redirects (links to compacted chunks resolve to summary)
+- [ ] Recursive redirect resolution
+
+### Phase 3: Context Mode & Compaction
+
+- [ ] Context mode retrieval (temporal ordering by sequence)
+- [ ] Configurable context window (last N chunks, since timestamp)
+- [ ] Compaction API: accept summary + chunk range
+- [ ] Summary chunk creation
+- [ ] Chunk tombstoning (status=compacted, compacted_by=summary)
+- [ ] Outbound link transfer from compacted chunks to summary
+- [ ] Compaction-aware context retrieval (summaries + active chunks)
+- [ ] Un-compact (admin restore)
+- [ ] Archival access to compacted chunks
+
+### Phase 4: Integration Layers
+
+- [ ] grpc-gateway REST API
+- [ ] Python client library (full API coverage)
+- [ ] Python client: auth token handling, retries
+- [ ] Python client: `compact_with_llm` convenience method
+- [ ] TypeScript client library (full API coverage)
+- [ ] TypeScript client: auth token handling, retries
+- [ ] Tool schemas: OpenAI function calling format (JSON)
+- [ ] Tool schemas: Anthropic tool_use format (JSON)
+- [ ] Tool schemas: language-native objects in Python + TS clients
+- [ ] MCP server (SSE transport)
+- [ ] MCP server (stdio transport)
+- [ ] MCP server Docker image
+
+### Phase 5: Additional Backends & Hardening
+
+- [ ] Embedding provider interface
+- [ ] OpenAI embedding provider implementation
+- [ ] Ollama embedding provider implementation
+- [ ] Chunk ingestion without pre-computed embedding (server-side)
+- [ ] Qdrant vector store backend
+- [ ] Qdrant backend conformance tests
+- [ ] Docker Compose: add Qdrant service
+- [ ] CI: add Qdrant to integration test matrix
+- [ ] Helm: Qdrant via canonical subchart (qdrant/qdrant)
+- [ ] Helm: external Qdrant option (host, port, apiKeySecretName)
+- [ ] Weaviate vector store backend
+- [ ] Weaviate backend conformance tests
+- [ ] Docker Compose: add Weaviate service
+- [ ] CI: add Weaviate to integration test matrix
+- [ ] Helm: Weaviate via canonical subchart (weaviate/weaviate)
+- [ ] Helm: external Weaviate option (host, port, secretName)
+- [ ] OpenAI vector store backend
+- [ ] OpenAI backend conformance tests
+- [ ] Prometheus metrics (request latency, chunk/link counts, backend latency)
+- [ ] Helm chart hardening (HPA, PDB, network policies, secret refs)
+- [ ] Helm chart: optional MCP sidecar
+- [ ] Ingress configuration (gRPC + REST)
+- [ ] Integration test suite (CRUD, search, links, compaction, ACLs)
+- [ ] Vector backend conformance test harness (reusable across backends)
+
+## 11. Verification
 
 - **Unit tests**: each internal package has tests; vector backend interface has a conformance test suite that all implementations must pass
 - **Integration tests**: Docker Compose setup with PostgreSQL + Creel server; tests cover full CRUD, search, link traversal, compaction, ACL enforcement

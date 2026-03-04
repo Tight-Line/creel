@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS system_account_keys;
+DROP TABLE IF EXISTS system_accounts;
 DROP TABLE IF EXISTS links;
 DROP TABLE IF EXISTS chunks;
 DROP TABLE IF EXISTS documents;

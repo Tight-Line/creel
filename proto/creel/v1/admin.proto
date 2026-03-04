@@ -4,8 +4,17 @@ package creel.v1;
 
 option go_package = "github.com/Tight-Line/creel/proto/creel/v1;creelv1";
 
+import "google/protobuf/timestamp.proto";
+
 service AdminService {
   rpc Health(HealthRequest) returns (HealthResponse);
+
+  // System account management
+  rpc CreateSystemAccount(CreateSystemAccountRequest) returns (CreateSystemAccountResponse);
+  rpc ListSystemAccounts(ListSystemAccountsRequest) returns (ListSystemAccountsResponse);
+  rpc DeleteSystemAccount(DeleteSystemAccountRequest) returns (DeleteSystemAccountResponse);
+  rpc RotateKey(RotateKeyRequest) returns (RotateKeyResponse);
+  rpc RevokeKey(RevokeKeyRequest) returns (RevokeKeyResponse);
 }
 
 message HealthRequest {}
@@ -14,3 +23,48 @@ message HealthResponse {
   string status = 1;
   string version = 2;
 }
+
+message SystemAccount {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string principal = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message CreateSystemAccountRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message CreateSystemAccountResponse {
+  SystemAccount account = 1;
+  string api_key = 2;  // returned only on creation; not retrievable afterward
+}
+
+message ListSystemAccountsRequest {}
+
+message ListSystemAccountsResponse {
+  repeated SystemAccount accounts = 1;
+}
+
+message DeleteSystemAccountRequest {
+  string id = 1;
+}
+
+message DeleteSystemAccountResponse {}
+
+message RotateKeyRequest {
+  string account_id = 1;
+  int32 grace_period_seconds = 2;  // how long the old key remains valid (0 = no grace)
+}
+
+message RotateKeyResponse {
+  string api_key = 1;  // the new key; not retrievable afterward
+}
+
+message RevokeKeyRequest {
+  string account_id = 1;
+}
+
+message RevokeKeyResponse {}

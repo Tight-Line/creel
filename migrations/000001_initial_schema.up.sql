@@ -59,3 +59,22 @@ CREATE TABLE links (
 
 CREATE INDEX idx_links_source ON links(source_chunk);
 CREATE INDEX idx_links_target ON links(target_chunk);
+
+CREATE TABLE system_accounts (
+    id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name          TEXT NOT NULL UNIQUE,
+    description   TEXT NOT NULL DEFAULT '',
+    principal     TEXT NOT NULL UNIQUE,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE system_account_keys (
+    id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    account_id        UUID NOT NULL REFERENCES system_accounts(id) ON DELETE CASCADE,
+    key_hash          TEXT NOT NULL UNIQUE,
+    key_prefix        TEXT NOT NULL,
+    status            TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'grace_period', 'revoked')),
+    grace_expires_at  TIMESTAMPTZ,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    revoked_at        TIMESTAMPTZ
+);

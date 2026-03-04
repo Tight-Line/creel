@@ -19,15 +19,23 @@ type ServerConfig struct {
 }
 
 type AuthConfig struct {
-	OIDCIssuer     string         `yaml:"oidc_issuer"`
-	OIDCAudience   string         `yaml:"oidc_audience"`
-	PrincipalClaim string         `yaml:"principal_claim"`
-	APIKeys        []APIKeyConfig `yaml:"api_keys"`
+	Providers      []OIDCProviderConfig `yaml:"providers"`
+	PrincipalClaim string               `yaml:"principal_claim"`
+	GroupsClaim    string               `yaml:"groups_claim"`
+	APIKeys        []APIKeyConfig       `yaml:"api_keys"`
+}
+
+// OIDCProviderConfig defines a trusted OIDC identity provider.
+// Multiple providers can be configured to support different IdPs simultaneously.
+type OIDCProviderConfig struct {
+	Issuer   string `yaml:"issuer"`
+	Audience string `yaml:"audience"`
 }
 
 type APIKeyConfig struct {
-	Name    string `yaml:"name"`
-	KeyHash string `yaml:"key_hash"`
+	Name      string `yaml:"name"`
+	KeyHash   string `yaml:"key_hash"`
+	Principal string `yaml:"principal"` // principal identity this key authenticates as
 }
 
 type MetadataConfig struct {
