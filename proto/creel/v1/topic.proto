@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package creel.v1;
+
+option go_package = "github.com/Tight-Line/creel/proto/creel/v1;creelv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+service TopicService {
+  rpc CreateTopic(CreateTopicRequest) returns (Topic);
+  rpc GetTopic(GetTopicRequest) returns (Topic);
+  rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
+  rpc UpdateTopic(UpdateTopicRequest) returns (Topic);
+  rpc DeleteTopic(DeleteTopicRequest) returns (DeleteTopicResponse);
+  rpc GrantAccess(GrantAccessRequest) returns (TopicGrant);
+  rpc RevokeAccess(RevokeAccessRequest) returns (RevokeAccessResponse);
+  rpc ListGrants(ListGrantsRequest) returns (ListGrantsResponse);
+}
+
+message Topic {
+  string id = 1;
+  string slug = 2;
+  string name = 3;
+  string description = 4;
+  string owner = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message TopicGrant {
+  string id = 1;
+  string topic_id = 2;
+  string principal = 3;
+  Permission permission = 4;
+  string granted_by = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+enum Permission {
+  PERMISSION_UNSPECIFIED = 0;
+  PERMISSION_READ = 1;
+  PERMISSION_WRITE = 2;
+  PERMISSION_ADMIN = 3;
+}
+
+message CreateTopicRequest {
+  string slug = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message GetTopicRequest {
+  string id = 1;
+}
+
+message ListTopicsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListTopicsResponse {
+  repeated Topic topics = 1;
+  string next_page_token = 2;
+}
+
+message UpdateTopicRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message DeleteTopicRequest {
+  string id = 1;
+}
+
+message DeleteTopicResponse {}
+
+message GrantAccessRequest {
+  string topic_id = 1;
+  string principal = 2;
+  Permission permission = 3;
+}
+
+message RevokeAccessRequest {
+  string topic_id = 1;
+  string principal = 2;
+}
+
+message RevokeAccessResponse {}
+
+message ListGrantsRequest {
+  string topic_id = 1;
+}
+
+message ListGrantsResponse {
+  repeated TopicGrant grants = 1;
+}

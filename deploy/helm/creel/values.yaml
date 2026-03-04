@@ -1,0 +1,57 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/tight-line/creel
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  grpc:
+    port: 8443
+  rest:
+    port: 8080
+  metrics:
+    port: 9090
+
+auth:
+  oidcIssuer: ""
+  oidcAudience: creel
+  principalClaim: email
+
+metadata:
+  postgresUrl: ""
+  # existingSecret: ""
+
+vectorBackend:
+  type: pgvector
+  config: {}
+
+embedding:
+  provider: ""
+  model: ""
+  # apiKeySecret: ""
+
+links:
+  autoLinkOnIngest: true
+  autoLinkThreshold: 0.85
+  maxTraversalDepth: 2
+
+compaction:
+  retainCompactedChunks: true
+
+postgresql:
+  enabled: false
+
+mcp:
+  enabled: false
+
+resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+ingress:
+  enabled: false

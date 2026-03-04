@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-creel
+  labels:
+    app.kubernetes.io/name: creel
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: creel
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: creel
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: creel
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.service.grpc.port }}
+            - name: rest
+              containerPort: {{ .Values.service.rest.port }}
+            - name: metrics
+              containerPort: {{ .Values.service.metrics.port }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: rest
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: rest
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

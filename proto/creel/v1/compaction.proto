@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package creel.v1;
+
+option go_package = "github.com/Tight-Line/creel/proto/creel/v1;creelv1";
+
+import "google/protobuf/struct.proto";
+import "creel/v1/chunk.proto";
+
+service CompactionService {
+  rpc Compact(CompactRequest) returns (CompactResponse);
+  rpc Uncompact(UncompactRequest) returns (UncompactResponse);
+}
+
+message CompactRequest {
+  string document_id = 1;
+  repeated string chunk_ids = 2;
+  string summary_content = 3;
+  repeated double summary_embedding = 4;
+  google.protobuf.Struct summary_metadata = 5;
+}
+
+message CompactResponse {
+  Chunk summary_chunk = 1;
+  int32 compacted_count = 2;
+}
+
+message UncompactRequest {
+  string summary_chunk_id = 1;
+}
+
+message UncompactResponse {
+  repeated Chunk restored_chunks = 1;
+}

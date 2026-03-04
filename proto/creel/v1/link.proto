@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package creel.v1;
+
+option go_package = "github.com/Tight-Line/creel/proto/creel/v1;creelv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+service LinkService {
+  rpc CreateLink(CreateLinkRequest) returns (Link);
+  rpc DeleteLink(DeleteLinkRequest) returns (DeleteLinkResponse);
+  rpc ListLinks(ListLinksRequest) returns (ListLinksResponse);
+}
+
+enum LinkType {
+  LINK_TYPE_UNSPECIFIED = 0;
+  LINK_TYPE_MANUAL = 1;
+  LINK_TYPE_AUTO = 2;
+  LINK_TYPE_COMPACTION_TRANSFER = 3;
+}
+
+message Link {
+  string id = 1;
+  string source_chunk_id = 2;
+  string target_chunk_id = 3;
+  LinkType link_type = 4;
+  string created_by = 5;
+  google.protobuf.Struct metadata = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message CreateLinkRequest {
+  string source_chunk_id = 1;
+  string target_chunk_id = 2;
+  LinkType link_type = 3;
+  google.protobuf.Struct metadata = 4;
+}
+
+message DeleteLinkRequest {
+  string id = 1;
+}
+
+message DeleteLinkResponse {}
+
+message ListLinksRequest {
+  string chunk_id = 1;
+  bool include_backlinks = 2;
+}
+
+message ListLinksResponse {
+  repeated Link links = 1;
+}

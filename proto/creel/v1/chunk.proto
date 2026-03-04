@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package creel.v1;
+
+option go_package = "github.com/Tight-Line/creel/proto/creel/v1;creelv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+service ChunkService {
+  rpc IngestChunks(IngestChunksRequest) returns (IngestChunksResponse);
+  rpc GetChunk(GetChunkRequest) returns (Chunk);
+  rpc DeleteChunk(DeleteChunkRequest) returns (DeleteChunkResponse);
+}
+
+enum ChunkStatus {
+  CHUNK_STATUS_UNSPECIFIED = 0;
+  CHUNK_STATUS_ACTIVE = 1;
+  CHUNK_STATUS_COMPACTED = 2;
+}
+
+message Chunk {
+  string id = 1;
+  string document_id = 2;
+  int32 sequence = 3;
+  string content = 4;
+  string embedding_id = 5;
+  ChunkStatus status = 6;
+  string compacted_by = 7;
+  google.protobuf.Struct metadata = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message ChunkInput {
+  string content = 1;
+  repeated double embedding = 2;
+  int32 sequence = 3;
+  google.protobuf.Struct metadata = 4;
+}
+
+message IngestChunksRequest {
+  string document_id = 1;
+  repeated ChunkInput chunks = 2;
+}
+
+message IngestChunksResponse {
+  repeated Chunk chunks = 1;
+}
+
+message GetChunkRequest {
+  string id = 1;
+}
+
+message DeleteChunkRequest {
+  string id = 1;
+}
+
+message DeleteChunkResponse {}

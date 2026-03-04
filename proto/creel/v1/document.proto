@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package creel.v1;
+
+option go_package = "github.com/Tight-Line/creel/proto/creel/v1;creelv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+service DocumentService {
+  rpc CreateDocument(CreateDocumentRequest) returns (Document);
+  rpc GetDocument(GetDocumentRequest) returns (Document);
+  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
+  rpc UpdateDocument(UpdateDocumentRequest) returns (Document);
+  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+}
+
+message Document {
+  string id = 1;
+  string topic_id = 2;
+  string slug = 3;
+  string name = 4;
+  string doc_type = 5;
+  google.protobuf.Struct metadata = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message CreateDocumentRequest {
+  string topic_id = 1;
+  string slug = 2;
+  string name = 3;
+  string doc_type = 4;
+  google.protobuf.Struct metadata = 5;
+}
+
+message GetDocumentRequest {
+  string id = 1;
+}
+
+message ListDocumentsRequest {
+  string topic_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListDocumentsResponse {
+  repeated Document documents = 1;
+  string next_page_token = 2;
+}
+
+message UpdateDocumentRequest {
+  string id = 1;
+  string name = 2;
+  string doc_type = 3;
+  google.protobuf.Struct metadata = 4;
+}
+
+message DeleteDocumentRequest {
+  string id = 1;
+}
+
+message DeleteDocumentResponse {}

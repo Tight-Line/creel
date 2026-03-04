@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package creel.v1;
+
+option go_package = "github.com/Tight-Line/creel/proto/creel/v1;creelv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "creel/v1/chunk.proto";
+import "creel/v1/link.proto";
+
+service RetrievalService {
+  rpc Search(SearchRequest) returns (SearchResponse);
+  rpc GetContext(GetContextRequest) returns (GetContextResponse);
+}
+
+message SearchRequest {
+  repeated string topic_ids = 1;
+  repeated double query_embedding = 2;
+  string query_text = 3;
+  int32 top_k = 4;
+  bool follow_links = 5;
+  int32 link_depth = 6;
+  google.protobuf.Struct metadata_filter = 7;
+}
+
+message SearchResult {
+  Chunk chunk = 1;
+  string document_id = 2;
+  string topic_id = 3;
+  double score = 4;
+  Link via_link = 5;
+}
+
+message SearchResponse {
+  repeated SearchResult results = 1;
+}
+
+message GetContextRequest {
+  string document_id = 1;
+  int32 last_n = 2;
+  google.protobuf.Timestamp since = 3;
+  bool include_summaries = 4;
+}
+
+message GetContextResponse {
+  repeated Chunk chunks = 1;
+}
