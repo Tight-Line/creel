@@ -6,16 +6,15 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // TopicStore handles topic and grant persistence.
 type TopicStore struct {
-	pool *pgxpool.Pool
+	pool DBTX
 }
 
 // NewTopicStore creates a new topic store.
-func NewTopicStore(pool *pgxpool.Pool) *TopicStore {
+func NewTopicStore(pool DBTX) *TopicStore {
 	return &TopicStore{pool: pool}
 }
 

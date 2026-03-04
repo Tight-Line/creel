@@ -7,16 +7,15 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // DocumentStore handles document persistence.
 type DocumentStore struct {
-	pool *pgxpool.Pool
+	pool DBTX
 }
 
 // NewDocumentStore creates a new document store.
-func NewDocumentStore(pool *pgxpool.Pool) *DocumentStore {
+func NewDocumentStore(pool DBTX) *DocumentStore {
 	return &DocumentStore{pool: pool}
 }
 

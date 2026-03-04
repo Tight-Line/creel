@@ -15,11 +15,26 @@ import (
 // Backend implements vector.Backend using pgvector cosine similarity.
 type Backend struct {
 	pool *pgxpool.Pool
+	dim  int
 }
 
-// New creates a new pgvector backend.
+// DefaultEmbeddingDimension is the default dimension for the pgvector
+// chunk_embeddings column. Must match the vector(N) in the migration.
+const DefaultEmbeddingDimension = 1536
+
+// New creates a new pgvector backend with the default embedding dimension (1536).
 func New(pool *pgxpool.Pool) *Backend {
-	return &Backend{pool: pool}
+	return &Backend{pool: pool, dim: DefaultEmbeddingDimension}
+}
+
+// NewWithDimension creates a new pgvector backend with a custom embedding dimension.
+func NewWithDimension(pool *pgxpool.Pool, dim int) *Backend {
+	return &Backend{pool: pool, dim: dim}
+}
+
+// EmbeddingDimension returns the number of dimensions this backend expects.
+func (b *Backend) EmbeddingDimension() int {
+	return b.dim
 }
 
 // Store persists a chunk's embedding.

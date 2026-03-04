@@ -7,16 +7,15 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // ChunkStore handles chunk persistence.
 type ChunkStore struct {
-	pool *pgxpool.Pool
+	pool DBTX
 }
 
 // NewChunkStore creates a new chunk store.
-func NewChunkStore(pool *pgxpool.Pool) *ChunkStore {
+func NewChunkStore(pool DBTX) *ChunkStore {
 	return &ChunkStore{pool: pool}
 }
 
@@ -116,6 +115,57 @@ func (s *ChunkStore) ChunkIDsByTopics(ctx context.Context, topicIDs []string) ([
 		ids = append(ids, id)
 	}
 	return ids, rows.Err()
+}
+
+// GetMultiple retrieves multiple chunks by ID in a single query.
+func (s *ChunkStore) GetMultiple(ctx context.Context, ids []string) (map[string]*Chunk, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, document_id, sequence, content, embedding_id, status, compacted_by, metadata, created_at
+		 FROM chunks WHERE id = ANY($1)`, ids,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("querying chunks: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]*Chunk, len(ids))
+	for rows.Next() {
+		var c Chunk
+		var metaBytes []byte
+		if err := rows.Scan(&c.ID, &c.DocumentID, &c.Sequence, &c.Content, &c.EmbeddingID, &c.Status, &c.CompactedBy, &metaBytes, &c.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scanning chunk: %w", err)
+		}
+		_ = json.Unmarshal(metaBytes, &c.Metadata)
+		result[c.ID] = &c
+	}
+	return result, rows.Err()
+}
+
+// DocumentTopicIDs returns a mapping of document ID to topic ID for the given documents.
+func (s *ChunkStore) DocumentTopicIDs(ctx context.Context, docIDs []string) (map[string]string, error) {
+	if len(docIDs) == 0 {
+		return nil, nil
+	}
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, topic_id FROM documents WHERE id = ANY($1)`, docIDs,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("querying document topics: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]string, len(docIDs))
+	for rows.Next() {
+		var docID, topicID string
+		if err := rows.Scan(&docID, &topicID); err != nil {
+			return nil, fmt.Errorf("scanning document topic: %w", err)
+		}
+		result[docID] = topicID
+	}
+	return result, rows.Err()
 }
 
 // DocumentTopicID returns the topic ID for a chunk's document.
