@@ -76,10 +76,17 @@ func run() error {
 		}
 	}
 
+	// Create stores and authorizer.
+	grantStore := store.NewGrantStore(pool)
+	topicStore := store.NewTopicStore(pool)
+	authorizer := auth.NewGrantAuthorizer(grantStore)
+
 	// Create and wire server.
 	srv := server.New(cfg.Server.GRPCPort, apiKeyValidator, oidcValidator)
 	adminServer := server.NewAdminServer(pool, accountStore, version)
+	topicServer := server.NewTopicServer(topicStore, authorizer)
 	pb.RegisterAdminServiceServer(srv.GRPCServer(), adminServer)
+	pb.RegisterTopicServiceServer(srv.GRPCServer(), topicServer)
 
 	// Handle shutdown signals.
 	sigCh := make(chan os.Signal, 1)
