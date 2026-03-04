@@ -25,6 +25,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - uses: bufbuild/buf-setup-action@v1
+      - run: buf generate
+      - run: go mod tidy
       - run: go test -race -count=1 ./...
 
   build:
@@ -35,5 +38,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - uses: bufbuild/buf-setup-action@v1
+      - run: buf generate
+      - run: go mod tidy
       - run: make build
       - run: test -f bin/creel && test -f bin/creel-cli
