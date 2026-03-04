@@ -2,10 +2,7 @@ syntax = "proto3";
 
 package creel.v1;
 
-option go_package = "github.com/Tight-Line/creel/proto/creel/v1;creelv1";
-
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/struct.proto";
 
 service TopicService {
   rpc CreateTopic(CreateTopicRequest) returns (Topic);

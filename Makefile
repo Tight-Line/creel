@@ -16,10 +16,11 @@ lint:
 	golangci-lint run ./...
 
 proto-gen:
-	@echo "proto-gen: not yet configured (see Step 1)"
+	buf generate
+	go mod tidy
 
 proto-lint:
-	@echo "proto-lint: not yet configured (see Step 1)"
+	buf lint
 
 clean:
 	rm -rf bin/
