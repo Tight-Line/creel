@@ -1,0 +1,45 @@
+# Creel server configuration
+# Copy to creel.yaml and adjust for your environment.
+
+server:
+  grpc_port: 8443
+  rest_port: 8080
+  metrics_port: 9090
+
+auth:
+  principal_claim: sub
+  groups_claim: groups
+
+  # OIDC providers for JWT-based authentication.
+  # providers:
+  #   - issuer: https://accounts.google.com
+  #     audience: creel
+
+  # Static API keys for bootstrapping. Generate with:
+  #   creel-cli admin bootstrap-key
+  api_keys: []
+  #   - name: bootstrap
+  #     key_hash: "<sha256 hex of the key>"
+  #     principal: "system:bootstrap"
+
+metadata:
+  # Required. PostgreSQL connection string.
+  postgres_url: postgres://creel:creel@localhost:5432/creel?sslmode=disable
+
+vector_backend:
+  type: pgvector
+  # config:
+  #   url: postgres://creel:creel@localhost:5432/creel?sslmode=disable
+
+# embedding:
+#   provider: openai
+#   model: text-embedding-3-small
+#   api_key: sk-...
+
+links:
+  auto_link_on_ingest: true
+  auto_link_threshold: 0.85
+  max_traversal_depth: 2
+
+compaction:
+  retain_compacted_chunks: true
