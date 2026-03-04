@@ -35,7 +35,7 @@ func NewSearcher(chunkStore *store.ChunkStore, authorizer auth.Authorizer, backe
 
 // Search performs an ACL-filtered similarity search.
 // If topicIDs is empty, it searches all topics accessible to the principal.
-func (s *Searcher) Search(ctx context.Context, principal *auth.Principal, topicIDs []string, queryEmbedding []float64, topK int) ([]Result, error) {
+func (s *Searcher) Search(ctx context.Context, principal *auth.Principal, topicIDs []string, queryEmbedding []float64, topK int, metadataFilter map[string]any) ([]Result, error) {
 	// Resolve accessible topics.
 	accessible, err := s.resolveTopics(ctx, principal, topicIDs)
 	if err != nil {
@@ -55,7 +55,7 @@ func (s *Searcher) Search(ctx context.Context, principal *auth.Principal, topicI
 	}
 
 	// Search vector backend with ACL filter.
-	filter := vector.Filter{ChunkIDs: chunkIDs}
+	filter := vector.Filter{ChunkIDs: chunkIDs, Metadata: metadataFilter}
 	searchResults, err := s.backend.Search(ctx, queryEmbedding, filter, topK)
 	if err != nil {
 		return nil, fmt.Errorf("searching vector backend: %w", err)

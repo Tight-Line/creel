@@ -37,7 +37,12 @@ func (s *RetrievalServer) Search(ctx context.Context, req *pb.SearchRequest) (*p
 		topK = 10
 	}
 
-	results, err := s.searcher.Search(ctx, p, req.GetTopicIds(), req.GetQueryEmbedding(), topK)
+	var metadataFilter map[string]any
+	if mf := req.GetMetadataFilter(); mf != nil {
+		metadataFilter = mf.AsMap()
+	}
+
+	results, err := s.searcher.Search(ctx, p, req.GetTopicIds(), req.GetQueryEmbedding(), topK, metadataFilter)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "search: %v", err)
 	}

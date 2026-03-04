@@ -80,6 +80,36 @@ func RunConformanceTests(t *testing.T, backend vector.Backend) {
 		}
 	})
 
+	t.Run("SearchWithMetadataFilter", func(t *testing.T) {
+		// Chunk1 has {"source": "test"}, Chunk2 and Chunk3 have nil metadata.
+		// Filtering for {"source": "test"} should return only Chunk1.
+		results, err := backend.Search(ctx, makeVec(1.0), vector.Filter{Metadata: map[string]any{"source": "test"}}, 10)
+		if err != nil {
+			t.Fatalf("Search with metadata filter: %v", err)
+		}
+		if len(results) != 1 {
+			t.Fatalf("expected 1 result with metadata filter, got %d", len(results))
+		}
+		if results[0].ChunkID != ids.Chunk1 {
+			t.Errorf("expected %s, got %s", ids.Chunk1, results[0].ChunkID)
+		}
+	})
+
+	t.Run("SearchWithMetadataFilterAndChunkIDs", func(t *testing.T) {
+		// Combine chunk ID filter with metadata filter; Chunk1 matches metadata
+		// but is excluded by the chunk ID filter, so no results.
+		results, err := backend.Search(ctx, makeVec(1.0), vector.Filter{
+			ChunkIDs: []string{ids.Chunk2, ids.Chunk3},
+			Metadata: map[string]any{"source": "test"},
+		}, 10)
+		if err != nil {
+			t.Fatalf("Search with both filters: %v", err)
+		}
+		if len(results) != 0 {
+			t.Errorf("expected 0 results, got %d", len(results))
+		}
+	})
+
 	t.Run("Delete", func(t *testing.T) {
 		if err := backend.Delete(ctx, ids.Chunk3); err != nil {
 			t.Fatalf("Delete: %v", err)
