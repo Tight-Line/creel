@@ -11,8 +11,8 @@ import (
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
 	"github.com/Tight-Line/creel/internal/auth"
 	"github.com/Tight-Line/creel/internal/config"
-	"github.com/Tight-Line/creel/internal/server"
 	"github.com/Tight-Line/creel/internal/retrieval"
+	"github.com/Tight-Line/creel/internal/server"
 	"github.com/Tight-Line/creel/internal/store"
 	"github.com/Tight-Line/creel/internal/vector/pgvector"
 )
