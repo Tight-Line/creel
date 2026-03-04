@@ -11,7 +11,7 @@ import (
 )
 
 func TestUnaryInterceptor_PublicMethod(t *testing.T) {
-	interceptor := UnaryInterceptor(NewAPIKeyValidator(nil, nil))
+	interceptor := UnaryInterceptor(NewAPIKeyValidator(nil, nil), nil)
 
 	called := false
 	handler := func(ctx context.Context, req any) (any, error) {
@@ -37,7 +37,7 @@ func TestUnaryInterceptor_ValidAPIKey(t *testing.T) {
 	staticKeys := map[string]*Principal{
 		hash: {ID: "system:test", IsSystem: true},
 	}
-	interceptor := UnaryInterceptor(NewAPIKeyValidator(staticKeys, nil))
+	interceptor := UnaryInterceptor(NewAPIKeyValidator(staticKeys, nil), nil)
 
 	md := metadata.Pairs("authorization", "Bearer "+raw)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
@@ -59,7 +59,7 @@ func TestUnaryInterceptor_ValidAPIKey(t *testing.T) {
 }
 
 func TestUnaryInterceptor_MissingAuth(t *testing.T) {
-	interceptor := UnaryInterceptor(NewAPIKeyValidator(nil, nil))
+	interceptor := UnaryInterceptor(NewAPIKeyValidator(nil, nil), nil)
 
 	handler := func(ctx context.Context, req any) (any, error) {
 		t.Error("handler should not be called")
@@ -77,7 +77,7 @@ func TestUnaryInterceptor_MissingAuth(t *testing.T) {
 }
 
 func TestUnaryInterceptor_InvalidKey(t *testing.T) {
-	interceptor := UnaryInterceptor(NewAPIKeyValidator(nil, nil))
+	interceptor := UnaryInterceptor(NewAPIKeyValidator(nil, nil), nil)
 
 	md := metadata.Pairs("authorization", "Bearer creel_ak_invalid")
 	ctx := metadata.NewIncomingContext(context.Background(), md)
