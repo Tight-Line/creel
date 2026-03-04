@@ -54,9 +54,9 @@ type EmbeddingConfig struct {
 }
 
 type LinksConfig struct {
-	AutoLinkOnIngest   bool    `yaml:"auto_link_on_ingest"`
-	AutoLinkThreshold  float64 `yaml:"auto_link_threshold"`
-	MaxTraversalDepth  int     `yaml:"max_traversal_depth"`
+	AutoLinkOnIngest  bool    `yaml:"auto_link_on_ingest"`
+	AutoLinkThreshold float64 `yaml:"auto_link_threshold"`
+	MaxTraversalDepth int     `yaml:"max_traversal_depth"`
 }
 
 type CompactionConfig struct {
