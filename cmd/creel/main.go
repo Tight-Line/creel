@@ -13,6 +13,7 @@ import (
 	"github.com/Tight-Line/creel/internal/config"
 	"github.com/Tight-Line/creel/internal/server"
 	"github.com/Tight-Line/creel/internal/store"
+	"github.com/Tight-Line/creel/internal/vector/pgvector"
 )
 
 // version is set at build time via -ldflags.
@@ -76,10 +77,12 @@ func run() error {
 		}
 	}
 
-	// Create stores and authorizer.
+	// Create stores, vector backend, and authorizer.
 	grantStore := store.NewGrantStore(pool)
 	topicStore := store.NewTopicStore(pool)
 	docStore := store.NewDocumentStore(pool)
+	chunkStore := store.NewChunkStore(pool)
+	vectorBackend := pgvector.New(pool)
 	authorizer := auth.NewGrantAuthorizer(grantStore)
 
 	// Create and wire server.
@@ -87,9 +90,11 @@ func run() error {
 	adminServer := server.NewAdminServer(pool, accountStore, version)
 	topicServer := server.NewTopicServer(topicStore, authorizer)
 	docServer := server.NewDocumentServer(docStore, authorizer)
+	chunkServer := server.NewChunkServer(chunkStore, docStore, vectorBackend, authorizer)
 	pb.RegisterAdminServiceServer(srv.GRPCServer(), adminServer)
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), topicServer)
 	pb.RegisterDocumentServiceServer(srv.GRPCServer(), docServer)
+	pb.RegisterChunkServiceServer(srv.GRPCServer(), chunkServer)
 
 	// Handle shutdown signals.
 	sigCh := make(chan os.Signal, 1)
