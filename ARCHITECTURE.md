@@ -783,44 +783,44 @@ creel/
 
 ### Phase 1: Foundation
 
-- [ ] CI/CD pipeline (GitHub Actions: lint, test, build)
-- [ ] PostgreSQL schema migrations (golang-migrate)
-- [ ] Protobuf codegen pipeline (buf or protoc)
-- [ ] Configuration loading (YAML + env vars)
-- [ ] Auth middleware: OIDC token validation (JWKS fetch + cache + periodic refresh)
-- [ ] Auth middleware: API key validation (hash lookup in PostgreSQL)
-- [ ] Principal context extraction (identity + groups from token claims)
-- [ ] Authorizer interface definition
-- [ ] Built-in GrantAuthorizer (TopicGrant table, individual + group matching)
-- [ ] System account management (create, list, delete)
-- [ ] API key lifecycle (rotate with grace period, revoke)
-- [ ] Bootstrap API key (config file, for initial admin setup)
-- [ ] Topic CRUD (create, get, list, update, delete)
-- [ ] Topic grants: individual principal grants (user:...)
-- [ ] Topic grants: group grants (group:...)
-- [ ] ACL enforcement on topic operations via Authorizer
-- [ ] Document CRUD (create, get, list, update, delete)
-- [ ] Chunk ingestion (single, with pre-computed embedding)
-- [ ] Chunk ingestion (batch, with pre-computed embeddings)
-- [ ] Vector backend interface definition
-- [ ] pgvector backend implementation
-- [ ] pgvector backend conformance tests
-- [ ] Basic RAG search (single topic, no link traversal)
-- [ ] ACL filtering in search (restrict to accessible topics)
+- [x] CI/CD pipeline (GitHub Actions: lint, test, build)
+- [x] PostgreSQL schema migrations (golang-migrate)
+- [x] Protobuf codegen pipeline (buf or protoc)
+- [x] Configuration loading (YAML + env vars)
+- [x] Auth middleware: OIDC token validation (JWKS fetch + cache + periodic refresh)
+- [x] Auth middleware: API key validation (hash lookup in PostgreSQL)
+- [x] Principal context extraction (identity + groups from token claims)
+- [x] Authorizer interface definition
+- [x] Built-in GrantAuthorizer (TopicGrant table, individual + group matching)
+- [x] System account management (create, list, delete)
+- [x] API key lifecycle (rotate with grace period, revoke)
+- [x] Bootstrap API key (config file, for initial admin setup)
+- [x] Topic CRUD (create, get, list, update, delete)
+- [x] Topic grants: individual principal grants (user:...)
+- [x] Topic grants: group grants (group:...)
+- [x] ACL enforcement on topic operations via Authorizer
+- [x] Document CRUD (create, get, list, update, delete)
+- [x] Chunk ingestion (single, with pre-computed embedding)
+- [x] Chunk ingestion (batch, with pre-computed embeddings)
+- [x] Vector backend interface definition
+- [x] pgvector backend implementation
+- [x] pgvector backend conformance tests
+- [x] Basic RAG search (single topic, no link traversal)
+- [x] ACL filtering in search (restrict to accessible topics)
 - [ ] Metadata filtering in search results
-- [ ] Dockerfile (multi-stage, multi-arch)
-- [ ] Docker Compose with all current backends (PostgreSQL/pgvector)
-- [ ] Basic Helm chart (deployment, service, configmap)
-- [ ] Helm: PostgreSQL via canonical subchart (CloudNativePG or upstream; no Bitnami)
-- [ ] Helm: external PostgreSQL option (host, port, secretName in values.yaml)
-- [ ] Health endpoint
-- [ ] gRPC server wiring (all Phase 1 services)
-- [ ] CLI: project scaffold (cobra or similar)
-- [ ] CLI: config management (endpoint, API key, profiles)
-- [ ] CLI: `creel health`
-- [ ] CLI: `creel admin create-account / list-accounts / rotate-key / revoke-key`
-- [ ] CLI: `creel topic create / list / grant / grants`
-- [ ] CLI: `creel search` and `creel context` (basic)
+- [x] Dockerfile (multi-stage, multi-arch)
+- [x] Docker Compose with all current backends (PostgreSQL/pgvector)
+- [x] Basic Helm chart (deployment, service, configmap)
+- [x] Helm: PostgreSQL via canonical subchart (CloudNativePG or upstream; no Bitnami)
+- [x] Helm: external PostgreSQL option (host, port, secretName in values.yaml)
+- [x] Health endpoint
+- [x] gRPC server wiring (all Phase 1 services)
+- [x] CLI: project scaffold (cobra or similar)
+- [x] CLI: config management (endpoint, API key, profiles)
+- [x] CLI: `creel health`
+- [x] CLI: `creel admin create-account / list-accounts / rotate-key / revoke-key`
+- [x] CLI: `creel topic create / list / grant / grants`
+- [x] CLI: `creel search` and `creel context` (basic)
 
 ### Phase 2: Linking & Traversal
 
