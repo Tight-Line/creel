@@ -1,4 +1,5 @@
 # Binaries
+bin/
 /creel
 /creel-cli
 *.exe
