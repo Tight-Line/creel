@@ -1,4 +1,4 @@
-.PHONY: all build test vet lint proto-gen proto-lint clean run
+.PHONY: all build test vet lint proto-gen proto-lint clean run docker-build compose-up compose-down
 
 all: lint vet test build
 
@@ -24,6 +24,15 @@ proto-lint:
 
 run: build
 	./bin/creel --config creel.yaml
+
+docker-build:
+	docker build -f deploy/docker/Dockerfile -t creel:local .
+
+compose-up:
+	docker compose up -d
+
+compose-down:
+	docker compose down
 
 clean:
 	rm -rf bin/
