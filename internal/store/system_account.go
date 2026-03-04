@@ -6,18 +6,17 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Tight-Line/creel/internal/auth"
 )
 
 // SystemAccountStore handles system account and key persistence.
 type SystemAccountStore struct {
-	pool *pgxpool.Pool
+	pool DBTX
 }
 
 // NewSystemAccountStore creates a new store backed by the given pool.
-func NewSystemAccountStore(pool *pgxpool.Pool) *SystemAccountStore {
+func NewSystemAccountStore(pool DBTX) *SystemAccountStore {
 	return &SystemAccountStore{pool: pool}
 }
 

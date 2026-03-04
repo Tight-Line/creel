@@ -60,20 +60,47 @@ func (s *Searcher) Search(ctx context.Context, principal *auth.Principal, topicI
 	if err != nil {
 		return nil, fmt.Errorf("searching vector backend: %w", err)
 	}
+	if len(searchResults) == 0 {
+		return nil, nil
+	}
 
-	// Hydrate results with chunk data.
+	// Collect chunk IDs from search results, fetch all at once.
+	resultChunkIDs := make([]string, len(searchResults))
+	for i, sr := range searchResults {
+		resultChunkIDs[i] = sr.ChunkID
+	}
+
+	chunks, err := s.chunkStore.GetMultiple(ctx, resultChunkIDs)
+	if err != nil {
+		return nil, fmt.Errorf("fetching chunks: %w", err)
+	}
+
+	// Collect unique document IDs, fetch all topic mappings at once.
+	docIDSet := make(map[string]struct{})
+	for _, c := range chunks {
+		docIDSet[c.DocumentID] = struct{}{}
+	}
+	docIDs := make([]string, 0, len(docIDSet))
+	for id := range docIDSet {
+		docIDs = append(docIDs, id)
+	}
+
+	docTopics, err := s.chunkStore.DocumentTopicIDs(ctx, docIDs)
+	if err != nil {
+		return nil, fmt.Errorf("fetching document topics: %w", err)
+	}
+
+	// Assemble results preserving search result order.
 	var results []Result
 	for _, sr := range searchResults {
-		chunk, err := s.chunkStore.Get(ctx, sr.ChunkID)
-		if err != nil {
+		chunk, ok := chunks[sr.ChunkID]
+		if !ok {
 			continue
 		}
-
-		topicID, err := s.chunkStore.DocumentTopicID(ctx, chunk.DocumentID)
-		if err != nil {
+		topicID, ok := docTopics[chunk.DocumentID]
+		if !ok {
 			continue
 		}
-
 		results = append(results, Result{
 			Chunk:   chunk,
 			TopicID: topicID,
@@ -85,18 +112,29 @@ func (s *Searcher) Search(ctx context.Context, principal *auth.Principal, topicI
 }
 
 // resolveTopics determines which topics the principal can search.
+// Uses a single batch query via AccessibleTopics, then intersects with
+// the requested set if specific topics were provided.
 func (s *Searcher) resolveTopics(ctx context.Context, principal *auth.Principal, requestedTopicIDs []string) ([]string, error) {
-	if len(requestedTopicIDs) > 0 {
-		// Validate that the principal has read access to each requested topic.
-		var accessible []string
-		for _, tid := range requestedTopicIDs {
-			if err := s.authorizer.Check(ctx, principal, tid, auth.ActionRead); err == nil {
-				accessible = append(accessible, tid)
-			}
-		}
-		return accessible, nil
+	allAccessible, err := s.authorizer.AccessibleTopics(ctx, principal, auth.ActionRead)
+	if err != nil {
+		return nil, fmt.Errorf("fetching accessible topics: %w", err)
 	}
 
-	// No topics specified; search all accessible topics.
-	return s.authorizer.AccessibleTopics(ctx, principal, auth.ActionRead)
+	if len(requestedTopicIDs) == 0 {
+		return allAccessible, nil
+	}
+
+	// Intersect requested with accessible.
+	accessibleSet := make(map[string]struct{}, len(allAccessible))
+	for _, id := range allAccessible {
+		accessibleSet[id] = struct{}{}
+	}
+
+	var result []string
+	for _, id := range requestedTopicIDs {
+		if _, ok := accessibleSet[id]; ok {
+			result = append(result, id)
+		}
+	}
+	return result, nil
 }

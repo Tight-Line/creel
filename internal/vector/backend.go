@@ -5,6 +5,9 @@ import "context"
 
 // Backend is the interface that all vector store implementations must satisfy.
 type Backend interface {
+	// EmbeddingDimension returns the number of dimensions this backend expects.
+	EmbeddingDimension() int
+
 	// Store persists a chunk's embedding.
 	Store(ctx context.Context, id string, embedding []float64, metadata map[string]any) error
 

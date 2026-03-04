@@ -4,18 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/Tight-Line/creel/internal/auth"
 )
 
 // GrantStore provides access to topic grants and ownership from PostgreSQL.
 type GrantStore struct {
-	pool *pgxpool.Pool
+	pool DBTX
 }
 
 // NewGrantStore creates a new grant store.
-func NewGrantStore(pool *pgxpool.Pool) *GrantStore {
+func NewGrantStore(pool DBTX) *GrantStore {
 	return &GrantStore{pool: pool}
 }
 
