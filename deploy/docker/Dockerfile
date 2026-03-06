@@ -1,9 +1,12 @@
 FROM golang:1.26-alpine AS builder
 
+RUN go install github.com/bufbuild/buf/cmd/buf@latest
+
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+RUN buf generate && go mod tidy
 RUN CGO_ENABLED=0 go build -o /creel ./cmd/creel
 RUN CGO_ENABLED=0 go build -o /creel-cli ./cmd/creel-cli
 RUN CGO_ENABLED=0 go build -o /creel-chat ./cmd/creel-chat
