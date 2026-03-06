@@ -1,5 +1,11 @@
 # Creel
 
+[![CI](https://github.com/Tight-Line/creel/actions/workflows/ci.yml/badge.svg)](https://github.com/Tight-Line/creel/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Tight-Line/creel/graph/badge.svg?token=TOKEN)](https://codecov.io/gh/Tight-Line/creel)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Tight-Line_creel&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Tight-Line_creel)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=Tight-Line_creel&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=Tight-Line_creel)
+[![Snyk](https://snyk.io/test/github/Tight-Line/creel/badge.svg)](https://snyk.io/test/github/Tight-Line/creel)
+
 Self-hosted memory-as-a-service for AI agents.
 
 Creel provides topic-scoped memory with principal-based RBAC, Zettelkasten-style chunk-to-chunk linking across topic boundaries, and dual-mode retrieval (semantic search + temporal context). It runs in your infrastructure via Helm chart.

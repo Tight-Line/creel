@@ -12,6 +12,7 @@ bin/
 *.test
 *.out
 coverage.txt
+coverage.html
 
 # IDE
 .idea/

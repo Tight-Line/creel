@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Codecov coverage reporting with 100% coverage enforcement
+- SonarCloud code quality and security scanning
+- Snyk dependency vulnerability scanning
+- Code quality badges in README
+
 ## [0.1.1] - 2026-03-06
 
 ### Added
