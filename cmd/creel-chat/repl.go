@@ -213,9 +213,7 @@ func buildMessages(retrieved []*pb.SearchResult, session []ChatMessage, currentI
 	messages = append(messages, ChatMessage{Role: "system", Content: systemPrompt})
 
 	// Add recent session messages for continuity.
-	for _, m := range session {
-		messages = append(messages, m)
-	}
+	messages = append(messages, session...)
 
 	// Add current user input.
 	messages = append(messages, ChatMessage{Role: "user", Content: currentInput})
