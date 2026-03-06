@@ -80,6 +80,20 @@ migrations/         SQL migrations (golang-migrate)
 proto/              protobuf definitions
 ```
 
+## Documentation Rules
+
+- Any commit that changes behavior, adds features, or modifies the API **must** update relevant docs and add a CHANGELOG.md entry under `[Unreleased]`.
+- Changelog entries should describe the change from the user's perspective, not the developer's. Good: "Search results now include metadata scores." Bad: "Added score field to SearchResult proto."
+- Do **not** add changelog entries for test-only changes or internal refactoring with no behavior change.
+- See `scripts/make-tag` for the release process.
+
+## Release Process
+
+- `scripts/make-tag X.Y.Z` handles the full release cycle: validates preconditions, runs `make all`, updates Chart.yaml and CHANGELOG.md, commits, and creates an annotated tag.
+- Must be on `main` with a clean working directory.
+- CI must be passing before tagging.
+- After tagging: `git push origin main vX.Y.Z` to trigger the release workflow.
+
 ## Git Workflow
 
 - **Never merge a PR without CI passing.** Always wait for all CI checks to go green before merging. No exceptions unless the human explicitly says to skip.
