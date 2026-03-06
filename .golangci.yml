@@ -11,16 +11,15 @@ linters:
     - unused
     - misspell
     - gocritic
+  exclusions:
+    paths:
+      - gen
 
 formatters:
   enable:
     - gofmt
     - goimports
-
-linters-settings:
-  goimports:
-    local-prefixes: github.com/Tight-Line/creel
-
-issues:
-  exclude-dirs:
-    - gen
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/Tight-Line/creel
