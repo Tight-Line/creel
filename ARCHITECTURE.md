@@ -832,6 +832,8 @@ creel/
 - [x] Chunk ingestion with embeddings and role/turn metadata
 - [x] Semantic search for cross-session context retrieval
 - [x] LLM prompt construction from retrieved chunks + session history
+- [ ] Two-layer retrieval: temporal (full current session ordered by sequence) + RAG (cross-session/cross-topic semantic search). Current implementation is RAG-only, which is wrong for current-session context. Blocked on `GetContext` RPC or a `ListChunks`-by-document endpoint.
+- [ ] Cross-topic RAG retrieval (search chunks in other topics accessible to the principal)
 
 ### Phase 2: Linking & Traversal
 

@@ -24,6 +24,7 @@ var (
 	ollamaURL     string
 	topicSlug     string
 	topK          int32
+	resumeDocID   string
 )
 
 func main() {
@@ -43,6 +44,7 @@ func main() {
 	root.Flags().StringVar(&ollamaURL, "ollama-url", "http://localhost:11434", "Ollama API base URL")
 	root.Flags().StringVar(&topicSlug, "topic", "creel-chat", "topic slug for conversation storage")
 	root.Flags().Int32Var(&topK, "top-k", 5, "number of context chunks to retrieve")
+	root.Flags().StringVar(&resumeDocID, "resume", "", "resume a previous session by document ID")
 
 	if err := root.Execute(); err != nil {
 		os.Exit(1)
@@ -77,14 +79,35 @@ func run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("ensuring topic: %w", err)
 	}
 
-	docID, err := createSessionDoc(ctx, conn, topicID)
-	if err != nil {
-		return fmt.Errorf("creating session document: %w", err)
+	var docID string
+	var seqOffset int32
+	if resumeDocID != "" {
+		docID, seqOffset, err = resumeSession(ctx, conn, resumeDocID)
+		if err != nil {
+			return fmt.Errorf("resuming session: %w", err)
+		}
+		fmt.Printf("creel-chat: resumed session %s (topic: %s, endpoint: %s)\n", docID, topicSlug, endpoint)
+	} else {
+		docID, err = createSessionDoc(ctx, conn, topicID)
+		if err != nil {
+			return fmt.Errorf("creating session document: %w", err)
+		}
+		fmt.Printf("creel-chat: new session %s (topic: %s, endpoint: %s)\n", docID, topicSlug, endpoint)
 	}
 
-	fmt.Printf("creel-chat: connected (topic: %s, endpoint: %s)\n", topicSlug, endpoint)
+	err = runLoop(ctx, conn, llm, embedder, topicID, docID, seqOffset)
 
-	return runLoop(ctx, conn, llm, embedder, topicID, docID)
+	// Print resume command on exit.
+	fmt.Printf("\nTo resume this session:\n  creel-chat --resume %s --topic %s", docID, topicSlug)
+	if endpoint != "localhost:8443" {
+		fmt.Printf(" --endpoint %s", endpoint)
+	}
+	if useTLS {
+		fmt.Print(" --tls")
+	}
+	fmt.Println()
+
+	return err
 }
 
 func dial() (*grpc.ClientConn, error) {
