@@ -30,7 +30,7 @@ func newLLM(provider, model string) (LLM, error) {
 		}
 		m := model
 		if m == "" {
-			m = "claude-sonnet-4-20250514"
+			m = "claude-sonnet-4-6"
 		}
 		return &anthropicLLM{apiKey: key, model: m}, nil
 	case "openai":
@@ -40,7 +40,7 @@ func newLLM(provider, model string) (LLM, error) {
 		}
 		m := model
 		if m == "" {
-			m = "gpt-4o"
+			m = "gpt-5.4"
 		}
 		return &openaiLLM{apiKey: key, model: m}, nil
 	default:
