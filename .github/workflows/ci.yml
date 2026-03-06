@@ -35,7 +35,15 @@ jobs:
           github_token: ${{ github.token }}
       - run: buf generate
       - run: go mod tidy
-      - run: go test -race -count=1 ./...
+      - name: Run tests with coverage check
+        run: ./scripts/check-coverage.sh --codecov
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.filtered.out
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   build:
     runs-on: ubuntu-latest

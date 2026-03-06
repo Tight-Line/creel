@@ -24,12 +24,14 @@ var TestIDs = struct {
 
 // RunConformanceTests runs the standard vector backend conformance test suite.
 // Any Backend implementation must pass all these tests.
+// coverage:ignore - test helper
 func RunConformanceTests(t *testing.T, backend vector.Backend) {
 	t.Helper()
 	ctx := context.Background()
 	ids := TestIDs
 
 	// Helper to create an embedding matching the backend's dimension.
+	// coverage:ignore - test helper
 	makeVec := func(val float64) []float64 {
 		v := make([]float64, backend.EmbeddingDimension())
 		v[0] = val
@@ -37,64 +39,84 @@ func RunConformanceTests(t *testing.T, backend vector.Backend) {
 	}
 
 	// Clean up any stale data from previous failed runs.
+	// coverage:ignore - test helper
 	_ = backend.DeleteBatch(ctx, []string{ids.Chunk1, ids.Chunk2, ids.Chunk3, ids.Batch1, ids.Batch2})
 
+	// coverage:ignore - test helper
 	t.Run("Ping", func(t *testing.T) {
+		// coverage:ignore - test helper
 		if err := backend.Ping(ctx); err != nil {
 			t.Fatalf("Ping: %v", err)
 		}
 	})
 
+	// coverage:ignore - test helper
 	t.Run("StoreAndSearch", func(t *testing.T) {
+		// coverage:ignore - test helper
 		if err := backend.Store(ctx, ids.Chunk1, makeVec(1.0), map[string]any{"source": "test"}); err != nil {
 			t.Fatalf("Store: %v", err)
 		}
+		// coverage:ignore - test helper
 		if err := backend.Store(ctx, ids.Chunk2, makeVec(0.9), nil); err != nil {
 			t.Fatalf("Store: %v", err)
 		}
+		// coverage:ignore - test helper
 		if err := backend.Store(ctx, ids.Chunk3, makeVec(0.1), nil); err != nil {
 			t.Fatalf("Store: %v", err)
 		}
 
+		// coverage:ignore - test helper
 		results, err := backend.Search(ctx, makeVec(1.0), vector.Filter{}, 2)
+		// coverage:ignore - test helper
 		if err != nil {
 			t.Fatalf("Search: %v", err)
 		}
+		// coverage:ignore - test helper
 		if len(results) != 2 {
 			t.Fatalf("expected 2 results, got %d", len(results))
 		}
+		// coverage:ignore - test helper
 		if results[0].ChunkID != ids.Chunk1 {
 			t.Errorf("expected %s first, got %s", ids.Chunk1, results[0].ChunkID)
 		}
 	})
 
+	// coverage:ignore - test helper
 	t.Run("SearchWithChunkIDFilter", func(t *testing.T) {
 		results, err := backend.Search(ctx, makeVec(1.0), vector.Filter{ChunkIDs: []string{ids.Chunk2, ids.Chunk3}}, 10)
+		// coverage:ignore - test helper
 		if err != nil {
 			t.Fatalf("Search with filter: %v", err)
 		}
+		// coverage:ignore - test helper
 		for _, r := range results {
+			// coverage:ignore - test helper
 			if r.ChunkID == ids.Chunk1 {
 				t.Errorf("%s should be excluded by filter", ids.Chunk1)
 			}
 		}
 	})
 
+	// coverage:ignore - test helper
 	t.Run("SearchWithMetadataFilter", func(t *testing.T) {
 		// Chunk1 has {"source": "test"}, Chunk2 and Chunk3 have nil metadata.
 		// Filtering for {"source": "test"} should return only Chunk1.
 		results, err := backend.Search(ctx, makeVec(1.0), vector.Filter{Metadata: map[string]any{"source": "test"}}, 10)
+		// coverage:ignore - test helper
 		if err != nil {
 			t.Fatalf("Search with metadata filter: %v", err)
 		}
+		// coverage:ignore - test helper
 		if len(results) != 1 {
 			t.Fatalf("expected 1 result with metadata filter, got %d", len(results))
 		}
+		// coverage:ignore - test helper
 		if results[0].ChunkID != ids.Chunk1 {
 			t.Errorf("expected %s, got %s", ids.Chunk1, results[0].ChunkID)
 		}
 	})
 
+	// coverage:ignore - test helper
 	t.Run("SearchWithMetadataFilterAndChunkIDs", func(t *testing.T) {
 		// Combine chunk ID filter with metadata filter; Chunk1 matches metadata
 		// but is excluded by the chunk ID filter, so no results.
@@ -102,45 +124,58 @@ func RunConformanceTests(t *testing.T, backend vector.Backend) {
 			ChunkIDs: []string{ids.Chunk2, ids.Chunk3},
 			Metadata: map[string]any{"source": "test"},
 		}, 10)
+		// coverage:ignore - test helper
 		if err != nil {
 			t.Fatalf("Search with both filters: %v", err)
 		}
+		// coverage:ignore - test helper
 		if len(results) != 0 {
 			t.Errorf("expected 0 results, got %d", len(results))
 		}
 	})
 
+	// coverage:ignore - test helper
 	t.Run("Delete", func(t *testing.T) {
+		// coverage:ignore - test helper
 		if err := backend.Delete(ctx, ids.Chunk3); err != nil {
 			t.Fatalf("Delete: %v", err)
 		}
+		// coverage:ignore - test helper
 		results, err := backend.Search(ctx, makeVec(0.1), vector.Filter{}, 10)
+		// coverage:ignore - test helper
 		if err != nil {
 			t.Fatalf("Search after delete: %v", err)
 		}
+		// coverage:ignore - test helper
 		for _, r := range results {
+			// coverage:ignore - test helper
 			if r.ChunkID == ids.Chunk3 {
 				t.Errorf("%s should be deleted", ids.Chunk3)
 			}
 		}
 	})
 
+	// coverage:ignore - test helper
 	t.Run("StoreBatch", func(t *testing.T) {
 		items := []vector.StoreItem{
 			{ID: ids.Batch1, Embedding: makeVec(0.5), Metadata: map[string]any{"batch": true}},
 			{ID: ids.Batch2, Embedding: makeVec(0.6), Metadata: nil},
 		}
+		// coverage:ignore - test helper
 		if err := backend.StoreBatch(ctx, items); err != nil {
 			t.Fatalf("StoreBatch: %v", err)
 		}
 	})
 
+	// coverage:ignore - test helper
 	t.Run("DeleteBatch", func(t *testing.T) {
+		// coverage:ignore - test helper
 		if err := backend.DeleteBatch(ctx, []string{ids.Batch1, ids.Batch2}); err != nil {
 			t.Fatalf("DeleteBatch: %v", err)
 		}
 	})
 
 	// Cleanup.
+	// coverage:ignore - test helper
 	_ = backend.DeleteBatch(ctx, []string{ids.Chunk1, ids.Chunk2})
 }

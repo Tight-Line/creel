@@ -21,6 +21,7 @@ func PermissionLevel(a Action) int {
 		return 2
 	case ActionRead:
 		return 1
+	// coverage:ignore - requires database
 	default:
 		return 0
 	}

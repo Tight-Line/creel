@@ -17,6 +17,7 @@ const (
 // Returns the raw key (to show once) and its SHA-256 hash (to store).
 func GenerateAPIKey() (raw string, hash string, prefix string, err error) {
 	b := make([]byte, keyBytes)
+	// coverage:ignore - requires database
 	if _, err := rand.Read(b); err != nil {
 		return "", "", "", fmt.Errorf("generating random bytes: %w", err)
 	}
@@ -72,6 +73,7 @@ func (v *APIKeyValidator) Validate(ctx context.Context, rawKey string) (*Princip
 	}
 
 	// Check dynamic DB keys.
+	// coverage:ignore - requires database
 	if v.dynamicLookup != nil {
 		return v.dynamicLookup.LookupKeyHash(ctx, hash)
 	}

@@ -35,6 +35,7 @@ func NewGrantAuthorizer(store GrantStore) *GrantAuthorizer {
 func (a *GrantAuthorizer) Check(ctx context.Context, principal *Principal, topicID string, action Action) error {
 	// Topic owner always has implicit admin.
 	owner, err := a.store.TopicOwner(ctx, topicID)
+	// coverage:ignore - requires database
 	if err != nil {
 		return fmt.Errorf("checking topic owner: %w", err)
 	}
@@ -44,6 +45,7 @@ func (a *GrantAuthorizer) Check(ctx context.Context, principal *Principal, topic
 
 	// Check grants for the principal and its groups.
 	grants, err := a.store.GrantsForPrincipal(ctx, a.allIdentities(principal))
+	// coverage:ignore - requires database
 	if err != nil {
 		return fmt.Errorf("fetching grants: %w", err)
 	}
@@ -61,6 +63,7 @@ func (a *GrantAuthorizer) Check(ctx context.Context, principal *Principal, topic
 // AccessibleTopics returns topic IDs the principal can access at the given level.
 func (a *GrantAuthorizer) AccessibleTopics(ctx context.Context, principal *Principal, minAction Action) ([]string, error) {
 	grants, err := a.store.GrantsForPrincipal(ctx, a.allIdentities(principal))
+	// coverage:ignore - requires database
 	if err != nil {
 		return nil, fmt.Errorf("fetching grants: %w", err)
 	}

@@ -1,4 +1,4 @@
-.PHONY: all build test vet lint proto-gen proto-lint clean run docker-build compose-up compose-down
+.PHONY: all build test vet lint proto-gen proto-lint clean run docker-build compose-up compose-down test-coverage test-coverage-check
 
 all: lint vet test build
 
@@ -35,5 +35,13 @@ compose-up:
 compose-down:
 	docker compose down
 
+test-coverage:
+	go test -race -coverprofile=coverage.out -covermode=atomic -count=1 ./...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report: coverage.html"
+
+test-coverage-check:
+	./scripts/check-coverage.sh
+
 clean:
-	rm -rf bin/
+	rm -rf bin/ coverage.out coverage.html coverage.filtered.out
