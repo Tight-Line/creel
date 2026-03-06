@@ -19,7 +19,7 @@ jobs:
           github_token: ${{ github.token }}
       - run: buf generate
       - run: go mod tidy
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v7
         with:
           version: latest
 
