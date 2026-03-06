@@ -59,7 +59,7 @@ func (e *openaiEmbedder) Embed(ctx context.Context, text string) ([]float64, err
 	if err != nil {
 		return nil, fmt.Errorf("calling OpenAI embeddings API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
@@ -107,11 +107,11 @@ func (e *ollamaEmbedder) Embed(ctx context.Context, text string) ([]float64, err
 	if err != nil {
 		return nil, fmt.Errorf("calling Ollama embed API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Ollama embed API returned %d: %s", resp.StatusCode, b)
+		return nil, fmt.Errorf("ollama embed API returned %d: %s", resp.StatusCode, b)
 	}
 
 	var result struct {
@@ -121,7 +121,7 @@ func (e *ollamaEmbedder) Embed(ctx context.Context, text string) ([]float64, err
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 	if len(result.Embeddings) == 0 {
-		return nil, fmt.Errorf("Ollama returned no embeddings")
+		return nil, fmt.Errorf("ollama returned no embeddings")
 	}
 	return result.Embeddings[0], nil
 }

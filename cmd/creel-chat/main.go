@@ -60,7 +60,7 @@ func run(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("connecting to Creel: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	embedder, err := newEmbedder(embedProvider, embedModel, ollamaURL)
 	if err != nil {

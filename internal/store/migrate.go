@@ -15,7 +15,7 @@ func RunMigrations(postgresURL, migrationsPath string) error {
 	if err != nil {
 		return fmt.Errorf("creating migrator: %w", err)
 	}
-	defer m.Close()
+	defer func() { _, _ = m.Close() }()
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("running migrations: %w", err)
