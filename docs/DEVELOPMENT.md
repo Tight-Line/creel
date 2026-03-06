@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Go 1.24+
+- Go 1.26+
 - Docker (for PostgreSQL/pgvector)
 - [buf](https://buf.build/docs/installation) (protobuf codegen)
 - [golangci-lint](https://golangci-lint.run/welcome/install/) (linting)

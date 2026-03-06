@@ -4,7 +4,7 @@ Get Creel running locally in under 5 minutes.
 
 ## Prerequisites
 
-- Go 1.24+
+- Go 1.26+
 - Docker (for PostgreSQL/pgvector)
 
 ## 1. Start PostgreSQL

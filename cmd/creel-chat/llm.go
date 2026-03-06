@@ -95,11 +95,11 @@ func (l *anthropicLLM) Chat(ctx context.Context, messages []ChatMessage) (string
 	if err != nil {
 		return "", fmt.Errorf("calling Anthropic API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("Anthropic API returned %d: %s", resp.StatusCode, b)
+		return "", fmt.Errorf("anthropic API returned %d: %s", resp.StatusCode, b)
 	}
 
 	var result struct {
@@ -116,7 +116,7 @@ func (l *anthropicLLM) Chat(ctx context.Context, messages []ChatMessage) (string
 			return block.Text, nil
 		}
 	}
-	return "", fmt.Errorf("Anthropic returned no text content")
+	return "", fmt.Errorf("anthropic returned no text content")
 }
 
 // openaiLLM calls the OpenAI Chat Completions API.
@@ -153,7 +153,7 @@ func (l *openaiLLM) Chat(ctx context.Context, messages []ChatMessage) (string, e
 	if err != nil {
 		return "", fmt.Errorf("calling OpenAI API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)

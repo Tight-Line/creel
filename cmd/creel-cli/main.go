@@ -82,7 +82,7 @@ func healthCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			resp, err := pb.NewAdminServiceClient(conn).Health(authCtx(), &pb.HealthRequest{})
 			if err != nil {
@@ -110,7 +110,7 @@ func adminCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			resp, err := pb.NewAdminServiceClient(conn).CreateSystemAccount(authCtx(), &pb.CreateSystemAccountRequest{
 				Name: args[0],
@@ -131,7 +131,7 @@ func adminCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			resp, err := pb.NewAdminServiceClient(conn).ListSystemAccounts(authCtx(), &pb.ListSystemAccountsRequest{})
 			if err != nil {
@@ -152,7 +152,7 @@ func adminCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			resp, err := pb.NewAdminServiceClient(conn).RotateKey(authCtx(), &pb.RotateKeyRequest{
 				AccountId:          args[0],
@@ -176,7 +176,7 @@ func adminCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			_, err = pb.NewAdminServiceClient(conn).RevokeKey(authCtx(), &pb.RevokeKeyRequest{
 				AccountId: args[0],
@@ -209,7 +209,7 @@ func topicCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			resp, err := pb.NewTopicServiceClient(conn).CreateTopic(authCtx(), &pb.CreateTopicRequest{
 				Slug: args[0],
@@ -231,7 +231,7 @@ func topicCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			resp, err := pb.NewTopicServiceClient(conn).ListTopics(authCtx(), &pb.ListTopicsRequest{})
 			if err != nil {
@@ -252,7 +252,7 @@ func topicCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			var perm pb.Permission
 			switch permission {
@@ -289,7 +289,7 @@ func topicCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			resp, err := pb.NewTopicServiceClient(conn).ListGrants(authCtx(), &pb.ListGrantsRequest{
 				TopicId: args[0],
@@ -319,7 +319,7 @@ func searchCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			// Read embedding from stdin as JSON array.
 			var embedding []float64
