@@ -6,11 +6,13 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o /creel ./cmd/creel
 RUN CGO_ENABLED=0 go build -o /creel-cli ./cmd/creel-cli
+RUN CGO_ENABLED=0 go build -o /creel-chat ./cmd/creel-chat
 
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /creel /usr/local/bin/creel
 COPY --from=builder /creel-cli /usr/local/bin/creel-cli
+COPY --from=builder /creel-chat /usr/local/bin/creel-chat
 COPY migrations/ /etc/creel/migrations/
 EXPOSE 8443 8080 9090
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

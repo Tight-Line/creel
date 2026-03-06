@@ -2,6 +2,7 @@
 bin/
 /creel
 /creel-cli
+/creel-chat
 *.exe
 *.dll
 *.so
@@ -17,6 +18,9 @@ coverage.txt
 .vscode/
 *.swp
 *.swo
+
+# Local config (contains key hashes)
+creel.yaml
 
 # OS
 .DS_Store
