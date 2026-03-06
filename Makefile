@@ -5,6 +5,7 @@ all: lint vet test build
 build:
 	go build -o bin/creel ./cmd/creel
 	go build -o bin/creel-cli ./cmd/creel-cli
+	go build -o bin/creel-chat ./cmd/creel-chat
 
 test:
 	go test -race -count=1 ./...

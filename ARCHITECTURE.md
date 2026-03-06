@@ -822,6 +822,17 @@ creel/
 - [x] CLI: `creel topic create / list / grant / grants`
 - [x] CLI: `creel search` and `creel context` (basic)
 
+### Phase 1.5: Demo Agent (creel-chat)
+
+- [x] REPL chatbot entry point (`cmd/creel-chat/main.go`)
+- [x] Client-side embedding (OpenAI `text-embedding-3-small`, Ollama)
+- [x] Client-side LLM integration (Anthropic, OpenAI; raw HTTP, no SDK)
+- [x] Topic auto-creation (find by slug or create)
+- [x] Per-session document creation
+- [x] Chunk ingestion with embeddings and role/turn metadata
+- [x] Semantic search for cross-session context retrieval
+- [x] LLM prompt construction from retrieved chunks + session history
+
 ### Phase 2: Linking & Traversal
 
 - [ ] Link CRUD (create, delete, list outbound + backlinks)
