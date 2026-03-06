@@ -1,7 +1,7 @@
 # Creel
 
 [![CI](https://github.com/Tight-Line/creel/actions/workflows/ci.yml/badge.svg)](https://github.com/Tight-Line/creel/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/Tight-Line/creel/graph/badge.svg?token=TOKEN)](https://codecov.io/gh/Tight-Line/creel)
+[![codecov](https://codecov.io/gh/Tight-Line/creel/graph/badge.svg?token=2TZQC2P4EC)](https://codecov.io/gh/Tight-Line/creel)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Tight-Line_creel&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Tight-Line_creel)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=Tight-Line_creel&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=Tight-Line_creel)
 [![Snyk](https://snyk.io/test/github/Tight-Line/creel/badge.svg)](https://snyk.io/test/github/Tight-Line/creel)
