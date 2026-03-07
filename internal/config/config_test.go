@@ -51,6 +51,11 @@ postgres:
   user: creel
   name: creel
 `
+	// Clear env vars that CI sets so the default branches in applyDefaults fire.
+	t.Setenv("CREEL_POSTGRES_PORT", "")
+	t.Setenv("CREEL_POSTGRES_SCHEMA", "")
+	t.Setenv("CREEL_POSTGRES_SSLMODE", "")
+
 	path := writeTemp(t, yaml)
 	cfg, err := Load(path)
 	if err != nil {
