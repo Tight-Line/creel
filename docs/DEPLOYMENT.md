@@ -154,6 +154,19 @@ Services:
 
 The server runs with `--migrate` to apply schema migrations on startup.
 
+## Security defaults
+
+### Docker image
+
+The Docker image runs as a non-root `creel` user. If you mount external volumes (config files, secrets), ensure the files are readable by this unprivileged user.
+
+### Helm chart
+
+The chart sets the following security defaults:
+
+- `automountServiceAccountToken: false` on the pod spec (no Kubernetes API access from the pod)
+- Default resource limits: 100m/128Mi requests, 500m/512Mi limits. Override in `values.yaml` under `resources`.
+
 ## Health checks
 
 The Docker image includes a health check that runs `creel-cli health` every 30 seconds. The gRPC health endpoint is available at the standard gRPC health checking protocol.

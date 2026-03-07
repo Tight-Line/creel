@@ -41,7 +41,17 @@ docker compose up -d postgres
 TEST_POSTGRES_URL="postgres://creel:creel@localhost:5432/creel?sslmode=disable" go test ./...
 ```
 
-Integration tests are gated on the `TEST_POSTGRES_URL` environment variable. Without it, they are skipped.
+Integration tests are gated on the `TEST_POSTGRES_URL` environment variable. Without it, they are skipped. In CI, a PostgreSQL service container is started automatically and `TEST_POSTGRES_URL` is set, so integration tests always run there.
+
+### Coverage check
+
+The coverage enforcement script runs all tests and verifies that every uncovered line has a `// coverage:ignore - <reason>` annotation:
+
+```bash
+TEST_POSTGRES_URL="postgres://creel:creel@localhost:5432/creel?sslmode=disable" ./scripts/check-coverage.sh
+```
+
+This is the same script CI runs. Use `// coverage:ignore - <reason>` only for lines that are genuinely unreachable in tests (database connection failures, OIDC provider infrastructure). Never use it for testable code.
 
 ### Running the full pipeline
 
