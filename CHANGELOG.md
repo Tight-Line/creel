@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `GetContext` RPC for temporal context retrieval. Returns chunks from a single document in sequence order, with optional `last_n` and `since` filtering. `include_summaries` is accepted but not yet implemented (compaction awareness is deferred).
 - Two-layer retrieval in creel-chat: resuming a session now loads full conversation history via `GetContext` (temporal layer) alongside RAG search (semantic layer). Previously, resumed sessions started with an empty context buffer.
+- `exclude_document_ids` field on `SearchRequest`. Excluded documents are filtered server-side before the vector top-K limit, so callers always get up to K cross-session results.
 - Air-based live-reload dev workflow. `make dev` bind-mounts source into a dev container and rebuilds on file changes. `make dev-down` and `make dev-migrate` for teardown and one-shot migrations.
 - `make test-integration` target runs the full coverage suite against a local Postgres.
 - Pre-configured dev API key for local development. `creel.example.yaml` ships with a working `auth.api_keys` entry; `source .env` sets the matching `CREEL_ENDPOINT` and `CREEL_API_KEY` for `creel-cli` and `creel-chat`.
@@ -18,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Protobuf codegen now uses local `protoc-gen-go` and `protoc-gen-go-grpc` plugins instead of remote BSR execution. Eliminates BSR rate-limit issues and is faster.
+- creel-chat excludes the current session document from RAG search, preventing self-referential results from consuming top-K slots.
+- creel-chat system prompt now clearly distinguishes session history (authoritative, verbatim conversation record) from RAG context (snippets from other sessions). Improves LLM recall accuracy on session replay.
 
 - Database tables now live in a dedicated PostgreSQL schema (default: `creel`), configurable via `postgres.schema` or `CREEL_POSTGRES_SCHEMA`. The schema is created automatically on startup.
 - PostgreSQL connection is now structured fields (`host`, `port`, `user`, `password`, `name`, `schema`, `sslmode`) under the `postgres:` config key. Replaces the old `metadata.postgres_url` single-string approach. Supports Kubernetes secrets for passwords via Helm `postgresql.auth.existingSecret`.
