@@ -37,7 +37,7 @@ func main() {
 	root.Flags().StringVar(&endpoint, "endpoint", envOr("CREEL_ENDPOINT", "localhost:8443"), "Creel gRPC endpoint")
 	root.Flags().StringVar(&apiKey, "api-key", os.Getenv("CREEL_API_KEY"), "Creel API key")
 	root.Flags().BoolVar(&useTLS, "tls", false, "use TLS for gRPC connection")
-	root.Flags().StringVar(&provider, "provider", "anthropic", "chat LLM provider (anthropic or openai)")
+	root.Flags().StringVar(&provider, "provider", "openai", "chat LLM provider (openai or anthropic)")
 	root.Flags().StringVar(&model, "model", "", "override LLM model name")
 	root.Flags().StringVar(&embedProvider, "embed-provider", "openai", "embedding provider (openai or ollama)")
 	root.Flags().StringVar(&embedModel, "embed-model", "text-embedding-3-small", "embedding model name")
