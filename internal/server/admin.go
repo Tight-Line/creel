@@ -8,24 +8,27 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
 	"github.com/Tight-Line/creel/internal/store"
 )
 
+// Pinger checks database connectivity. *pgxpool.Pool satisfies this interface.
+type Pinger interface {
+	Ping(ctx context.Context) error
+}
+
 // AdminServer implements the AdminService gRPC service.
 type AdminServer struct {
 	pb.UnimplementedAdminServiceServer
-	pool         *pgxpool.Pool
+	pinger       Pinger
 	accountStore *store.SystemAccountStore
 	version      string
 }
 
 // NewAdminServer creates a new admin service.
-func NewAdminServer(pool *pgxpool.Pool, accountStore *store.SystemAccountStore, version string) *AdminServer {
+func NewAdminServer(pinger Pinger, accountStore *store.SystemAccountStore, version string) *AdminServer {
 	return &AdminServer{
-		pool:         pool,
+		pinger:       pinger,
 		accountStore: accountStore,
 		version:      version,
 	}
@@ -33,8 +36,7 @@ func NewAdminServer(pool *pgxpool.Pool, accountStore *store.SystemAccountStore, 
 
 // Health checks database connectivity and returns server status.
 func (s *AdminServer) Health(ctx context.Context, _ *pb.HealthRequest) (*pb.HealthResponse, error) {
-	// coverage:ignore - Health uses concrete *pgxpool.Pool; tested only via integration
-	if err := s.pool.Ping(ctx); err != nil {
+	if err := s.pinger.Ping(ctx); err != nil {
 		return &pb.HealthResponse{
 			Status:  "unhealthy",
 			Version: s.version,

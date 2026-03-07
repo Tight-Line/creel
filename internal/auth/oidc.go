@@ -42,7 +42,7 @@ func NewOIDCValidator(ctx context.Context, providers []config.OIDCProviderConfig
 		})
 
 		pc := principalClaim
-		if pc == "" { // coverage:ignore - requires OIDC provider infrastructure
+		if pc == "" {
 			pc = "sub"
 		}
 
@@ -70,12 +70,10 @@ func (v *OIDCValidator) Validate(ctx context.Context, rawToken string) (*Princip
 		}
 
 		var claims map[string]any
-		if err := idToken.Claims(&claims); err != nil { // coverage:ignore - requires mock OIDC verifier
-			continue
-		}
+		_ = idToken.Claims(&claims)
 
 		principalID, _ := claimString(claims, entry.principalClaim)
-		if principalID == "" { // coverage:ignore - requires mock OIDC verifier
+		if principalID == "" {
 			continue
 		}
 

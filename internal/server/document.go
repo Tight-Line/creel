@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -173,15 +172,7 @@ func structToMap(s *structpb.Struct) map[string]any {
 	if s == nil {
 		return nil
 	}
-	// Round-trip through JSON for reliable conversion.
-	b, err := s.MarshalJSON()
-	// coverage:ignore - protobuf Struct.MarshalJSON never returns an error
-	if err != nil {
-		return nil
-	}
-	var m map[string]any
-	_ = json.Unmarshal(b, &m)
-	return m
+	return s.AsMap()
 }
 
 func mapToStruct(m map[string]any) *structpb.Struct {

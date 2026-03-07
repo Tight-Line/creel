@@ -257,6 +257,41 @@ func TestStoreChunkToProto_CompactedBy(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// mockPinger implements server.Pinger for Health tests.
+// ---------------------------------------------------------------------------
+
+type mockPinger struct {
+	err error
+}
+
+func (p *mockPinger) Ping(_ context.Context) error { return p.err }
+
+func TestHealth_OK(t *testing.T) {
+	s := NewAdminServer(&mockPinger{}, store.NewSystemAccountStore(failDBTX()), "v1")
+	resp, err := s.Health(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Status != "ok" {
+		t.Errorf("Status = %q, want ok", resp.Status)
+	}
+	if resp.Version != "v1" {
+		t.Errorf("Version = %q, want v1", resp.Version)
+	}
+}
+
+func TestHealth_Unhealthy(t *testing.T) {
+	s := NewAdminServer(&mockPinger{err: errors.New("db down")}, store.NewSystemAccountStore(failDBTX()), "v1")
+	resp, err := s.Health(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Status != "unhealthy" {
+		t.Errorf("Status = %q, want unhealthy", resp.Status)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Server.Run and GracefulStop
 // ---------------------------------------------------------------------------
 

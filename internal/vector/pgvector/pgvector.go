@@ -6,16 +6,24 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	pgvec "github.com/pgvector/pgvector-go"
 
 	"github.com/Tight-Line/creel/internal/vector"
 )
 
+// DBTX is the database interface used by Backend. Both *pgxpool.Pool and *pgx.Conn
+// satisfy this interface.
+type DBTX interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
+
 // Backend implements vector.Backend using pgvector cosine similarity.
 type Backend struct {
-	pool *pgxpool.Pool
-	dim  int
+	db  DBTX
+	dim int
 }
 
 // DefaultEmbeddingDimension is the default dimension for the pgvector
@@ -23,13 +31,13 @@ type Backend struct {
 const DefaultEmbeddingDimension = 1536
 
 // New creates a new pgvector backend with the default embedding dimension (1536).
-func New(pool *pgxpool.Pool) *Backend {
-	return &Backend{pool: pool, dim: DefaultEmbeddingDimension}
+func New(db DBTX) *Backend {
+	return &Backend{db: db, dim: DefaultEmbeddingDimension}
 }
 
 // NewWithDimension creates a new pgvector backend with a custom embedding dimension.
-func NewWithDimension(pool *pgxpool.Pool, dim int) *Backend {
-	return &Backend{pool: pool, dim: dim}
+func NewWithDimension(db DBTX, dim int) *Backend {
+	return &Backend{db: db, dim: dim}
 }
 
 // EmbeddingDimension returns the number of dimensions this backend expects.
@@ -43,19 +51,17 @@ func (b *Backend) Store(ctx context.Context, id string, embedding []float64, met
 		metadata = map[string]any{}
 	}
 	metaJSON, err := json.Marshal(metadata)
-	// coverage:ignore - metadata is always JSON-serializable from protobuf input
 	if err != nil {
 		return fmt.Errorf("marshaling metadata: %w", err)
 	}
 
 	vec := toFloat32(embedding)
-	_, err = b.pool.Exec(ctx,
+	_, err = b.db.Exec(ctx,
 		`INSERT INTO chunk_embeddings (chunk_id, embedding, metadata)
 		 VALUES ($1, $2, $3)
 		 ON CONFLICT (chunk_id) DO UPDATE SET embedding = $2, metadata = $3`,
 		id, pgvec.NewVector(vec), metaJSON,
 	)
-	// coverage:ignore - requires database failure
 	if err != nil {
 		return fmt.Errorf("storing embedding: %w", err)
 	}
@@ -64,9 +70,8 @@ func (b *Backend) Store(ctx context.Context, id string, embedding []float64, met
 
 // Delete removes a chunk's embedding.
 func (b *Backend) Delete(ctx context.Context, id string) error {
-	_, err := b.pool.Exec(ctx,
+	_, err := b.db.Exec(ctx,
 		`DELETE FROM chunk_embeddings WHERE chunk_id = $1`, id)
-	// coverage:ignore - requires database failure
 	if err != nil {
 		return fmt.Errorf("deleting embedding: %w", err)
 	}
@@ -92,7 +97,6 @@ func (b *Backend) Search(ctx context.Context, query []float64, filter vector.Fil
 
 	if len(filter.Metadata) > 0 {
 		metaJSON, err := json.Marshal(filter.Metadata)
-		// coverage:ignore - metadata filter is always JSON-serializable
 		if err != nil {
 			return nil, fmt.Errorf("marshaling metadata filter: %w", err)
 		}
@@ -108,8 +112,7 @@ func (b *Backend) Search(ctx context.Context, query []float64, filter vector.Fil
 	q += fmt.Sprintf(` ORDER BY embedding <=> $1 LIMIT $%d`, argIdx)
 	args = append(args, topK)
 
-	rows, err := b.pool.Query(ctx, q, args...)
-	// coverage:ignore - requires database failure
+	rows, err := b.db.Query(ctx, q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("searching embeddings: %w", err)
 	}
@@ -118,7 +121,6 @@ func (b *Backend) Search(ctx context.Context, query []float64, filter vector.Fil
 	var results []vector.SearchResult
 	for rows.Next() {
 		var r vector.SearchResult
-		// coverage:ignore - requires database failure
 		if err := rows.Scan(&r.ChunkID, &r.Score); err != nil {
 			return nil, fmt.Errorf("scanning result: %w", err)
 		}
@@ -130,7 +132,6 @@ func (b *Backend) Search(ctx context.Context, query []float64, filter vector.Fil
 // StoreBatch persists multiple embeddings.
 func (b *Backend) StoreBatch(ctx context.Context, items []vector.StoreItem) error {
 	for _, item := range items {
-		// coverage:ignore - requires database failure
 		if err := b.Store(ctx, item.ID, item.Embedding, item.Metadata); err != nil {
 			return err
 		}
@@ -140,9 +141,8 @@ func (b *Backend) StoreBatch(ctx context.Context, items []vector.StoreItem) erro
 
 // DeleteBatch removes multiple embeddings.
 func (b *Backend) DeleteBatch(ctx context.Context, ids []string) error {
-	_, err := b.pool.Exec(ctx,
+	_, err := b.db.Exec(ctx,
 		`DELETE FROM chunk_embeddings WHERE chunk_id = ANY($1)`, ids)
-	// coverage:ignore - requires database failure
 	if err != nil {
 		return fmt.Errorf("batch deleting embeddings: %w", err)
 	}
@@ -151,7 +151,8 @@ func (b *Backend) DeleteBatch(ctx context.Context, ids []string) error {
 
 // Ping checks backend connectivity.
 func (b *Backend) Ping(ctx context.Context) error {
-	return b.pool.Ping(ctx)
+	_, err := b.db.Exec(ctx, "SELECT 1")
+	return err
 }
 
 func toFloat32(f64 []float64) []float32 {

@@ -13,18 +13,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive unit tests for all store, server, auth, and retrieval error paths
 - Integration tests for gRPC server (end-to-end) and retrieval search
 - `.dockerignore` to prevent secrets and build artifacts from leaking into images
+- Unit tests for json.Marshal metadata failures in ChunkStore, DocumentStore, and pgvector
+- Mock-based unit tests for all pgvector DB error paths (Store, Delete, Search, StoreBatch, DeleteBatch, Ping)
+- OIDC tests for empty principal claim default, missing claim field, and middleware dispatch branch
+- AdminServer Health endpoint unit tests via new Pinger interface
 
 ### Changed
 
 - Coverage script merges duplicate `-coverpkg` entries and serializes test packages to prevent flaky results
+- Coverage script excludes `vectortest/` and `dbtest/` test helper packages from coverage requirements
 - Dockerfile now runs as non-root user
 - Helm deployment sets `automountServiceAccountToken: false` and default resource limits
 - All GitHub Actions pinned to full commit SHAs
+- `structToMap` now uses `structpb.Struct.AsMap()` instead of a JSON round-trip
+- pgvector Backend accepts a `DBTX` interface instead of `*pgxpool.Pool`, enabling mock-based testing
+- pgvector `Ping` uses `Exec("SELECT 1")` instead of `pool.Ping` for interface compatibility
+- AdminServer accepts a `Pinger` interface instead of `*pgxpool.Pool`
+- Removed dead `Claims` error check in OIDC validator (verified tokens always have parseable claims)
 
 ### Fixed
 
 - Missing `defer tx.Rollback()` in `dbtest.QueryCounter.Begin()`
 - Removed dead error checks after `auth.GenerateAPIKey()` (always returns nil error)
+- Reduced `coverage:ignore` annotations from 68 to 2 (only genuine infrastructure boundaries in pool.go and migrate.go)
 
 ## [0.1.2] - 2026-03-06
 

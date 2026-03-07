@@ -61,9 +61,11 @@ while IFS= read -r line; do
     # Convert package path to file path
     REL_PATH=$(echo "$PKG_FILE" | sed "s|^$MODULE_PATH/||")
 
-    # Skip cmd/ and gen/ (excluded from coverage requirements)
+    # Skip cmd/, gen/, and test helper packages (excluded from coverage requirements)
     [[ "$REL_PATH" == cmd/* ]] && continue
     [[ "$REL_PATH" == gen/* ]] && continue
+    [[ "$REL_PATH" == internal/vector/vectortest/* ]] && continue
+    [[ "$REL_PATH" == internal/store/dbtest/* ]] && continue
 
     [[ ! -f "$REL_PATH" ]] && continue
 

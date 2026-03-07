@@ -2,12 +2,21 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"encoding/json"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	"github.com/Tight-Line/creel/internal/config"
 )
 
 func TestUnaryInterceptor_PublicMethod(t *testing.T) {
@@ -197,6 +206,75 @@ func TestUnaryInterceptor_OIDCValidation(t *testing.T) {
 	}
 	if status.Code(err) != codes.Unauthenticated {
 		t.Errorf("code = %v, want Unauthenticated", status.Code(err))
+	}
+}
+
+func TestUnaryInterceptor_OIDCDispatch_ValidToken(t *testing.T) {
+	// Create a fake OIDC provider with signed JWTs to exercise the OIDC dispatch
+	// branch (middleware.go:43) and the error check (middleware.go:45).
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generating RSA key: %v", err)
+	}
+
+	kid := "mw-test-key"
+	mux := http.NewServeMux()
+	var serverURL string
+
+	mux.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"issuer":                                serverURL,
+			"jwks_uri":                              serverURL + "/keys",
+			"id_token_signing_alg_values_supported": []string{"RS256"},
+		})
+	})
+	mux.HandleFunc("/keys", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"keys": []map[string]any{{
+				"kty": "RSA", "alg": "RS256", "use": "sig", "kid": kid,
+				"n": b64url(privKey.N.Bytes()),
+				"e": b64url(big.NewInt(int64(privKey.E)).Bytes()),
+			}},
+		})
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	serverURL = server.URL
+
+	oidcV, err := NewOIDCValidator(context.Background(), []config.OIDCProviderConfig{
+		{Issuer: serverURL, Audience: "creel"},
+	}, "email", "groups")
+	if err != nil {
+		t.Fatalf("NewOIDCValidator: %v", err)
+	}
+
+	interceptor := UnaryInterceptor(NewAPIKeyValidator(nil, nil), oidcV)
+
+	// Create a valid JWT that is NOT an API key, so the OIDC branch is taken.
+	token := signJWT(t, privKey, kid, serverURL, "creel", map[string]any{
+		"email":  "alice@example.com",
+		"groups": []string{"eng"},
+	}, time.Now().Add(time.Hour))
+
+	md := metadata.Pairs("authorization", "Bearer "+token)
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	var gotPrincipal *Principal
+	handler := func(ctx context.Context, req any) (any, error) {
+		gotPrincipal = PrincipalFromContext(ctx)
+		return "ok", nil
+	}
+
+	info := &grpc.UnaryServerInfo{FullMethod: "/creel.v1.TopicService/ListTopics"}
+	_, err = interceptor(ctx, nil, info, handler)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotPrincipal == nil || gotPrincipal.ID != "user:alice@example.com" {
+		t.Errorf("principal = %v, want user:alice@example.com", gotPrincipal)
 	}
 }
 
