@@ -141,6 +141,93 @@ func TestNewOIDCValidator_NoProviders(t *testing.T) {
 	}
 }
 
+func TestClaimString(t *testing.T) {
+	claims := map[string]any{
+		"email": "alice@example.com",
+		"num":   42,
+	}
+
+	// Happy path.
+	s, ok := claimString(claims, "email")
+	if !ok || s != "alice@example.com" {
+		t.Errorf("claimString(email) = %q, %v", s, ok)
+	}
+
+	// Empty key.
+	s, ok = claimString(claims, "")
+	if ok || s != "" {
+		t.Errorf("claimString('') = %q, %v; want empty/false", s, ok)
+	}
+
+	// Missing key.
+	s, ok = claimString(claims, "missing")
+	if ok || s != "" {
+		t.Errorf("claimString(missing) = %q, %v", s, ok)
+	}
+
+	// Non-string value.
+	_, ok = claimString(claims, "num")
+	if ok {
+		t.Errorf("claimString(num) ok = true for non-string")
+	}
+}
+
+func TestClaimStringSlice(t *testing.T) {
+	t.Run("array of strings", func(t *testing.T) {
+		claims := map[string]any{
+			"groups": []any{"eng", "admin"},
+		}
+		got := claimStringSlice(claims, "groups")
+		if len(got) != 2 || got[0] != "group:eng" || got[1] != "group:admin" {
+			t.Errorf("got %v", got)
+		}
+	})
+
+	t.Run("space-separated string", func(t *testing.T) {
+		claims := map[string]any{
+			"groups": "eng admin",
+		}
+		got := claimStringSlice(claims, "groups")
+		if len(got) != 2 || got[0] != "group:eng" || got[1] != "group:admin" {
+			t.Errorf("got %v", got)
+		}
+	})
+
+	t.Run("empty key", func(t *testing.T) {
+		got := claimStringSlice(map[string]any{"groups": []any{"a"}}, "")
+		if got != nil {
+			t.Errorf("expected nil for empty key, got %v", got)
+		}
+	})
+
+	t.Run("missing key", func(t *testing.T) {
+		got := claimStringSlice(map[string]any{}, "groups")
+		if got != nil {
+			t.Errorf("expected nil for missing key, got %v", got)
+		}
+	})
+
+	t.Run("unsupported type", func(t *testing.T) {
+		claims := map[string]any{
+			"groups": 42,
+		}
+		got := claimStringSlice(claims, "groups")
+		if got != nil {
+			t.Errorf("expected nil for int value, got %v", got)
+		}
+	})
+
+	t.Run("array with non-string items", func(t *testing.T) {
+		claims := map[string]any{
+			"groups": []any{"eng", 42, "admin"},
+		}
+		got := claimStringSlice(claims, "groups")
+		if len(got) != 2 {
+			t.Errorf("expected 2 string items, got %v", got)
+		}
+	})
+}
+
 func TestNewOIDCValidator_BadIssuer(t *testing.T) {
 	providers := []config.OIDCProviderConfig{
 		{Issuer: "http://localhost:99999", Audience: "creel"},

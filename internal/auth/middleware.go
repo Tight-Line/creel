@@ -37,15 +37,12 @@ func UnaryInterceptor(apiKeyValidator *APIKeyValidator, oidcValidator *OIDCValid
 
 		if IsAPIKey(token) {
 			principal, err = apiKeyValidator.Validate(ctx, token)
-			// coverage:ignore - requires gRPC context
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "validating API key: %v", err)
 			}
-			// coverage:ignore - requires gRPC context
-		} else if oidcValidator != nil && oidcValidator.HasProviders() {
+		} else if oidcValidator != nil && oidcValidator.HasProviders() { // coverage:ignore - requires OIDC provider infrastructure
 			principal, err = oidcValidator.Validate(ctx, token)
-			// coverage:ignore - requires gRPC context
-			if err != nil {
+			if err != nil { // coverage:ignore - OIDCValidator.Validate never returns non-nil error
 				return nil, status.Errorf(codes.Internal, "validating OIDC token: %v", err)
 			}
 		}
@@ -67,7 +64,6 @@ func extractBearerToken(ctx context.Context) (string, error) {
 	}
 
 	vals := md.Get("authorization")
-	// coverage:ignore - requires gRPC context
 	if len(vals) == 0 {
 		return "", status.Error(codes.Unauthenticated, "missing authorization header")
 	}
@@ -77,10 +73,8 @@ func extractBearerToken(ctx context.Context) (string, error) {
 		return val[7:], nil
 	}
 	// Allow raw API keys without Bearer prefix.
-	// coverage:ignore - requires gRPC context
 	if IsAPIKey(val) {
 		return val, nil
 	}
-	// coverage:ignore - requires gRPC context
 	return val, nil
 }

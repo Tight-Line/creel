@@ -75,3 +75,40 @@ func TestStaticKeysFromConfig_Empty(t *testing.T) {
 		t.Error("expected nil principal")
 	}
 }
+
+// mockKeyLookup implements KeyLookup for testing.
+type mockKeyLookup struct {
+	principal *Principal
+	err       error
+}
+
+func (m *mockKeyLookup) LookupKeyHash(_ context.Context, _ string) (*Principal, error) {
+	return m.principal, m.err
+}
+
+func TestAPIKeyValidator_DynamicLookup(t *testing.T) {
+	lookup := &mockKeyLookup{
+		principal: &Principal{ID: "system:dynamic", IsSystem: true},
+	}
+	v := NewAPIKeyValidator(nil, lookup)
+
+	p, err := v.Validate(context.Background(), "creel_ak_dynamic_test_key_1234567890ab")
+	if err != nil {
+		t.Fatalf("Validate: %v", err)
+	}
+	if p == nil || p.ID != "system:dynamic" {
+		t.Errorf("principal = %v, want system:dynamic", p)
+	}
+}
+
+func TestAPIKeyValidator_DynamicLookupError(t *testing.T) {
+	lookup := &mockKeyLookup{
+		err: context.DeadlineExceeded,
+	}
+	v := NewAPIKeyValidator(nil, lookup)
+
+	_, err := v.Validate(context.Background(), "creel_ak_dynamic_test_key_1234567890ab")
+	if err == nil {
+		t.Fatal("expected error from dynamic lookup")
+	}
+}

@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 )
 
 const (
@@ -17,10 +16,7 @@ const (
 // Returns the raw key (to show once) and its SHA-256 hash (to store).
 func GenerateAPIKey() (raw string, hash string, prefix string, err error) {
 	b := make([]byte, keyBytes)
-	// coverage:ignore - requires database
-	if _, err := rand.Read(b); err != nil {
-		return "", "", "", fmt.Errorf("generating random bytes: %w", err)
-	}
+	_, _ = rand.Read(b) // rand.Read never fails (Go 1.24+)
 	raw = apiKeyPrefix + hex.EncodeToString(b)
 	hash = HashAPIKey(raw)
 	prefix = raw[:len(apiKeyPrefix)+8]
@@ -73,7 +69,6 @@ func (v *APIKeyValidator) Validate(ctx context.Context, rawKey string) (*Princip
 	}
 
 	// Check dynamic DB keys.
-	// coverage:ignore - requires database
 	if v.dynamicLookup != nil {
 		return v.dynamicLookup.LookupKeyHash(ctx, hash)
 	}

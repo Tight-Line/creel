@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -128,6 +129,74 @@ server:
 	}
 }
 
+func TestLoadValidation_InvalidRESTPort(t *testing.T) {
+	path := writeTemp(t, `
+metadata:
+  postgres_url: postgres://localhost/creel
+server:
+  rest_port: 99999
+`)
+	_, err := Load(path)
+	if err == nil {
+		t.Error("expected validation error for invalid rest_port")
+	}
+}
+
+func TestLoadValidation_InvalidMetricsPort(t *testing.T) {
+	path := writeTemp(t, `
+metadata:
+  postgres_url: postgres://localhost/creel
+server:
+  metrics_port: -1
+`)
+	_, err := Load(path)
+	if err == nil {
+		t.Error("expected validation error for invalid metrics_port")
+	}
+}
+
+func TestLoadEnvOverrides_BoolAndFloat(t *testing.T) {
+	path := writeTemp(t, `
+metadata:
+  postgres_url: postgres://localhost/creel
+links:
+  auto_link_on_ingest: false
+  auto_link_threshold: 0.5
+`)
+	t.Setenv("CREEL_LINKS_AUTO_LINK_ON_INGEST", "true")
+	t.Setenv("CREEL_LINKS_AUTO_LINK_THRESHOLD", "0.95")
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.Links.AutoLinkOnIngest {
+		t.Error("expected AutoLinkOnIngest = true after env override")
+	}
+	if cfg.Links.AutoLinkThreshold != 0.95 {
+		t.Errorf("AutoLinkThreshold = %f, want 0.95", cfg.Links.AutoLinkThreshold)
+	}
+}
+
+func TestLoadEnvOverrides_InvalidInt(t *testing.T) {
+	path := writeTemp(t, `
+metadata:
+  postgres_url: postgres://localhost/creel
+server:
+  grpc_port: 8443
+`)
+	t.Setenv("CREEL_SERVER_GRPC_PORT", "not_a_number")
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	// Invalid int should leave the original value.
+	if cfg.Server.GRPCPort != 8443 {
+		t.Errorf("GRPCPort = %d, want 8443 (unchanged)", cfg.Server.GRPCPort)
+	}
+}
+
 func TestLoadBadYAML(t *testing.T) {
 	path := writeTemp(t, `{{{bad yaml`)
 	_, err := Load(path)
@@ -140,6 +209,28 @@ func TestLoadMissingFile(t *testing.T) {
 	_, err := Load("/nonexistent/config.yaml")
 	if err == nil {
 		t.Error("expected file error, got nil")
+	}
+}
+
+func TestApplyEnvToStruct_SkipUntaggedFields(t *testing.T) {
+	type inner struct {
+		Tagged   string `yaml:"tagged"`
+		Untagged string // no yaml tag
+		Skipped  string `yaml:"-"`
+	}
+	v := inner{Tagged: "original", Untagged: "original", Skipped: "original"}
+	t.Setenv("PREFIX_TAGGED", "overridden")
+	t.Setenv("PREFIX_UNTAGGED", "should-not-change")
+	t.Setenv("PREFIX_-", "should-not-change")
+	applyEnvToStruct(reflect.ValueOf(&v).Elem(), "PREFIX")
+	if v.Tagged != "overridden" {
+		t.Errorf("Tagged = %q, want overridden", v.Tagged)
+	}
+	if v.Untagged != "original" {
+		t.Errorf("Untagged = %q, want original (should be skipped)", v.Untagged)
+	}
+	if v.Skipped != "original" {
+		t.Errorf("Skipped = %q, want original (yaml:- should be skipped)", v.Skipped)
 	}
 }
 

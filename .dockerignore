@@ -1,0 +1,16 @@
+.git
+.github
+.gitignore
+.golangci.yml
+.dockerignore
+*.md
+!go.mod
+!go.sum
+bin/
+coverage.*
+creel.yaml
+creel.example.yaml
+docs/
+sdk/
+mcp/
+tools/

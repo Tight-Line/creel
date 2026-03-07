@@ -42,8 +42,7 @@ func NewOIDCValidator(ctx context.Context, providers []config.OIDCProviderConfig
 		})
 
 		pc := principalClaim
-		// coverage:ignore - requires OIDC provider
-		if pc == "" {
+		if pc == "" { // coverage:ignore - requires OIDC provider infrastructure
 			pc = "sub"
 		}
 
@@ -71,14 +70,12 @@ func (v *OIDCValidator) Validate(ctx context.Context, rawToken string) (*Princip
 		}
 
 		var claims map[string]any
-		// coverage:ignore - requires OIDC provider
-		if err := idToken.Claims(&claims); err != nil {
+		if err := idToken.Claims(&claims); err != nil { // coverage:ignore - requires mock OIDC verifier
 			continue
 		}
 
 		principalID, _ := claimString(claims, entry.principalClaim)
-		// coverage:ignore - requires OIDC provider
-		if principalID == "" {
+		if principalID == "" { // coverage:ignore - requires mock OIDC verifier
 			continue
 		}
 
@@ -101,12 +98,10 @@ func (v *OIDCValidator) HasProviders() bool {
 }
 
 func claimString(claims map[string]any, key string) (string, bool) {
-	// coverage:ignore - requires OIDC provider
 	if key == "" {
 		return "", false
 	}
 	v, ok := claims[key]
-	// coverage:ignore - requires OIDC provider
 	if !ok {
 		return "", false
 	}
@@ -115,12 +110,10 @@ func claimString(claims map[string]any, key string) (string, bool) {
 }
 
 func claimStringSlice(claims map[string]any, key string) []string {
-	// coverage:ignore - requires OIDC provider
 	if key == "" {
 		return nil
 	}
 	v, ok := claims[key]
-	// coverage:ignore - requires OIDC provider
 	if !ok {
 		return nil
 	}
@@ -134,18 +127,14 @@ func claimStringSlice(claims map[string]any, key string) []string {
 			}
 		}
 		return result
-	// coverage:ignore - requires OIDC provider
 	case string:
 		// Some providers return space-separated groups.
 		parts := strings.Fields(val)
 		result := make([]string, len(parts))
-		// coverage:ignore - requires OIDC provider
 		for i, p := range parts {
 			result[i] = "group:" + p
 		}
-		// coverage:ignore - requires OIDC provider
 		return result
 	}
-	// coverage:ignore - requires OIDC provider
 	return nil
 }

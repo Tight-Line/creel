@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- PostgreSQL service in CI and SonarCloud workflows so integration tests run in CI
+- Comprehensive unit tests for all store, server, auth, and retrieval error paths
+- Integration tests for gRPC server (end-to-end) and retrieval search
+- `.dockerignore` to prevent secrets and build artifacts from leaking into images
+
+### Changed
+
+- Coverage script merges duplicate `-coverpkg` entries and serializes test packages to prevent flaky results
+- Dockerfile now runs as non-root user
+- Helm deployment sets `automountServiceAccountToken: false` and default resource limits
+- All GitHub Actions pinned to full commit SHAs
+
+### Fixed
+
+- Missing `defer tx.Rollback()` in `dbtest.QueryCounter.Begin()`
+- Removed dead error checks after `auth.GenerateAPIKey()` (always returns nil error)
+
 ## [0.1.2] - 2026-03-06
 
 ### Added
