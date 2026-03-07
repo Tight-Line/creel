@@ -7,79 +7,49 @@ Get Creel running locally in under 5 minutes.
 - Go 1.26+
 - Docker (for PostgreSQL/pgvector)
 
-## 1. Start PostgreSQL
+## 1. Start PostgreSQL and the Creel server
 
 ```bash
-docker compose up -d postgres
+docker compose up -d
 ```
 
-This starts pgvector/pgvector:pg17 on port 5432 with user/password `creel`.
+This starts pgvector/pgvector:pg17 on port 5432 and the Creel server on port 8443 (gRPC). Migrations run automatically on first startup.
 
-## 2. Build
+## 2. Build the CLI tools
 
 ```bash
 make build
 ```
 
-This produces `bin/creel`, `bin/creel-cli`, and `bin/creel-chat`.
+This produces `bin/creel-cli` and `bin/creel-chat`.
 
-## 3. Generate a bootstrap API key
+## 3. Source the dev environment
 
-```bash
-bin/creel bootstrap-key --name quickstart
-```
-
-This prints a key hash and a plaintext API key. Copy the key hash.
-
-## 4. Create a config file
-
-Create `creel.yaml`:
-
-```yaml
-server:
-  grpc_port: 8443
-
-auth:
-  api_keys:
-    - name: quickstart
-      key_hash: "<paste key hash here>"
-      principal: "quickstart-user"
-
-metadata:
-  postgres_url: "postgres://creel:creel@localhost:5432/creel?sslmode=disable"
-
-vector_backend:
-  type: pgvector
-```
-
-## 5. Start the server
+The repository ships with a pre-configured dev API key. Source `.env` to set `CREEL_ENDPOINT` and `CREEL_API_KEY`:
 
 ```bash
-bin/creel --config creel.yaml --migrate
+source .env
 ```
 
-The `--migrate` flag runs database migrations on first startup. The server listens on port 8443 (gRPC).
+No need to generate keys or create a config file for local development.
 
-## 6. Create a topic and ingest chunks
+## 4. Create a topic
 
 ```bash
-export CREEL_ENDPOINT=localhost:8443
-export CREEL_API_KEY="<your plaintext API key>"
-
-# Create a topic
-bin/creel-cli topic create --slug my-notes --name "My Notes"
-
-# Ingest some chunks (embeddings must be pre-computed)
-bin/creel-cli topic ingest --slug my-notes --file chunks.jsonl
+bin/creel-cli topic create my-notes "My Notes"
 ```
 
-## 7. Search
+## 5. Search
+
+The search command reads an embedding vector from stdin (JSON array of floats). For example, with a pre-computed embedding:
 
 ```bash
-bin/creel-cli search --slug my-notes --query "your search query" --top-k 5
+echo '[0.1, 0.2, 0.3, ...]' | bin/creel-cli search --top-k 5
 ```
 
-## 8. Try creel-chat (optional)
+For a more practical workflow, use `creel-chat` which handles embedding computation automatically.
+
+## 6. Try creel-chat (optional)
 
 For an interactive demo with LLM-powered conversation memory:
 
@@ -95,6 +65,6 @@ See [CREEL_CHAT.md](CREEL_CHAT.md) for full setup instructions.
 ## Next steps
 
 - [Concepts](CONCEPTS.md): understand the data model and design
-- [API Reference](../API_REFERENCE.md): all 28 RPCs
+- [API Reference](API_REFERENCE.md): all 28 RPCs
 - [Development](DEVELOPMENT.md): set up a dev environment
 - [Deployment](DEPLOYMENT.md): production deployment with Helm

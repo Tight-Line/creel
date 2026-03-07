@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Pre-configured dev API key for local development. `creel.example.yaml` ships with a working `auth.api_keys` entry; `source .env` sets the matching `CREEL_ENDPOINT` and `CREEL_API_KEY` for `creel-cli` and `creel-chat`.
+
+### Changed
+
+- Database tables now live in a dedicated PostgreSQL schema (default: `creel`), configurable via `postgres.schema` or `CREEL_POSTGRES_SCHEMA`. The schema is created automatically on startup.
+- PostgreSQL connection is now structured fields (`host`, `port`, `user`, `password`, `name`, `schema`, `sslmode`) under the `postgres:` config key. Replaces the old `metadata.postgres_url` single-string approach. Supports Kubernetes secrets for passwords via Helm `postgresql.auth.existingSecret`.
+- Helm chart uses `postgresql.source: helm|external` instead of `postgresql.enabled` to clarify intent.
+- Integration tests gate on `CREEL_POSTGRES_HOST` instead of `TEST_POSTGRES_URL`.
+
 ## [0.1.3] - 2026-03-07
 
 ### Added

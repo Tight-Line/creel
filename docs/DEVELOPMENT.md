@@ -7,6 +7,16 @@
 - [buf](https://buf.build/docs/installation) (protobuf codegen)
 - [golangci-lint](https://golangci-lint.run/welcome/install/) (linting)
 
+## Local development environment
+
+The repository ships with a pre-configured dev API key for local development. After cloning:
+
+```bash
+source .env
+```
+
+This sets `CREEL_ENDPOINT` and `CREEL_API_KEY` so that `creel-cli` and `creel-chat` authenticate against a local server running with `creel.example.yaml`. The dev key is intentionally public; it is only useful against a local instance.
+
 ## Clone and build
 
 ```bash
@@ -38,17 +48,17 @@ Integration tests require a running PostgreSQL instance with pgvector:
 ```bash
 docker compose up -d postgres
 
-TEST_POSTGRES_URL="postgres://creel:creel@localhost:5432/creel?sslmode=disable" go test ./...
+CREEL_POSTGRES_HOST=localhost CREEL_POSTGRES_USER=creel CREEL_POSTGRES_PASSWORD=creel CREEL_POSTGRES_NAME=creel go test ./...
 ```
 
-Integration tests are gated on the `TEST_POSTGRES_URL` environment variable. Without it, they are skipped. In CI, a PostgreSQL service container is started automatically and `TEST_POSTGRES_URL` is set, so integration tests always run there.
+Integration tests are gated on the `CREEL_POSTGRES_HOST` environment variable. Without it, they are skipped. In CI, a PostgreSQL service container is started automatically and `CREEL_POSTGRES_*` vars are set, so integration tests always run there.
 
 ### Coverage check
 
 The coverage enforcement script runs all tests and verifies that every uncovered line has a `// coverage:ignore - <reason>` annotation:
 
 ```bash
-TEST_POSTGRES_URL="postgres://creel:creel@localhost:5432/creel?sslmode=disable" ./scripts/check-coverage.sh
+CREEL_POSTGRES_HOST=localhost CREEL_POSTGRES_USER=creel CREEL_POSTGRES_PASSWORD=creel CREEL_POSTGRES_NAME=creel ./scripts/check-coverage.sh
 ```
 
 This is the same script CI runs. Use `// coverage:ignore - <reason>` only for lines that are genuinely unreachable in tests (database connection failures, OIDC provider infrastructure). Never use it for testable code.
@@ -144,6 +154,6 @@ deploy/helm/creel/  Helm chart
 
 ## Useful references
 
-- [Architecture](../ARCHITECTURE.md): full design document and roadmap
-- [API Reference](../API_REFERENCE.md): all 28 RPCs
+- [Architecture](ARCHITECTURE.md): full design document and roadmap
+- [API Reference](API_REFERENCE.md): all 28 RPCs
 - [Concepts](CONCEPTS.md): data model and design for integrators
