@@ -1,11 +1,13 @@
 // Package config handles loading and validating Creel server configuration.
 package config
 
+import "fmt"
+
 // Config is the top-level server configuration.
 type Config struct {
 	Server        ServerConfig        `yaml:"server"`
 	Auth          AuthConfig          `yaml:"auth"`
-	Metadata      MetadataConfig      `yaml:"metadata"`
+	Postgres      PostgresConfig      `yaml:"postgres"`
 	VectorBackend VectorBackendConfig `yaml:"vector_backend"`
 	Embedding     EmbeddingConfig     `yaml:"embedding"`
 	Links         LinksConfig         `yaml:"links"`
@@ -38,8 +40,32 @@ type APIKeyConfig struct {
 	Principal string `yaml:"principal"` // principal identity this key authenticates as
 }
 
-type MetadataConfig struct {
-	PostgresURL string `yaml:"postgres_url"`
+// PostgresConfig holds structured PostgreSQL connection parameters.
+type PostgresConfig struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	Name     string `yaml:"name"`
+	Schema   string `yaml:"schema"`
+	SSLMode  string `yaml:"sslmode"`
+}
+
+// URL returns the connection string with search_path set to the configured schema
+// followed by public (so extensions installed in public are accessible).
+func (p PostgresConfig) URL() string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%d/%s?sslmode=%s&search_path=%s,public",
+		p.User, p.Password, p.Host, p.Port, p.Name, p.SSLMode, p.Schema,
+	)
+}
+
+// BaseURL returns the connection string without search_path (for schema creation).
+func (p PostgresConfig) BaseURL() string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		p.User, p.Password, p.Host, p.Port, p.Name, p.SSLMode,
+	)
 }
 
 type VectorBackendConfig struct {

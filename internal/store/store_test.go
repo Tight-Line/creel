@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"math"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"github.com/Tight-Line/creel/internal/config"
 )
 
 // ---------------------------------------------------------------------------
@@ -958,12 +959,12 @@ func TestNewPool_InvalidURL(t *testing.T) {
 }
 
 func TestNewPool_Success(t *testing.T) {
-	pgURL := os.Getenv("TEST_POSTGRES_URL")
-	if pgURL == "" {
-		t.Skip("TEST_POSTGRES_URL not set; skipping integration test")
+	pgCfg := config.PostgresConfigFromEnv()
+	if pgCfg == nil {
+		t.Skip("CREEL_POSTGRES_HOST not set; skipping integration test")
 	}
 
-	pool, err := NewPool(ctx(), pgURL)
+	pool, err := NewPool(ctx(), pgCfg.URL())
 	if err != nil {
 		t.Fatalf("NewPool: %v", err)
 	}
@@ -971,12 +972,26 @@ func TestNewPool_Success(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// EnsureSchema tests
+// ---------------------------------------------------------------------------
+
+func TestEnsureSchema_InvalidName(t *testing.T) {
+	err := EnsureSchema(ctx(), "postgres://localhost/db", "INVALID-NAME!")
+	expectErr(t, err, "invalid schema name")
+}
+
+func TestEnsureSchema_BadURL(t *testing.T) {
+	err := EnsureSchema(ctx(), "postgres://invalid-host-that-does-not-exist:5432/db?connect_timeout=1", "valid_name")
+	expectErr(t, err, "connecting for schema creation")
+}
+
+// ---------------------------------------------------------------------------
 // RunMigrations error path
 // ---------------------------------------------------------------------------
 
 func TestRunMigrations_InvalidPath(t *testing.T) {
-	pgURL := os.Getenv("TEST_POSTGRES_URL")
-	if pgURL == "" {
+	pgCfg := config.PostgresConfigFromEnv()
+	if pgCfg == nil {
 		// Without a real DB, we can still test with a bogus URL and path;
 		// the migrator creation itself will fail.
 		err := RunMigrations("postgres://invalid:5432/db", "/nonexistent/path")
@@ -984,6 +999,6 @@ func TestRunMigrations_InvalidPath(t *testing.T) {
 		return
 	}
 
-	err := RunMigrations(pgURL, "/nonexistent/path")
+	err := RunMigrations(pgCfg.URL(), "/nonexistent/path")
 	expectErr(t, err, "creating migrator")
 }

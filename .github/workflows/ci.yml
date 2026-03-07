@@ -40,7 +40,13 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      TEST_POSTGRES_URL: postgres://creel:creel@localhost:5432/creel?sslmode=disable
+      CREEL_POSTGRES_HOST: localhost
+      CREEL_POSTGRES_PORT: "5432"
+      CREEL_POSTGRES_USER: creel
+      CREEL_POSTGRES_PASSWORD: creel
+      CREEL_POSTGRES_NAME: creel
+      CREEL_POSTGRES_SCHEMA: creel
+      CREEL_POSTGRES_SSLMODE: disable
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5

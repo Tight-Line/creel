@@ -11,8 +11,8 @@ import (
 
 // Load reads a YAML config file and applies environment variable overrides.
 // Environment variables use the CREEL_ prefix with underscores replacing dots
-// and nested keys joined by underscores. For example, CREEL_METADATA_POSTGRES_URL
-// overrides metadata.postgres_url.
+// and nested keys joined by underscores. For example, CREEL_POSTGRES_HOST
+// overrides postgres.host.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -51,12 +51,27 @@ func applyDefaults(cfg *Config) {
 	if cfg.VectorBackend.Type == "" {
 		cfg.VectorBackend.Type = "pgvector"
 	}
+	if cfg.Postgres.Port == 0 {
+		cfg.Postgres.Port = 5432
+	}
+	if cfg.Postgres.Schema == "" {
+		cfg.Postgres.Schema = "creel"
+	}
+	if cfg.Postgres.SSLMode == "" {
+		cfg.Postgres.SSLMode = "disable"
+	}
 }
 
 // validate checks that all required fields are present and values are in range.
 func validate(cfg *Config) error {
-	if cfg.Metadata.PostgresURL == "" {
-		return fmt.Errorf("metadata.postgres_url is required")
+	if cfg.Postgres.Host == "" {
+		return fmt.Errorf("postgres.host is required")
+	}
+	if cfg.Postgres.User == "" {
+		return fmt.Errorf("postgres.user is required")
+	}
+	if cfg.Postgres.Name == "" {
+		return fmt.Errorf("postgres.name is required")
 	}
 	if err := validatePort("server.grpc_port", cfg.Server.GRPCPort); err != nil {
 		return err
@@ -125,4 +140,40 @@ func applyEnvToStruct(v reflect.Value, prefix string) {
 			}
 		}
 	}
+}
+
+// PostgresConfigFromEnv builds a PostgresConfig from CREEL_POSTGRES_* environment
+// variables. Returns nil if CREEL_POSTGRES_HOST is not set. Used by integration tests.
+func PostgresConfigFromEnv() *PostgresConfig {
+	host := os.Getenv("CREEL_POSTGRES_HOST")
+	if host == "" {
+		return nil
+	}
+
+	cfg := &PostgresConfig{
+		Host:     host,
+		User:     os.Getenv("CREEL_POSTGRES_USER"),
+		Password: os.Getenv("CREEL_POSTGRES_PASSWORD"),
+		Name:     os.Getenv("CREEL_POSTGRES_NAME"),
+		Schema:   os.Getenv("CREEL_POSTGRES_SCHEMA"),
+		SSLMode:  os.Getenv("CREEL_POSTGRES_SSLMODE"),
+	}
+
+	var port int
+	if _, err := fmt.Sscanf(os.Getenv("CREEL_POSTGRES_PORT"), "%d", &port); err == nil {
+		cfg.Port = port
+	}
+
+	// Apply same defaults as Load.
+	if cfg.Port == 0 {
+		cfg.Port = 5432
+	}
+	if cfg.Schema == "" {
+		cfg.Schema = "creel"
+	}
+	if cfg.SSLMode == "" {
+		cfg.SSLMode = "disable"
+	}
+
+	return cfg
 }

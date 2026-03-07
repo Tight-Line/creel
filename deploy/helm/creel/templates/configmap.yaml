@@ -24,8 +24,13 @@ data:
           key_hash: {{ .Values.auth.bootstrapKeyHash | quote }}
           principal: "system:bootstrap"
       {{- end }}
-    metadata:
-      postgres_url: {{ .Values.metadata.postgresUrl | quote }}
+    postgres:
+      host: {{ .Values.postgresql.host | default (printf "%s-postgresql" .Release.Name) | quote }}
+      port: {{ .Values.postgresql.port }}
+      user: {{ .Values.postgresql.auth.username | quote }}
+      name: {{ .Values.postgresql.name | quote }}
+      schema: {{ .Values.postgresql.schema | default "creel" | quote }}
+      sslmode: {{ .Values.postgresql.sslmode | default "disable" | quote }}
     vector_backend:
       type: {{ .Values.vectorBackend.type }}
     links:

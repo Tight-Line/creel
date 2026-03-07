@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
 	"testing"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
 	"github.com/Tight-Line/creel/internal/auth"
+	"github.com/Tight-Line/creel/internal/config"
 	"github.com/Tight-Line/creel/internal/retrieval"
 	"github.com/Tight-Line/creel/internal/server"
 	"github.com/Tight-Line/creel/internal/store"
@@ -42,14 +42,18 @@ type testEnv struct {
 func setupTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 
-	pgURL := os.Getenv("TEST_POSTGRES_URL")
-	if pgURL == "" {
-		t.Skip("TEST_POSTGRES_URL not set; skipping integration test")
+	pgCfg := config.PostgresConfigFromEnv()
+	if pgCfg == nil {
+		t.Skip("CREEL_POSTGRES_HOST not set; skipping integration test")
 	}
 
 	ctx := context.Background()
 
-	// Run migrations.
+	// Ensure schema exists and run migrations.
+	if err := store.EnsureSchema(ctx, pgCfg.BaseURL(), pgCfg.Schema); err != nil {
+		t.Fatalf("ensuring schema: %v", err)
+	}
+	pgURL := pgCfg.URL()
 	if err := store.RunMigrations(pgURL, "../../migrations"); err != nil {
 		t.Fatalf("running migrations: %v", err)
 	}
