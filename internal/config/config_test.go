@@ -4,13 +4,16 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
 func TestLoadFromYAML(t *testing.T) {
 	yaml := `
-metadata:
-  postgres_url: postgres://localhost:5432/creel
+postgres:
+  host: localhost
+  user: creel
+  name: creel
 server:
   grpc_port: 9443
 auth:
@@ -43,8 +46,10 @@ auth:
 
 func TestLoadDefaults(t *testing.T) {
 	yaml := `
-metadata:
-  postgres_url: postgres://localhost/creel
+postgres:
+  host: localhost
+  user: creel
+  name: creel
 `
 	path := writeTemp(t, yaml)
 	cfg, err := Load(path)
@@ -60,26 +65,37 @@ metadata:
 	if cfg.VectorBackend.Type != "pgvector" {
 		t.Errorf("VectorBackend.Type = %q, want default pgvector", cfg.VectorBackend.Type)
 	}
+	if cfg.Postgres.Port != 5432 {
+		t.Errorf("Postgres.Port = %d, want default 5432", cfg.Postgres.Port)
+	}
+	if cfg.Postgres.Schema != "creel" {
+		t.Errorf("Postgres.Schema = %q, want default creel", cfg.Postgres.Schema)
+	}
+	if cfg.Postgres.SSLMode != "disable" {
+		t.Errorf("Postgres.SSLMode = %q, want default disable", cfg.Postgres.SSLMode)
+	}
 }
 
 func TestLoadEnvOverrides(t *testing.T) {
 	yaml := `
-metadata:
-  postgres_url: postgres://localhost/creel
+postgres:
+  host: localhost
+  user: creel
+  name: creel
 server:
   grpc_port: 8443
 `
 	path := writeTemp(t, yaml)
 
-	t.Setenv("CREEL_METADATA_POSTGRES_URL", "postgres://override/creel")
+	t.Setenv("CREEL_POSTGRES_HOST", "override-host")
 	t.Setenv("CREEL_SERVER_GRPC_PORT", "7443")
 
 	cfg, err := Load(path)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if cfg.Metadata.PostgresURL != "postgres://override/creel" {
-		t.Errorf("PostgresURL = %q, want override", cfg.Metadata.PostgresURL)
+	if cfg.Postgres.Host != "override-host" {
+		t.Errorf("Host = %q, want override-host", cfg.Postgres.Host)
 	}
 	if cfg.Server.GRPCPort != 7443 {
 		t.Errorf("GRPCPort = %d, want 7443", cfg.Server.GRPCPort)
@@ -90,19 +106,42 @@ func TestLoadValidationErrors(t *testing.T) {
 	tests := []struct {
 		name string
 		yaml string
+		env  map[string]string
 	}{
 		{
-			name: "missing postgres_url",
+			name: "missing postgres host",
 			yaml: `
-server:
-  grpc_port: 8443
+postgres:
+  user: creel
+  name: creel
 `,
+			env: map[string]string{"CREEL_POSTGRES_HOST": ""},
+		},
+		{
+			name: "missing postgres user",
+			yaml: `
+postgres:
+  host: localhost
+  name: creel
+`,
+			env: map[string]string{"CREEL_POSTGRES_USER": ""},
+		},
+		{
+			name: "missing postgres name",
+			yaml: `
+postgres:
+  host: localhost
+  user: creel
+`,
+			env: map[string]string{"CREEL_POSTGRES_NAME": ""},
 		},
 		{
 			name: "invalid grpc_port",
 			yaml: `
-metadata:
-  postgres_url: postgres://localhost/creel
+postgres:
+  host: localhost
+  user: creel
+  name: creel
 server:
   grpc_port: 99999
 `,
@@ -110,8 +149,10 @@ server:
 		{
 			name: "zero port after override",
 			yaml: `
-metadata:
-  postgres_url: postgres://localhost/creel
+postgres:
+  host: localhost
+  user: creel
+  name: creel
 server:
   grpc_port: -1
 `,
@@ -120,6 +161,11 @@ server:
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Set env overrides so the missing field stays empty
+			// even if outer environment provides a value.
+			for k, v := range tt.env {
+				t.Setenv(k, v)
+			}
 			path := writeTemp(t, tt.yaml)
 			_, err := Load(path)
 			if err == nil {
@@ -131,8 +177,10 @@ server:
 
 func TestLoadValidation_InvalidRESTPort(t *testing.T) {
 	path := writeTemp(t, `
-metadata:
-  postgres_url: postgres://localhost/creel
+postgres:
+  host: localhost
+  user: creel
+  name: creel
 server:
   rest_port: 99999
 `)
@@ -144,8 +192,10 @@ server:
 
 func TestLoadValidation_InvalidMetricsPort(t *testing.T) {
 	path := writeTemp(t, `
-metadata:
-  postgres_url: postgres://localhost/creel
+postgres:
+  host: localhost
+  user: creel
+  name: creel
 server:
   metrics_port: -1
 `)
@@ -157,8 +207,10 @@ server:
 
 func TestLoadEnvOverrides_BoolAndFloat(t *testing.T) {
 	path := writeTemp(t, `
-metadata:
-  postgres_url: postgres://localhost/creel
+postgres:
+  host: localhost
+  user: creel
+  name: creel
 links:
   auto_link_on_ingest: false
   auto_link_threshold: 0.5
@@ -180,8 +232,10 @@ links:
 
 func TestLoadEnvOverrides_InvalidInt(t *testing.T) {
 	path := writeTemp(t, `
-metadata:
-  postgres_url: postgres://localhost/creel
+postgres:
+  host: localhost
+  user: creel
+  name: creel
 server:
   grpc_port: 8443
 `)
@@ -231,6 +285,133 @@ func TestApplyEnvToStruct_SkipUntaggedFields(t *testing.T) {
 	}
 	if v.Skipped != "original" {
 		t.Errorf("Skipped = %q, want original (yaml:- should be skipped)", v.Skipped)
+	}
+}
+
+func TestPostgresConfig_URL(t *testing.T) {
+	cfg := PostgresConfig{
+		Host:     "myhost",
+		Port:     5433,
+		User:     "myuser",
+		Password: "mypass",
+		Name:     "mydb",
+		Schema:   "myschema",
+		SSLMode:  "require",
+	}
+	url := cfg.URL()
+	if !strings.Contains(url, "myhost:5433") {
+		t.Errorf("URL missing host:port: %s", url)
+	}
+	if !strings.Contains(url, "search_path=myschema") {
+		t.Errorf("URL missing search_path: %s", url)
+	}
+}
+
+func TestPostgresConfig_BaseURL(t *testing.T) {
+	cfg := PostgresConfig{
+		Host:     "myhost",
+		Port:     5433,
+		User:     "myuser",
+		Password: "mypass",
+		Name:     "mydb",
+		Schema:   "myschema",
+		SSLMode:  "require",
+	}
+	url := cfg.BaseURL()
+	if strings.Contains(url, "search_path") {
+		t.Errorf("BaseURL should not contain search_path: %s", url)
+	}
+}
+
+func TestPostgresConfig_SchemaDefault(t *testing.T) {
+	yaml := `
+postgres:
+  host: localhost
+  user: creel
+  name: creel
+`
+	path := writeTemp(t, yaml)
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Postgres.Schema != "creel" {
+		t.Errorf("Schema = %q, want default creel", cfg.Postgres.Schema)
+	}
+}
+
+func TestLoadEnvOverrides_Schema(t *testing.T) {
+	yaml := `
+postgres:
+  host: localhost
+  user: creel
+  name: creel
+`
+	path := writeTemp(t, yaml)
+	t.Setenv("CREEL_POSTGRES_SCHEMA", "custom_schema")
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Postgres.Schema != "custom_schema" {
+		t.Errorf("Schema = %q, want custom_schema", cfg.Postgres.Schema)
+	}
+}
+
+func TestPostgresConfigFromEnv(t *testing.T) {
+	// Without CREEL_POSTGRES_HOST, returns nil.
+	t.Setenv("CREEL_POSTGRES_HOST", "")
+	result := PostgresConfigFromEnv()
+	if result != nil {
+		t.Fatal("expected nil when CREEL_POSTGRES_HOST is empty")
+	}
+
+	t.Setenv("CREEL_POSTGRES_HOST", "testhost")
+	t.Setenv("CREEL_POSTGRES_PORT", "5433")
+	t.Setenv("CREEL_POSTGRES_USER", "testuser")
+	t.Setenv("CREEL_POSTGRES_PASSWORD", "testpass")
+	t.Setenv("CREEL_POSTGRES_NAME", "testdb")
+	t.Setenv("CREEL_POSTGRES_SCHEMA", "testschema")
+	t.Setenv("CREEL_POSTGRES_SSLMODE", "require")
+
+	cfg := PostgresConfigFromEnv()
+	if cfg == nil {
+		t.Fatal("expected non-nil config")
+	}
+	if cfg.Host != "testhost" {
+		t.Errorf("Host = %q", cfg.Host)
+	}
+	if cfg.Port != 5433 {
+		t.Errorf("Port = %d", cfg.Port)
+	}
+	if cfg.User != "testuser" {
+		t.Errorf("User = %q", cfg.User)
+	}
+	if cfg.Schema != "testschema" {
+		t.Errorf("Schema = %q", cfg.Schema)
+	}
+}
+
+func TestPostgresConfigFromEnv_Defaults(t *testing.T) {
+	t.Setenv("CREEL_POSTGRES_HOST", "testhost")
+	// Clear other env vars so defaults are exercised.
+	t.Setenv("CREEL_POSTGRES_PORT", "")
+	t.Setenv("CREEL_POSTGRES_SCHEMA", "")
+	t.Setenv("CREEL_POSTGRES_SSLMODE", "")
+
+	cfg := PostgresConfigFromEnv()
+	if cfg == nil {
+		t.Fatal("expected non-nil config")
+	}
+	if cfg.Port != 5432 {
+		t.Errorf("Port = %d, want default 5432", cfg.Port)
+	}
+	if cfg.Schema != "creel" {
+		t.Errorf("Schema = %q, want default creel", cfg.Schema)
+	}
+	if cfg.SSLMode != "disable" {
+		t.Errorf("SSLMode = %q, want default disable", cfg.SSLMode)
 	}
 }
 

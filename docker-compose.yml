@@ -15,20 +15,34 @@ services:
       timeout: 5s
       retries: 5
 
-  creel:
+  migrate:
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
+    environment:
+      CREEL_POSTGRES_HOST: postgres
+    command: ["--config", "/etc/creel/creel.yaml", "--migrate"]
+    volumes:
+      - ./creel.example.yaml:/etc/creel/creel.yaml:ro
+      - ./migrations:/app/migrations:ro
+
+  creel:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "8443:8443"
       - "8080:8080"
       - "9090:9090"
     environment:
-      CREEL_METADATA_POSTGRES_URL: "postgres://creel:creel@postgres:5432/creel?sslmode=disable"
-    command: ["creel", "--config", "/etc/creel/creel.yaml", "--migrate"]
+      CREEL_POSTGRES_HOST: postgres
+    command: ["--config", "/etc/creel/creel.yaml"]
     volumes:
       - ./creel.example.yaml:/etc/creel/creel.yaml:ro
 

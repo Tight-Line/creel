@@ -11,4 +11,4 @@ dependencies:
   - name: postgresql
     version: "~16"
     repository: https://cloudnative-pg.github.io/charts
-    condition: postgresql.enabled
+    condition: postgresql.install

@@ -19,10 +19,6 @@ auth:
   principalClaim: email
   bootstrapKeyHash: ""
 
-metadata:
-  postgresUrl: ""
-  # existingSecret: ""
-
 vectorBackend:
   type: pgvector
   config: {}
@@ -41,7 +37,23 @@ compaction:
   retainCompactedChunks: true
 
 postgresql:
-  enabled: false
+  # "helm" installs PostgreSQL via CloudNativePG subchart.
+  # "external" uses a user-managed instance (provide host below).
+  source: external
+  # Set to true when source is "helm" to enable the CloudNativePG subchart.
+  install: false
+
+  host: ""
+  port: 5432
+  name: creel
+  schema: creel
+  sslmode: disable
+
+  auth:
+    username: creel
+    password: ""
+    existingSecret: ""
+    secretKey: password
 
 mcp:
   enabled: false

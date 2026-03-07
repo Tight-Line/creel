@@ -10,10 +10,8 @@ go test ./...                 # unit tests only
 go vet ./...                  # static analysis
 
 # Integration tests (require a running PostgreSQL with pgvector):
-TEST_POSTGRES_URL="postgres://creel:creel@localhost:5432/creel?sslmode=disable" go test ./...
-
-# Docker environment for integration tests:
 docker compose up -d postgres
+CREEL_POSTGRES_HOST=localhost CREEL_POSTGRES_USER=creel CREEL_POSTGRES_PASSWORD=creel CREEL_POSTGRES_NAME=creel go test ./...
 ```
 
 ## Code Style
@@ -50,7 +48,7 @@ The `internal/store/dbtest` package provides a `QueryCounter` wrapper that count
 ## Testing Conventions
 
 - **Unit tests**: alongside source files (`foo_test.go` next to `foo.go`). Mock-based unit tests for error paths live in `internal/store/store_test.go`, `internal/server/helpers_test.go`, `internal/retrieval/search_unit_test.go`, and `internal/auth/bootstrap_test.go`.
-- **Integration tests**: gated on `TEST_POSTGRES_URL` env var; skipped otherwise. CI provides a PostgreSQL service and sets this automatically.
+- **Integration tests**: gated on `CREEL_POSTGRES_HOST` env var; skipped otherwise. CI provides a PostgreSQL service and sets `CREEL_POSTGRES_*` vars automatically.
 - **Vector backend conformance**: `internal/vector/vectortest/conformance.go` defines a reusable test suite. Every backend implementation must pass it.
 - **Query counter tests**: `internal/store/dbtest/` verifies that search and other hot paths use bounded query counts.
 - **Coverage enforcement**: `./scripts/check-coverage.sh` runs tests and verifies every uncovered line has a `// coverage:ignore - <reason>` annotation. Use this annotation only for lines that are genuinely unreachable in tests (e.g., database connection failures, OIDC provider infrastructure). Never use it for testable code.

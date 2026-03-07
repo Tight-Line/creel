@@ -46,20 +46,25 @@ func run() error {
 	}
 	fmt.Printf("creel: config loaded (grpc_port=%d)\n", cfg.Server.GRPCPort)
 
-	if err := store.RunMigrations(cfg.Metadata.PostgresURL, "migrations"); err != nil {
-		return fmt.Errorf("running migrations: %w", err)
-	}
-	fmt.Println("creel: migrations up to date")
-
-	if *migrateOnly {
-		return nil
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	pgCfg := cfg.Postgres
+
+	if *migrateOnly {
+		if err := store.EnsureSchema(ctx, pgCfg.BaseURL(), pgCfg.Schema); err != nil {
+			return fmt.Errorf("ensuring schema: %w", err)
+		}
+		if err := store.RunMigrations(pgCfg.URL(), "migrations"); err != nil {
+			return fmt.Errorf("running migrations: %w", err)
+		}
+		fmt.Println("creel: migrations up to date")
+		return nil
+	}
+
 	// Open database pool.
-	pool, err := store.NewPool(ctx, cfg.Metadata.PostgresURL)
+	fullURL := pgCfg.URL()
+	pool, err := store.NewPool(ctx, fullURL)
 	if err != nil {
 		return fmt.Errorf("opening database pool: %w", err)
 	}

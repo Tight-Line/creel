@@ -25,6 +25,16 @@ spec:
           args:
             - "--config"
             - "/etc/creel/creel.yaml"
+          env:
+            - name: CREEL_POSTGRES_PASSWORD
+              {{- if .Values.postgresql.auth.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.auth.existingSecret }}
+                  key: {{ .Values.postgresql.auth.secretKey | default "password" }}
+              {{- else }}
+              value: {{ .Values.postgresql.auth.password | quote }}
+              {{- end }}
           ports:
             - name: grpc
               containerPort: {{ .Values.service.grpc.port }}

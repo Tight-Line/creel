@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"math"
-	"os"
 	"strings"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Tight-Line/creel/internal/config"
 	"github.com/Tight-Line/creel/internal/store"
 	"github.com/Tight-Line/creel/internal/vector"
 	"github.com/Tight-Line/creel/internal/vector/vectortest"
@@ -181,22 +181,27 @@ func TestPing_ExecError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPgvectorConformance(t *testing.T) {
-	pgURL := os.Getenv("TEST_POSTGRES_URL")
-	if pgURL == "" {
-		t.Skip("TEST_POSTGRES_URL not set; skipping integration test")
+	pgCfg := config.PostgresConfigFromEnv()
+	if pgCfg == nil {
+		t.Skip("CREEL_POSTGRES_HOST not set; skipping integration test")
 	}
 
+	ctx := context.Background()
+	if err := store.EnsureSchema(ctx, pgCfg.BaseURL(), pgCfg.Schema); err != nil {
+		t.Fatalf("ensuring schema: %v", err)
+	}
+
+	pgURL := pgCfg.URL()
 	if err := store.RunMigrations(pgURL, "../../../migrations"); err != nil {
 		t.Fatalf("running migrations: %v", err)
 	}
 
-	pool, err := pgxpool.New(context.Background(), pgURL)
+	pool, err := pgxpool.New(ctx, pgURL)
 	if err != nil {
 		t.Fatalf("creating pool: %v", err)
 	}
 	defer pool.Close()
 
-	ctx := context.Background()
 	ids := vectortest.TestIDs
 	allIDs := []string{ids.Chunk1, ids.Chunk2, ids.Chunk3, ids.Batch1, ids.Batch2}
 

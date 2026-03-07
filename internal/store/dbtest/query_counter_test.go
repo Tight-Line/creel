@@ -3,12 +3,12 @@ package dbtest_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Tight-Line/creel/internal/auth"
+	"github.com/Tight-Line/creel/internal/config"
 	"github.com/Tight-Line/creel/internal/retrieval"
 	"github.com/Tight-Line/creel/internal/store"
 	"github.com/Tight-Line/creel/internal/store/dbtest"
@@ -18,11 +18,15 @@ import (
 
 func testPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
-	pgURL := os.Getenv("TEST_POSTGRES_URL")
-	if pgURL == "" {
-		t.Skip("TEST_POSTGRES_URL not set; skipping integration test")
+	pgCfg := config.PostgresConfigFromEnv()
+	if pgCfg == nil {
+		t.Skip("CREEL_POSTGRES_HOST not set; skipping integration test")
 	}
-	pool, err := pgxpool.New(context.Background(), pgURL)
+	ctx := context.Background()
+	if err := store.EnsureSchema(ctx, pgCfg.BaseURL(), pgCfg.Schema); err != nil {
+		t.Fatalf("ensuring schema: %v", err)
+	}
+	pool, err := pgxpool.New(ctx, pgCfg.URL())
 	if err != nil {
 		t.Fatalf("creating pool: %v", err)
 	}
@@ -126,7 +130,8 @@ func TestSearchQueryCount(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()
 
-	if err := store.RunMigrations(os.Getenv("TEST_POSTGRES_URL"), "../../../migrations"); err != nil {
+	pgCfg := config.PostgresConfigFromEnv()
+	if err := store.RunMigrations(pgCfg.URL(), "../../../migrations"); err != nil {
 		t.Fatalf("running migrations: %v", err)
 	}
 
@@ -193,7 +198,8 @@ func TestNPlusOneDetection(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()
 
-	if err := store.RunMigrations(os.Getenv("TEST_POSTGRES_URL"), "../../../migrations"); err != nil {
+	pgCfg2 := config.PostgresConfigFromEnv()
+	if err := store.RunMigrations(pgCfg2.URL(), "../../../migrations"); err != nil {
 		t.Fatalf("running migrations: %v", err)
 	}
 
