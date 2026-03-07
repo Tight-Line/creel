@@ -329,6 +329,7 @@ func TestPostgresConfig_BaseURL(t *testing.T) {
 }
 
 func TestPostgresConfig_SchemaDefault(t *testing.T) {
+	t.Setenv("CREEL_POSTGRES_SCHEMA", "")
 	yaml := `
 postgres:
   host: localhost

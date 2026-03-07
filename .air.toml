@@ -1,0 +1,21 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "buf generate && go build -o ./tmp/creel ./cmd/creel"
+  bin = "./tmp/creel"
+  args_bin = ["--config", "/etc/creel/creel.yaml"]
+  include_ext = ["go", "proto", "yaml"]
+  include_dir = ["cmd", "internal", "proto"]
+  exclude_dir = ["gen", "tmp", "bin"]
+  exclude_regex = ["_test\\.go$"]
+  kill_delay = "2s"
+  send_interrupt = true
+  stop_on_error = true
+  log = "build-errors.log"
+
+[log]
+  time = false
+
+[misc]
+  clean_on_exit = true

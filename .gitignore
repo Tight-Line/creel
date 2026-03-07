@@ -29,3 +29,6 @@ Thumbs.db
 
 # Generated protobuf
 gen/
+
+# Air live-reload build output
+tmp/

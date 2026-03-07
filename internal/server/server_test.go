@@ -75,6 +75,7 @@ func setupTestEnv(t *testing.T) *testEnv {
 	// Create authorizer and searcher.
 	authorizer := auth.NewGrantAuthorizer(grantStore)
 	searcher := retrieval.NewSearcher(chunkStore, authorizer, backend)
+	contextFetcher := retrieval.NewContextFetcher(chunkStore, authorizer)
 
 	// Create a test system account for API key auth.
 	acct, rawKey, err := accountStore.Create(ctx, "integration-test", "integration test account")
@@ -92,7 +93,7 @@ func setupTestEnv(t *testing.T) *testEnv {
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), server.NewTopicServer(topicStore, authorizer))
 	pb.RegisterDocumentServiceServer(srv.GRPCServer(), server.NewDocumentServer(docStore, authorizer))
 	pb.RegisterChunkServiceServer(srv.GRPCServer(), server.NewChunkServer(chunkStore, docStore, backend, authorizer))
-	pb.RegisterRetrievalServiceServer(srv.GRPCServer(), server.NewRetrievalServer(searcher))
+	pb.RegisterRetrievalServiceServer(srv.GRPCServer(), server.NewRetrievalServer(searcher, contextFetcher))
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -734,13 +735,120 @@ func TestRetrievalRPCs_ValidationErrors(t *testing.T) {
 	}
 }
 
-func TestGetContextRPC_Unimplemented(t *testing.T) {
+func TestGetContextRPC(t *testing.T) {
 	env := setupTestEnv(t)
 	ctx := env.authCtx()
 
+	// Missing document_id should be InvalidArgument.
 	_, err := env.retrieval.GetContext(ctx, &pb.GetContextRequest{})
-	if status.Code(err) != codes.Unimplemented {
-		t.Errorf("expected Unimplemented, got %v", err)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Errorf("expected InvalidArgument for empty document_id, got %v", err)
+	}
+
+	// Non-existent document should return Internal (wraps "document not found").
+	_, err = env.retrieval.GetContext(ctx, &pb.GetContextRequest{
+		DocumentId: "00000000-0000-0000-0000-000000000000",
+	})
+	if status.Code(err) != codes.Internal {
+		t.Errorf("expected Internal for missing document, got %v", err)
+	}
+
+	// Seed a topic, document, and chunks to test the success path.
+	slug := fmt.Sprintf("getctx-test-%d", time.Now().UnixNano())
+	topic, err := env.topics.CreateTopic(ctx, &pb.CreateTopicRequest{
+		Slug: slug, Name: "GetContext Test",
+	})
+	if err != nil {
+		t.Fatalf("CreateTopic: %v", err)
+	}
+	t.Cleanup(func() { _, _ = env.topics.DeleteTopic(ctx, &pb.DeleteTopicRequest{Id: topic.Id}) })
+
+	// Grant read so GetContext can authorize.
+	_, err = env.topics.GrantAccess(ctx, &pb.GrantAccessRequest{
+		TopicId:    topic.Id,
+		Principal:  "system:integration-test",
+		Permission: pb.Permission_PERMISSION_READ,
+	})
+	if err != nil {
+		t.Fatalf("GrantAccess: %v", err)
+	}
+
+	doc, err := env.documents.CreateDocument(ctx, &pb.CreateDocumentRequest{
+		TopicId: topic.Id, Slug: "ctx-doc", Name: "Context Doc",
+	})
+	if err != nil {
+		t.Fatalf("CreateDocument: %v", err)
+	}
+
+	// Ingest 5 chunks with role metadata.
+	backend := pgvector.New(env.pool)
+	dim := backend.EmbeddingDimension()
+	embedding := make([]float64, dim)
+	embedding[0] = 1.0
+
+	var inputs []*pb.ChunkInput
+	for i := 0; i < 5; i++ {
+		role := "user"
+		if i%2 == 1 {
+			role = "assistant"
+		}
+		meta, _ := structpb.NewStruct(map[string]any{
+			"role": role,
+			"turn": float64(i/2 + 1),
+		})
+		inputs = append(inputs, &pb.ChunkInput{
+			Content:   fmt.Sprintf("message %d", i),
+			Sequence:  int32(i),
+			Embedding: embedding,
+			Metadata:  meta,
+		})
+	}
+	_, err = env.chunks.IngestChunks(ctx, &pb.IngestChunksRequest{
+		DocumentId: doc.Id,
+		Chunks:     inputs,
+	})
+	if err != nil {
+		t.Fatalf("IngestChunks: %v", err)
+	}
+
+	// GetContext with no filters: should return all 5 chunks in sequence order.
+	resp, err := env.retrieval.GetContext(ctx, &pb.GetContextRequest{
+		DocumentId: doc.Id,
+	})
+	if err != nil {
+		t.Fatalf("GetContext (all): %v", err)
+	}
+	if len(resp.Chunks) != 5 {
+		t.Fatalf("expected 5 chunks, got %d", len(resp.Chunks))
+	}
+	for i, c := range resp.Chunks {
+		if int(c.Sequence) != i {
+			t.Errorf("chunk[%d].Sequence = %d, want %d", i, c.Sequence, i)
+		}
+		if c.Content != fmt.Sprintf("message %d", i) {
+			t.Errorf("chunk[%d].Content = %q, want %q", i, c.Content, fmt.Sprintf("message %d", i))
+		}
+		if c.Metadata == nil {
+			t.Errorf("chunk[%d].Metadata is nil", i)
+		}
+	}
+
+	// GetContext with last_n=2: should return the last 2 chunks (sequences 3, 4).
+	resp2, err := env.retrieval.GetContext(ctx, &pb.GetContextRequest{
+		DocumentId: doc.Id,
+		LastN:      2,
+	})
+	if err != nil {
+		t.Fatalf("GetContext (last_n=2): %v", err)
+	}
+	if len(resp2.Chunks) != 2 {
+		t.Fatalf("expected 2 chunks, got %d", len(resp2.Chunks))
+	}
+	if resp2.Chunks[0].Sequence != 3 {
+		t.Errorf("first chunk sequence = %d, want 3", resp2.Chunks[0].Sequence)
+	}
+	if resp2.Chunks[1].Sequence != 4 {
+		t.Errorf("second chunk sequence = %d, want 4", resp2.Chunks[1].Sequence)
 	}
 }
 

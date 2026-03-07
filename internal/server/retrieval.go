@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,12 +15,13 @@ import (
 // RetrievalServer implements the RetrievalService gRPC service.
 type RetrievalServer struct {
 	pb.UnimplementedRetrievalServiceServer
-	searcher *retrieval.Searcher
+	searcher       *retrieval.Searcher
+	contextFetcher *retrieval.ContextFetcher
 }
 
 // NewRetrievalServer creates a new retrieval service.
-func NewRetrievalServer(searcher *retrieval.Searcher) *RetrievalServer {
-	return &RetrievalServer{searcher: searcher}
+func NewRetrievalServer(searcher *retrieval.Searcher, contextFetcher *retrieval.ContextFetcher) *RetrievalServer {
+	return &RetrievalServer{searcher: searcher, contextFetcher: contextFetcher}
 }
 
 // Search performs ACL-filtered similarity search.
@@ -60,7 +62,31 @@ func (s *RetrievalServer) Search(ctx context.Context, req *pb.SearchRequest) (*p
 	return &pb.SearchResponse{Results: pbResults}, nil
 }
 
-// GetContext returns Unimplemented (Phase 3).
-func (s *RetrievalServer) GetContext(_ context.Context, _ *pb.GetContextRequest) (*pb.GetContextResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "GetContext is a Phase 3 feature")
+// GetContext returns chunks from a single document in sequence order.
+func (s *RetrievalServer) GetContext(ctx context.Context, req *pb.GetContextRequest) (*pb.GetContextResponse, error) {
+	p := auth.PrincipalFromContext(ctx)
+	if p == nil {
+		return nil, status.Error(codes.Unauthenticated, "not authenticated")
+	}
+	if req.GetDocumentId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "document_id is required")
+	}
+
+	lastN := int(req.GetLastN())
+	var since time.Time
+	if req.GetSince() != nil {
+		since = req.GetSince().AsTime()
+	}
+
+	chunks, err := s.contextFetcher.GetContext(ctx, p, req.GetDocumentId(), lastN, since)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get context: %v", err)
+	}
+
+	pbChunks := make([]*pb.Chunk, len(chunks))
+	for i, c := range chunks {
+		pbChunks[i] = storeChunkToProto(c)
+	}
+
+	return &pb.GetContextResponse{Chunks: pbChunks}, nil
 }

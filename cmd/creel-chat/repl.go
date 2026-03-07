@@ -59,19 +59,44 @@ func ensureTopic(ctx context.Context, conn *grpc.ClientConn, slug string) (strin
 	return topic.GetId(), nil
 }
 
-// resumeSession validates a document ID and returns the next safe sequence offset.
-// Since there's no ListChunks RPC, we use the current unix timestamp as a high-water
-// mark to avoid sequence collisions with previously ingested chunks.
-func resumeSession(ctx context.Context, conn *grpc.ClientConn, docID string) (string, int32, error) {
+// resumeSession validates a document ID, fetches prior chunks via GetContext,
+// populates sessionMessages, and returns a safe sequence offset.
+func resumeSession(ctx context.Context, conn *grpc.ClientConn, docID string) (string, int32, []ChatMessage, error) {
 	doc, err := pb.NewDocumentServiceClient(conn).GetDocument(ctx, &pb.GetDocumentRequest{
 		Id: docID,
 	})
 	if err != nil {
-		return "", 0, fmt.Errorf("document %s not found: %w", docID, err)
+		return "", 0, nil, fmt.Errorf("document %s not found: %w", docID, err)
 	}
-	// Use a high offset based on time to avoid sequence collisions.
-	offset := int32(time.Now().Unix() % 1_000_000_000)
-	return doc.GetId(), offset, nil
+
+	// Fetch all prior chunks for this document in sequence order.
+	retrievalClient := pb.NewRetrievalServiceClient(conn)
+	resp, err := retrievalClient.GetContext(ctx, &pb.GetContextRequest{
+		DocumentId: doc.GetId(),
+	})
+	if err != nil {
+		return "", 0, nil, fmt.Errorf("fetching session context: %w", err)
+	}
+
+	// Populate session messages from chunks and find the max sequence.
+	var messages []ChatMessage
+	var maxSeq int32
+	for _, chunk := range resp.GetChunks() {
+		role := "user"
+		if chunk.GetMetadata() != nil {
+			if v, ok := chunk.GetMetadata().GetFields()["role"]; ok {
+				role = v.GetStringValue()
+			}
+		}
+		messages = append(messages, ChatMessage{Role: role, Content: chunk.GetContent()})
+		if chunk.GetSequence() > maxSeq {
+			maxSeq = chunk.GetSequence()
+		}
+	}
+
+	// Offset new sequences past existing ones.
+	seqOffset := maxSeq + 1
+	return doc.GetId(), seqOffset, messages, nil
 }
 
 // createSessionDoc creates a new document for this REPL session.
@@ -91,9 +116,10 @@ func createSessionDoc(ctx context.Context, conn *grpc.ClientConn, topicID string
 
 // runLoop is the main REPL cycle: read, embed, search, prompt, call LLM, store.
 // seqOffset is added to sequence numbers to avoid collisions when resuming a session.
-func runLoop(ctx context.Context, conn *grpc.ClientConn, llm LLM, embedder Embedder, topicID, docID string, seqOffset int32) error {
+// priorMessages contains any messages loaded from a resumed session.
+func runLoop(ctx context.Context, conn *grpc.ClientConn, llm LLM, embedder Embedder, topicID, docID string, seqOffset int32, priorMessages []ChatMessage) error {
 	scanner := bufio.NewScanner(os.Stdin)
-	var sessionMessages []ChatMessage
+	sessionMessages := priorMessages
 	var turn int32
 
 	chunkClient := pb.NewChunkServiceClient(conn)

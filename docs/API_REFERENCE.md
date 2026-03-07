@@ -294,10 +294,10 @@ rpc GetContext(GetContextRequest) returns (GetContextResponse)
 **Permission**: read
 **Behavior**: Context mode temporal retrieval.
 
-- Returns chunks from a single document in sequence order.
+- Returns active chunks from a single document in sequence order.
 - If `last_n` is set, returns the last N active (non-compacted) chunks.
-- If `since` is set, returns active chunks created after that timestamp.
-- If `include_summaries` is true (default), compacted ranges are represented by their summary chunk in the correct sequence position. Active chunks after the compacted range follow as-is.
+- If `since` is set, returns active chunks created at or after that timestamp.
+- `include_summaries` is accepted but currently ignored (compaction-aware retrieval is not yet implemented).
 
 ---
 

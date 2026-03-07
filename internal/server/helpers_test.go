@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
 	"github.com/Tight-Line/creel/internal/auth"
@@ -109,6 +110,62 @@ func (b *mockBackend) DeleteBatch(_ context.Context, _ []string) error {
 }
 
 func (b *mockBackend) Ping(_ context.Context) error { return nil }
+
+// chunkRowData holds data for one mock chunk row.
+type chunkRowData struct {
+	id, docID, content, metadata string
+	seq                          int
+}
+
+// chunkRows implements pgx.Rows with scannable chunk data.
+type chunkRows struct {
+	chunks []chunkRowData
+	idx    int
+}
+
+func (r *chunkRows) Close()                                       {}
+func (r *chunkRows) Err() error                                   { return nil }
+func (r *chunkRows) CommandTag() pgconn.CommandTag                { return pgconn.CommandTag{} }
+func (r *chunkRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
+func (r *chunkRows) RawValues() [][]byte                          { return nil }
+func (r *chunkRows) Conn() *pgx.Conn                              { return nil }
+func (r *chunkRows) Values() ([]any, error)                       { return nil, nil }
+
+func (r *chunkRows) Next() bool {
+	if r.idx < len(r.chunks) {
+		r.idx++
+		return true
+	}
+	return false
+}
+
+func (r *chunkRows) Scan(dest ...any) error {
+	row := r.chunks[r.idx-1]
+	// ListByDocument scans: id, document_id, sequence, content, embedding_id, status, compacted_by, metadata, created_at
+	*dest[0].(*string) = row.id
+	*dest[1].(*string) = row.docID
+	*dest[2].(*int) = row.seq
+	*dest[3].(*string) = row.content
+	*dest[4].(**string) = nil
+	*dest[5].(*string) = "active"
+	*dest[6].(**string) = nil
+	*dest[7].(*[]byte) = []byte(row.metadata)
+	// dest[8] is time.Time; zero value is fine
+	return nil
+}
+
+// emptyRows implements pgx.Rows returning no rows.
+type emptyRows struct{}
+
+func (r *emptyRows) Close()                                       {}
+func (r *emptyRows) Err() error                                   { return nil }
+func (r *emptyRows) CommandTag() pgconn.CommandTag                { return pgconn.CommandTag{} }
+func (r *emptyRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
+func (r *emptyRows) RawValues() [][]byte                          { return nil }
+func (r *emptyRows) Conn() *pgx.Conn                              { return nil }
+func (r *emptyRows) Next() bool                                   { return false }
+func (r *emptyRows) Scan(_ ...any) error                          { return nil }
+func (r *emptyRows) Values() ([]any, error)                       { return nil, nil }
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -917,7 +974,8 @@ func TestRetrievalServer_Search_SearcherError(t *testing.T) {
 	authz := &mockAuthorizer{accessibleErr: errors.New("auth error")}
 	backend := &mockBackend{}
 	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
-	s := NewRetrievalServer(searcher)
+	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
+	s := NewRetrievalServer(searcher, contextFetcher)
 	ctx := systemCtx()
 
 	_, err := s.Search(ctx, &pb.SearchRequest{
@@ -925,6 +983,135 @@ func TestRetrievalServer_Search_SearcherError(t *testing.T) {
 		TopK:           5,
 	})
 	requireCode(t, err, codes.Internal)
+}
+
+// ---------------------------------------------------------------------------
+// RetrievalServer.GetContext error paths
+// ---------------------------------------------------------------------------
+
+func TestRetrievalServer_GetContext_MissingDocumentID(t *testing.T) {
+	db := failDBTX()
+	chunkStore := store.NewChunkStore(db)
+	authz := &mockAuthorizer{}
+	backend := &mockBackend{}
+	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
+	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
+	s := NewRetrievalServer(searcher, contextFetcher)
+	ctx := systemCtx()
+
+	_, err := s.GetContext(ctx, &pb.GetContextRequest{})
+	requireCode(t, err, codes.InvalidArgument)
+}
+
+func TestRetrievalServer_GetContext_ContextFetcherError(t *testing.T) {
+	// DocumentTopicID fails (db error).
+	db := failDBTX()
+	chunkStore := store.NewChunkStore(db)
+	authz := &mockAuthorizer{}
+	backend := &mockBackend{}
+	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
+	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
+	s := NewRetrievalServer(searcher, contextFetcher)
+	ctx := systemCtx()
+
+	_, err := s.GetContext(ctx, &pb.GetContextRequest{DocumentId: "doc-1"})
+	requireCode(t, err, codes.Internal)
+}
+
+func TestRetrievalServer_GetContext_Success_Empty(t *testing.T) {
+	// DocumentTopicID succeeds (QueryRow), authorizer passes, ListByDocument returns empty.
+	db := &mockDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockRow{err: nil}
+		},
+		queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+			return &emptyRows{}, nil
+		},
+	}
+	chunkStore := store.NewChunkStore(db)
+	authz := &mockAuthorizer{}
+	backend := &mockBackend{}
+	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
+	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
+	s := NewRetrievalServer(searcher, contextFetcher)
+	ctx := systemCtx()
+
+	resp, err := s.GetContext(ctx, &pb.GetContextRequest{DocumentId: "doc-1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.GetChunks()) != 0 {
+		t.Errorf("expected 0 chunks, got %d", len(resp.GetChunks()))
+	}
+}
+
+func TestRetrievalServer_GetContext_Success_WithChunks(t *testing.T) {
+	// Returns actual chunks through the full path.
+	db := &mockDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockRow{err: nil} // DocumentTopicID
+		},
+		queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+			return &chunkRows{
+				chunks: []chunkRowData{
+					{id: "c1", docID: "doc-1", seq: 0, content: "hello", metadata: `{"role":"user"}`},
+					{id: "c2", docID: "doc-1", seq: 1, content: "world", metadata: `{"role":"assistant"}`},
+				},
+			}, nil
+		},
+	}
+	chunkStore := store.NewChunkStore(db)
+	authz := &mockAuthorizer{}
+	backend := &mockBackend{}
+	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
+	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
+	s := NewRetrievalServer(searcher, contextFetcher)
+	ctx := systemCtx()
+
+	resp, err := s.GetContext(ctx, &pb.GetContextRequest{DocumentId: "doc-1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.GetChunks()) != 2 {
+		t.Fatalf("expected 2 chunks, got %d", len(resp.GetChunks()))
+	}
+	if resp.GetChunks()[0].Content != "hello" {
+		t.Errorf("chunk[0].Content = %q, want hello", resp.GetChunks()[0].Content)
+	}
+	if resp.GetChunks()[1].Content != "world" {
+		t.Errorf("chunk[1].Content = %q, want world", resp.GetChunks()[1].Content)
+	}
+}
+
+func TestRetrievalServer_GetContext_WithSince(t *testing.T) {
+	// Exercises the since timestamp branch.
+	db := &mockDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockRow{err: nil}
+		},
+		queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+			return &emptyRows{}, nil
+		},
+	}
+	chunkStore := store.NewChunkStore(db)
+	authz := &mockAuthorizer{}
+	backend := &mockBackend{}
+	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
+	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
+	s := NewRetrievalServer(searcher, contextFetcher)
+	ctx := systemCtx()
+
+	now := timestamppb.Now()
+	resp, err := s.GetContext(ctx, &pb.GetContextRequest{
+		DocumentId: "doc-1",
+		Since:      now,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.GetChunks()) != 0 {
+		t.Errorf("expected 0 chunks, got %d", len(resp.GetChunks()))
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -1011,9 +1198,13 @@ func TestNilPrincipal_RetrievalServer(t *testing.T) {
 	authz := &mockAuthorizer{}
 	backend := &mockBackend{}
 	searcher := retrieval.NewSearcher(cs, authz, backend)
-	s := NewRetrievalServer(searcher)
+	contextFetcher := retrieval.NewContextFetcher(cs, authz)
+	s := NewRetrievalServer(searcher, contextFetcher)
 	ctx := context.Background()
 
 	_, err := s.Search(ctx, &pb.SearchRequest{QueryEmbedding: []float64{1.0}})
+	requireCode(t, err, codes.Unauthenticated)
+
+	_, err = s.GetContext(ctx, &pb.GetContextRequest{DocumentId: "doc-1"})
 	requireCode(t, err, codes.Unauthenticated)
 }
