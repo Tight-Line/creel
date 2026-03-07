@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -520,6 +521,31 @@ func TestChunkStore_ChunkIDsByTopics_RowsErr(t *testing.T) {
 	s := NewChunkStore(db)
 	_, err := s.ChunkIDsByTopics(ctx(), []string{"t1"}, nil)
 	expectErr(t, err, "mock error")
+}
+
+func TestChunkStore_ChunkIDsByTopics_WithExcludeDocIDs(t *testing.T) {
+	var capturedSQL string
+	db := &mockDBTX{queryFn: func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
+		capturedSQL = sql
+		return &mockRows{}, nil
+	}}
+	s := NewChunkStore(db)
+	_, err := s.ChunkIDsByTopics(ctx(), []string{"t1"}, []string{"doc-1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(capturedSQL, "document_id") {
+		t.Error("expected exclude clause in SQL")
+	}
+}
+
+func TestChunkStore_ChunkIDsByTopics_WithExcludeQueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewChunkStore(db)
+	_, err := s.ChunkIDsByTopics(ctx(), []string{"t1"}, []string{"doc-1"})
+	expectErr(t, err, "querying chunk IDs")
 }
 
 func TestChunkStore_GetMultiple_EmptyIDs(t *testing.T) {
