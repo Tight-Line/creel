@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-03-07
+
 ### Added
 
 - `GetContext` RPC for temporal context retrieval. Returns chunks from a single document in sequence order, with optional `last_n` and `since` filtering. `include_summaries` is accepted but not yet implemented (compaction awareness is deferred).
