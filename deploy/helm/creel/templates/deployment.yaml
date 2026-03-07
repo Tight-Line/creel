@@ -17,6 +17,7 @@ spec:
         app.kubernetes.io/name: creel
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: creel
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"

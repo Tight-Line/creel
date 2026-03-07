@@ -14,13 +14,13 @@ jobs:
     permissions:
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: go.mod
 
-      - uses: bufbuild/buf-setup-action@v1
+      - uses: bufbuild/buf-setup-action@3e33fea8596569a62fcaa33eb3880b6ac7098941 # v1.9.0
         with:
           github_token: ${{ github.token }}
 
@@ -28,7 +28,7 @@ jobs:
       - run: go mod tidy
 
       - name: Run Snyk
-        uses: snyk/actions/golang@master
+        uses: snyk/actions/golang@9adf32b1121593767fc3c057af55b55db032dc04 # master
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -36,6 +36,6 @@ jobs:
           args: --severity-threshold=high --sarif-file-output=snyk.sarif
 
       - name: Upload SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@820e3160e279568db735cee8ed8f8e77a6da7818 # v3
         with:
           sarif_file: snyk.sarif

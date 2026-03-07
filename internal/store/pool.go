@@ -20,20 +20,17 @@ type DBTX interface {
 }
 
 // NewPool creates a new pgxpool connection pool.
-// coverage:ignore - database infrastructure
 func NewPool(ctx context.Context, postgresURL string) (*pgxpool.Pool, error) {
 	pool, err := pgxpool.New(ctx, postgresURL)
-	// coverage:ignore - database infrastructure
 	if err != nil {
 		return nil, fmt.Errorf("creating connection pool: %w", err)
 	}
 
-	// coverage:ignore - database infrastructure
+	// coverage:ignore - requires database that accepts connections but fails ping
 	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
 		return nil, fmt.Errorf("pinging database: %w", err)
 	}
 
-	// coverage:ignore - database infrastructure
 	return pool, nil
 }

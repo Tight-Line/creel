@@ -16,8 +16,29 @@ MODULE_PATH="github.com/Tight-Line/creel"
 COVERAGE_FILE="coverage.out"
 
 echo "Running tests with coverage..."
-go test -race -coverprofile="$COVERAGE_FILE" -covermode=atomic -count=1 ./...
+go test -race -coverprofile="${COVERAGE_FILE}.raw" -covermode=atomic -count=1 \
+  -p 1 -coverpkg=./internal/... ./...
 echo ""
+
+# Merge duplicate coverage entries (take max count per source range).
+# When -coverpkg spans many packages, each test binary emits its own entry
+# for every instrumented line, so the same range can appear multiple times
+# with different counts. We keep the maximum.
+{
+    head -1 "${COVERAGE_FILE}.raw"
+    tail -n +2 "${COVERAGE_FILE}.raw" | sort | awk -F' ' '{
+        key = $1 " " $2
+        if (key == prev_key) {
+            if ($3+0 > max_count+0) max_count = $3
+        } else {
+            if (prev_key != "") print prev_key " " max_count
+            prev_key = key
+            max_count = $3
+        }
+    }
+    END { if (prev_key != "") print prev_key " " max_count }'
+} > "$COVERAGE_FILE"
+rm -f "${COVERAGE_FILE}.raw"
 
 # Get uncovered lines (count=0)
 UNCOVERED=$(grep " 0$" "$COVERAGE_FILE" || true)

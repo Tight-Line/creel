@@ -11,6 +11,13 @@ import (
 	"github.com/Tight-Line/creel/internal/vector/vectortest"
 )
 
+func TestNewWithDimension(t *testing.T) {
+	b := NewWithDimension(nil, 768)
+	if b.EmbeddingDimension() != 768 {
+		t.Errorf("dim = %d, want 768", b.EmbeddingDimension())
+	}
+}
+
 func TestPgvectorConformance(t *testing.T) {
 	pgURL := os.Getenv("TEST_POSTGRES_URL")
 	if pgURL == "" {
@@ -34,6 +41,11 @@ func TestPgvectorConformance(t *testing.T) {
 	// Seed parent rows required by the chunk_embeddings FK constraint.
 	// Clean up stale data first (cascade handles embeddings).
 	_, _ = pool.Exec(ctx, `DELETE FROM topics WHERE slug = 'conformance-test'`)
+
+	// Clean up ALL embeddings to prevent interference with the conformance
+	// suite's unfiltered search queries. Other test packages may leave
+	// embeddings that affect cosine similarity ordering.
+	_, _ = pool.Exec(ctx, `TRUNCATE chunk_embeddings`)
 
 	topicStore := store.NewTopicStore(pool)
 	topic, err := topicStore.Create(ctx, "conformance-test", "Conformance", "test", "system:test")
