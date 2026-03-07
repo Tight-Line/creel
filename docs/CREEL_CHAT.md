@@ -7,8 +7,8 @@ An interactive REPL demo agent that uses Creel for conversation memory.
 creel-chat is a terminal-based chat interface that demonstrates Creel's memory capabilities. Each conversation turn:
 
 1. Takes your input.
-2. Embeds the message and searches Creel for semantically relevant context from previous conversations.
-3. Builds a prompt with retrieved context and current session history.
+2. Embeds the message and searches Creel for semantically relevant context from **other** sessions (RAG layer).
+3. Combines the RAG context with the full current session history (temporal layer) into a structured prompt.
 4. Sends the prompt to an LLM for a response.
 5. Stores both the user message and assistant response as chunks in Creel with embeddings.
 
@@ -18,8 +18,7 @@ Every message is persisted. Conversations can be resumed later by document ID.
 
 - A running Creel server (see [Quickstart](QUICKSTART.md))
 - A Creel API key
-- An LLM API key (Anthropic or OpenAI)
-- An embedding API key (OpenAI) or a local Ollama instance
+- An OpenAI API key (used for both LLM and embeddings by default)
 
 ## CLI flags
 
@@ -34,38 +33,30 @@ Every message is persisted. Conversations can be resumed later by document ID.
 | `--embed-model` | | `text-embedding-3-small` | Embedding model name |
 | `--ollama-url` | | `http://localhost:11434` | Ollama API base URL |
 | `--topic` | | `creel-chat` | Topic slug for conversation storage |
-| `--top-k` | | `5` | Number of context chunks to retrieve |
+| `--top-k` | | `5` | Number of RAG context chunks to retrieve |
 | `--resume` | | | Resume previous session by document ID |
 
 ## Provider setup
 
-### Anthropic (default LLM)
+### OpenAI (default LLM + embeddings)
 
 ```bash
-export ANTHROPIC_API_KEY="your-key"
+export OPENAI_API_KEY="your-key"
 bin/creel-chat --api-key "$CREEL_API_KEY"
 ```
 
-Default model: Claude Sonnet 4.6.
+Default LLM model: GPT-5.4. Default embedding model: text-embedding-3-small (1536 dimensions).
 
-### OpenAI (LLM)
-
-```bash
-export OPENAI_API_KEY="your-key"
-bin/creel-chat --api-key "$CREEL_API_KEY" --provider openai
-```
-
-Default model: GPT-5.4.
-
-### OpenAI (embeddings, default)
+### Anthropic (alternate LLM)
 
 ```bash
-export OPENAI_API_KEY="your-key"
+export ANTHROPIC_API_KEY="your-key"
+bin/creel-chat --api-key "$CREEL_API_KEY" --provider anthropic
 ```
 
-Uses text-embedding-3-small (1536 dimensions) by default.
+Default model: Claude Sonnet 4.6. Still requires OpenAI (or Ollama) for embeddings.
 
-### Ollama (embeddings)
+### Ollama (local embeddings)
 
 Start Ollama locally, then:
 
@@ -78,26 +69,25 @@ bin/creel-chat --api-key "$CREEL_API_KEY" --embed-provider ollama --embed-model 
 On exit, creel-chat prints the document ID for the current session:
 
 ```
-Session document ID: abc123-def456
-To resume: bin/creel-chat --api-key "$CREEL_API_KEY" --resume abc123-def456
+To resume this session:
+  creel-chat --resume abc123-def456 --topic creel-chat
 ```
 
-Use `--resume` to continue a previous conversation. The session history is loaded from Creel and the LLM receives the full prior context.
+Use `--resume` to continue a previous conversation. The full session history is loaded from Creel via the `GetContext` RPC and replayed to the LLM as user/assistant messages.
 
 ## How retrieval works
 
-Currently, creel-chat uses **RAG-only** retrieval: each user message is embedded and used to search all chunks in the topic for semantically relevant context. This works well for pulling in knowledge from previous sessions but has a known limitation: it does not preserve temporal ordering within the current session beyond what is held in local memory.
+creel-chat uses **two-layer retrieval**:
 
-The planned improvement is two-layer retrieval:
+1. **Temporal (session history)**: On resume, `GetContext` loads all prior chunks from the session document in sequence order. These are sent as the user/assistant message history in the LLM prompt. During a live session, messages accumulate in the same buffer. This layer is the authoritative record of the conversation.
 
-1. **Temporal**: always include the full current session history in sequence order.
-2. **RAG**: search other sessions/topics for semantically relevant long-term context.
+2. **RAG (cross-session context)**: Each turn, the user's message is embedded and used to search for semantically relevant chunks from **other** sessions in the same topic. The current session document is excluded from RAG search via `exclude_document_ids`, so all top-K slots are filled with genuinely cross-session context.
 
-This requires the `GetContext` RPC (Phase 3) or a `ListChunks`-by-document endpoint.
+The system prompt explicitly tells the LLM about both layers: session history is authoritative and verbatim; RAG context is supplementary background from other sessions.
 
 ## Known limitations
 
-- RAG-only retrieval may miss recent conversational context if the session grows long.
 - Embeddings are computed client-side; both user messages and assistant responses are embedded individually.
 - No streaming: the full LLM response is generated before display.
 - No tool use or function calling; creel-chat is a simple conversational demo.
+- `GetContext` loads the entire session history on resume. Very long sessions may eventually need `last_n` filtering or compaction (not yet implemented).

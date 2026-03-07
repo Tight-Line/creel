@@ -50,17 +50,17 @@ Creel supports two retrieval modes:
 
 ### RAG (semantic search)
 
-`SearchChunks` performs vector similarity search across one or more topics. Results are ranked by cosine similarity and filtered by the caller's ACL. Supports metadata filtering.
+`Search` performs vector similarity search across one or more topics. Results are ranked by cosine similarity and filtered by the caller's ACL. Supports metadata filtering.
 
 Use RAG for: finding relevant context across all stored memory.
 
 ### Context (temporal ordering)
 
-`GetContext` retrieves chunks in sequence order within a document, providing temporal context for a conversation or session.
+`GetContext` retrieves chunks in sequence order within a document, providing temporal context for a conversation or session. Supports `last_n` (return the last N active chunks) and `since` (return chunks created at or after a timestamp) filters.
 
 Use context for: reconstructing conversation history, providing session continuity.
 
-The planned two-layer retrieval combines both: current session history (temporal) plus relevant chunks from other sessions/topics (semantic).
+creel-chat combines both modes as two-layer retrieval: current session history via `GetContext` (temporal) plus relevant chunks from other sessions via `Search` with `exclude_document_ids` (semantic).
 
 ## Linking
 
@@ -78,7 +78,7 @@ Over time, conversation documents accumulate many chunks. Compaction lets the cl
 
 1. The client reads the chunks to compact.
 2. The client generates a summary (typically via LLM).
-3. The client calls `CompactChunks` with the original chunk IDs and the new summary chunks.
+3. The client calls `Compact` with the original chunk IDs and the new summary chunks.
 4. Creel replaces the originals with the summaries, transferring all links.
 
 Compaction is client-driven: Creel manages the bookkeeping, but the client decides when and how to summarize. The `retain_compacted_chunks` config option controls whether originals are preserved or deleted.

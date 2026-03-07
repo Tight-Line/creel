@@ -54,13 +54,11 @@ For a more practical workflow, use `creel-chat` which handles embedding computat
 For an interactive demo with LLM-powered conversation memory:
 
 ```bash
-export OPENAI_API_KEY="<your OpenAI key>"  # for embeddings
-export ANTHROPIC_API_KEY="<your Anthropic key>"  # for chat
-
-bin/creel-chat --api-key "$CREEL_API_KEY"
+export OPENAI_API_KEY="<your OpenAI key>"  # for LLM + embeddings
+bin/creel-chat
 ```
 
-See [CREEL_CHAT.md](CREEL_CHAT.md) for full setup instructions.
+OpenAI is the default provider for both chat (GPT-5.4) and embeddings (text-embedding-3-small). See [CREEL_CHAT.md](CREEL_CHAT.md) for Anthropic, Ollama, and other options.
 
 ## Next steps
 

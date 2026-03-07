@@ -6,6 +6,7 @@
 - Docker (for PostgreSQL/pgvector)
 - [buf](https://buf.build/docs/installation) (protobuf codegen)
 - [golangci-lint](https://golangci-lint.run/welcome/install/) (linting)
+- `protoc-gen-go` and `protoc-gen-go-grpc` (installed automatically by `go install`, see Protobuf codegen below)
 
 ## Local development environment
 
@@ -46,6 +47,14 @@ Unit tests run without any external dependencies.
 Integration tests require a running PostgreSQL instance with pgvector:
 
 ```bash
+make test-integration
+```
+
+This starts the docker-compose postgres (if not already running), sets the `CREEL_POSTGRES_*` environment variables, and runs the full coverage suite. It uses a separate `creel_test` schema so it won't clobber local dev data.
+
+You can also run integration tests manually:
+
+```bash
 docker compose up -d postgres
 
 CREEL_POSTGRES_HOST=localhost CREEL_POSTGRES_USER=creel CREEL_POSTGRES_PASSWORD=creel CREEL_POSTGRES_NAME=creel go test ./...
@@ -71,9 +80,33 @@ make all
 
 This runs lint, vet, test, and build in sequence.
 
+## Live-reload dev workflow
+
+For iterative development without rebuilding Docker images:
+
+```bash
+make dev
+```
+
+This starts postgres, runs migrations, and launches the Creel server inside a dev container with [Air](https://github.com/air-verse/air). Source files are bind-mounted; saving a `.go`, `.proto`, or `.yaml` file triggers an automatic rebuild and restart. Go module and build caches are stored in named volumes for fast rebuilds.
+
+```bash
+make dev-down      # tear down the dev stack
+make dev-migrate   # run migrations without bouncing the stack
+```
+
+The production `docker-compose.yml` and `Dockerfile` are not modified; `docker-compose.dev.yml` is an override file.
+
 ## Protobuf codegen
 
-Proto definitions live in `proto/`. After modifying `.proto` files:
+Proto definitions live in `proto/`. Codegen uses local plugins (`protoc-gen-go`, `protoc-gen-go-grpc`), not remote BSR execution. Install them once:
+
+```bash
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+```
+
+After modifying `.proto` files:
 
 ```bash
 make proto-gen
@@ -148,7 +181,7 @@ internal/store/     PostgreSQL persistence (chunks, documents, topics, grants)
 internal/vector/    vector backend interface + implementations
 migrations/         SQL migrations (golang-migrate)
 proto/              protobuf definitions
-deploy/docker/      Dockerfile
+deploy/docker/      Dockerfile (production) and Dockerfile.dev (live-reload)
 deploy/helm/creel/  Helm chart
 ```
 
