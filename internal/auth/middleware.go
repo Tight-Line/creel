@@ -41,10 +41,7 @@ func UnaryInterceptor(apiKeyValidator *APIKeyValidator, oidcValidator *OIDCValid
 				return nil, status.Errorf(codes.Internal, "validating API key: %v", err)
 			}
 		} else if oidcValidator != nil && oidcValidator.HasProviders() {
-			principal, err = oidcValidator.Validate(ctx, token)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "validating OIDC token: %v", err)
-			}
+			principal, _ = oidcValidator.Validate(ctx, token)
 		}
 
 		if principal == nil {
