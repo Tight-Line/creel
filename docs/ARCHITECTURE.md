@@ -588,8 +588,14 @@ auth:
       key_hash: sha256:...
       principal: user:my-service@system   # identity this key authenticates as
 
-metadata:
-  postgres_url: postgres://...
+postgres:
+  host: localhost
+  port: 5432
+  user: creel
+  password: creel
+  name: creel
+  schema: creel
+  sslmode: disable
 
 vector_backend:
   type: pgvector

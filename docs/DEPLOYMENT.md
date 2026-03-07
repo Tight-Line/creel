@@ -6,19 +6,19 @@ The primary distribution is a Helm chart at `deploy/helm/creel/`.
 
 ```bash
 helm install creel deploy/helm/creel/ \
-  --set metadata.postgresUrl="postgres://user:pass@host:5432/creel?sslmode=require" \
-  --set auth.apiKeys[0].name=bootstrap \
-  --set auth.apiKeys[0].keyHash="<hash>" \
-  --set auth.apiKeys[0].principal=admin
+  --set postgresql.host="mydb.example.com" \
+  --set postgresql.auth.password="secret" \
+  --set auth.bootstrapKeyHash="<hash>"
 ```
 
 ### Embedded PostgreSQL (CloudNativePG)
 
-By default, the chart includes a PostgreSQL dependency via CloudNativePG. To use it:
+The chart includes a PostgreSQL dependency via CloudNativePG. To use it:
 
 ```yaml
 postgresql:
-  enabled: true
+  source: helm
+  install: true
 ```
 
 ### External PostgreSQL
@@ -27,15 +27,36 @@ To use an existing PostgreSQL instance (must have pgvector installed):
 
 ```yaml
 postgresql:
-  enabled: false
-
-metadata:
-  postgresUrl: "postgres://user:pass@your-host:5432/creel?sslmode=require"
+  source: external
+  host: "your-host"
+  port: 5432
+  name: creel
+  schema: creel
+  sslmode: require
+  auth:
+    username: creel
+    password: "your-password"
 ```
+
+### Production passwords via Kubernetes Secrets
+
+For production, store the password in a Kubernetes Secret and reference it:
+
+```yaml
+postgresql:
+  source: external
+  host: "your-host"
+  auth:
+    username: creel
+    existingSecret: "creel-postgres-secret"
+    secretKey: password
+```
+
+The chart injects the password as the `CREEL_POSTGRES_PASSWORD` env var from the Secret.
 
 ## Configuration reference
 
-Creel is configured via a YAML file. All settings can also be overridden with environment variables using the `CREEL_` prefix (e.g., `CREEL_METADATA_POSTGRES_URL`).
+Creel is configured via a YAML file. All settings can also be overridden with environment variables using the `CREEL_` prefix (e.g., `CREEL_POSTGRES_HOST`).
 
 ### server
 
@@ -73,13 +94,19 @@ auth:
       principal: "service-account"
 ```
 
-API keys are stored as SHA-256 hashes. Generate keys with `creel bootstrap-key`.
+API keys are stored as SHA-256 hashes. For local development, a pre-configured dev key is included in `creel.example.yaml`; run `source .env` to set the matching plaintext key. For production, compute `SHA-256(your_key)` and add it to the config.
 
-### metadata
+### postgres
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `postgres_url` | (required) | PostgreSQL connection string |
+| `host` | (required) | PostgreSQL hostname |
+| `port` | 5432 | PostgreSQL port |
+| `user` | (required) | PostgreSQL username |
+| `password` | | PostgreSQL password |
+| `name` | (required) | Database name |
+| `schema` | `creel` | PostgreSQL schema for all Creel tables |
+| `sslmode` | `disable` | SSL mode (`disable`, `require`, `verify-full`, etc.) |
 
 ### vector_backend
 
@@ -88,7 +115,7 @@ API keys are stored as SHA-256 hashes. Generate keys with `creel bootstrap-key`.
 | `type` | `pgvector` | Vector backend type |
 | `config` | | Backend-specific configuration (map) |
 
-When `type` is `pgvector`, the backend uses the same PostgreSQL connection as metadata.
+When `type` is `pgvector`, the backend uses the same PostgreSQL connection as the metadata store.
 
 ### embedding
 

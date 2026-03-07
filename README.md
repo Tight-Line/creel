@@ -13,17 +13,17 @@ Creel provides topic-scoped memory with principal-based RBAC, Zettelkasten-style
 ## Quick start
 
 ```bash
-# Start PostgreSQL/pgvector
-docker compose up -d postgres
+# Start PostgreSQL + Creel server
+docker compose up -d
 
-# Build
+# Build the CLI tools
 make build
 
-# Generate a bootstrap API key and create creel.yaml (see docs/QUICKSTART.md)
-bin/creel bootstrap-key --name quickstart
+# Source the dev environment (sets CREEL_ENDPOINT and CREEL_API_KEY)
+source .env
 
-# Start the server with migrations
-bin/creel --config creel.yaml --migrate
+# Create a topic
+bin/creel-cli topic create my-notes "My Notes"
 ```
 
 See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.
@@ -43,15 +43,15 @@ See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.
 |-------|-------------|
 | [Quickstart](docs/QUICKSTART.md) | End-to-end setup in under 5 minutes |
 | [Concepts](docs/CONCEPTS.md) | Data model, auth, search modes, linking, compaction |
-| [API Reference](API_REFERENCE.md) | All 28 RPCs with request/response details |
+| [API Reference](docs/API_REFERENCE.md) | All 28 RPCs with request/response details |
 | [Development](docs/DEVELOPMENT.md) | Dev environment, testing, adding new RPCs |
 | [Deployment](docs/DEPLOYMENT.md) | Helm chart, configuration, OIDC setup |
 | [creel-chat](docs/CREEL_CHAT.md) | Interactive demo agent with conversation memory |
-| [Architecture](ARCHITECTURE.md) | Full design document and roadmap |
+| [Architecture](docs/ARCHITECTURE.md) | Full design document and roadmap |
 
 ## Status
 
-Early development (v0.1.0). Phase 1 is complete; see [ARCHITECTURE.md](ARCHITECTURE.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for release history.
+Early development (v0.1.0). Phase 1 is complete; see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 

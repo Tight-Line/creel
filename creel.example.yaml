@@ -15,16 +15,23 @@ auth:
   #   - issuer: https://accounts.google.com
   #     audience: creel
 
-  # Static API keys for bootstrapping. Generate with:
-  #   creel-cli admin bootstrap-key
-  api_keys: []
-  #   - name: bootstrap
-  #     key_hash: "<sha256 hex of the key>"
-  #     principal: "system:bootstrap"
+  # Static API keys for service authentication.
+  # The dev key below is pre-configured for local development.
+  # Its plaintext value is in .env; source that file before using creel-cli.
+  api_keys:
+    - name: dev
+      key_hash: "1874bc60df48100e6655e1a4355d9452edd5dffa3cbd92df6046c49831952757"
+      principal: "dev"
 
-metadata:
-  # Required. PostgreSQL connection string.
-  postgres_url: postgres://creel:creel@localhost:5432/creel?sslmode=disable
+# Required. PostgreSQL connection parameters.
+postgres:
+  host: localhost
+  port: 5432
+  user: creel
+  password: creel
+  name: creel
+  schema: creel
+  sslmode: disable
 
 vector_backend:
   type: pgvector
