@@ -1,0 +1,15 @@
+FROM golang:1.26-alpine
+
+RUN apk add --no-cache git && \
+    go install github.com/air-verse/air@latest && \
+    go install github.com/bufbuild/buf/cmd/buf@latest && \
+    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Source is bind-mounted at runtime; COPY here is only for go mod download caching.
+EXPOSE 8443 8080 9090
+CMD ["air", "-c", ".air.toml"]

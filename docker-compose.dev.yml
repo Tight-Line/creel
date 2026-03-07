@@ -1,0 +1,19 @@
+services:
+  migrate:
+    volumes:
+      - ./migrations:/app/migrations:ro
+
+  creel:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.dev
+    command: ["air", "-c", ".air.toml"]
+    volumes:
+      - .:/src
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+      - ./creel.example.yaml:/etc/creel/creel.yaml:ro
+
+volumes:
+  go-mod-cache:
+  go-build-cache:

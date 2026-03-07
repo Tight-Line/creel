@@ -617,6 +617,37 @@ func TestChunkStore_DocumentTopicID_OtherError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// ChunkStore.ListByDocument tests
+// ---------------------------------------------------------------------------
+
+func TestChunkStore_ListByDocument_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewChunkStore(db)
+	_, err := s.ListByDocument(ctx(), "doc-1", 0, time.Time{})
+	expectErr(t, err, "listing chunks by document")
+}
+
+func TestChunkStore_ListByDocument_ScanError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{nextOnce: true, scanErr: errMock}, nil
+	}}
+	s := NewChunkStore(db)
+	_, err := s.ListByDocument(ctx(), "doc-1", 0, time.Time{})
+	expectErr(t, err, "scanning chunk")
+}
+
+func TestChunkStore_ListByDocument_RowsErr(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{iterErr: errMock}, nil
+	}}
+	s := NewChunkStore(db)
+	_, err := s.ListByDocument(ctx(), "doc-1", 0, time.Time{})
+	expectErr(t, err, "iterating chunks")
+}
+
+// ---------------------------------------------------------------------------
 // GrantStore tests
 // ---------------------------------------------------------------------------
 

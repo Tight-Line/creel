@@ -81,12 +81,13 @@ func run(_ *cobra.Command, _ []string) error {
 
 	var docID string
 	var seqOffset int32
+	var priorMessages []ChatMessage
 	if resumeDocID != "" {
-		docID, seqOffset, err = resumeSession(ctx, conn, resumeDocID)
+		docID, seqOffset, priorMessages, err = resumeSession(ctx, conn, resumeDocID)
 		if err != nil {
 			return fmt.Errorf("resuming session: %w", err)
 		}
-		fmt.Printf("creel-chat: resumed session %s (topic: %s, endpoint: %s)\n", docID, topicSlug, endpoint)
+		fmt.Printf("creel-chat: resumed session %s (%d prior messages, topic: %s, endpoint: %s)\n", docID, len(priorMessages), topicSlug, endpoint)
 	} else {
 		docID, err = createSessionDoc(ctx, conn, topicID)
 		if err != nil {
@@ -95,7 +96,7 @@ func run(_ *cobra.Command, _ []string) error {
 		fmt.Printf("creel-chat: new session %s (topic: %s, endpoint: %s)\n", docID, topicSlug, endpoint)
 	}
 
-	err = runLoop(ctx, conn, llm, embedder, topicID, docID, seqOffset)
+	err = runLoop(ctx, conn, llm, embedder, topicID, docID, seqOffset, priorMessages)
 
 	// Print resume command on exit.
 	fmt.Printf("\nTo resume this session:\n  creel-chat --resume %s --topic %s", docID, topicSlug)

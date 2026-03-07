@@ -168,6 +168,54 @@ func (s *ChunkStore) DocumentTopicIDs(ctx context.Context, docIDs []string) (map
 	return result, rows.Err()
 }
 
+// ListByDocument returns active chunks for a document in sequence order.
+// If lastN > 0, returns only the last N chunks (ordered ascending by sequence).
+// If since is non-zero, only returns chunks created at or after that time.
+func (s *ChunkStore) ListByDocument(ctx context.Context, documentID string, lastN int, since time.Time) ([]*Chunk, error) {
+	var args []any
+	args = append(args, documentID)
+
+	where := "document_id = $1 AND status = 'active'"
+	if !since.IsZero() {
+		args = append(args, since)
+		where += fmt.Sprintf(" AND created_at >= $%d", len(args))
+	}
+
+	var query string
+	if lastN > 0 {
+		args = append(args, lastN)
+		query = fmt.Sprintf(
+			`SELECT id, document_id, sequence, content, embedding_id, status, compacted_by, metadata, created_at
+			 FROM (SELECT * FROM chunks WHERE %s ORDER BY sequence DESC LIMIT $%d) sub
+			 ORDER BY sequence ASC`, where, len(args))
+	} else {
+		query = fmt.Sprintf(
+			`SELECT id, document_id, sequence, content, embedding_id, status, compacted_by, metadata, created_at
+			 FROM chunks WHERE %s ORDER BY sequence ASC`, where)
+	}
+
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("listing chunks by document: %w", err)
+	}
+	defer rows.Close()
+
+	var chunks []*Chunk
+	for rows.Next() {
+		var c Chunk
+		var metaBytes []byte
+		if err := rows.Scan(&c.ID, &c.DocumentID, &c.Sequence, &c.Content, &c.EmbeddingID, &c.Status, &c.CompactedBy, &metaBytes, &c.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scanning chunk: %w", err)
+		}
+		_ = json.Unmarshal(metaBytes, &c.Metadata)
+		chunks = append(chunks, &c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating chunks: %w", err)
+	}
+	return chunks, nil
+}
+
 // DocumentTopicID returns the topic ID for a chunk's document.
 func (s *ChunkStore) DocumentTopicID(ctx context.Context, documentID string) (string, error) {
 	var topicID string
