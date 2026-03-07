@@ -500,7 +500,7 @@ func TestChunkStore_ChunkIDsByTopics_QueryError(t *testing.T) {
 		return nil, errMock
 	}}
 	s := NewChunkStore(db)
-	_, err := s.ChunkIDsByTopics(ctx(), []string{"t1"})
+	_, err := s.ChunkIDsByTopics(ctx(), []string{"t1"}, nil)
 	expectErr(t, err, "querying chunk IDs")
 }
 
@@ -509,7 +509,7 @@ func TestChunkStore_ChunkIDsByTopics_ScanError(t *testing.T) {
 		return &mockRows{nextOnce: true, scanErr: errMock}, nil
 	}}
 	s := NewChunkStore(db)
-	_, err := s.ChunkIDsByTopics(ctx(), []string{"t1"})
+	_, err := s.ChunkIDsByTopics(ctx(), []string{"t1"}, nil)
 	expectErr(t, err, "scanning chunk ID")
 }
 
@@ -518,7 +518,7 @@ func TestChunkStore_ChunkIDsByTopics_RowsErr(t *testing.T) {
 		return &mockRows{iterErr: errMock}, nil
 	}}
 	s := NewChunkStore(db)
-	_, err := s.ChunkIDsByTopics(ctx(), []string{"t1"})
+	_, err := s.ChunkIDsByTopics(ctx(), []string{"t1"}, nil)
 	expectErr(t, err, "mock error")
 }
 

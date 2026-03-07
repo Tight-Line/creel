@@ -245,7 +245,8 @@ rpc Search(SearchRequest) returns (SearchResponse)
   top_k: int,
   follow_links: bool,
   link_depth: int,              // default 1
-  metadata_filter: Filter
+  metadata_filter: Filter,
+  exclude_document_ids: [uuid]  // omit chunks from these documents
 }
 ```
 

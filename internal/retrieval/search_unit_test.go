@@ -138,7 +138,7 @@ func TestSearcher_ResolveTopicsError(t *testing.T) {
 	cs := store.NewChunkStore(&mockDBTX{})
 	s := NewSearcher(cs, authz, backend)
 
-	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil)
+	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -162,7 +162,7 @@ func TestSearcher_ChunkIDsByTopicsError(t *testing.T) {
 	cs := store.NewChunkStore(db)
 	s := NewSearcher(cs, authz, backend)
 
-	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil)
+	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -189,7 +189,7 @@ func TestSearcher_BackendSearchError(t *testing.T) {
 	cs := store.NewChunkStore(db)
 	s := NewSearcher(cs, authz, backend)
 
-	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil)
+	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -227,7 +227,7 @@ func TestSearcher_GetMultipleError(t *testing.T) {
 	cs := store.NewChunkStore(db)
 	s := NewSearcher(cs, authz, backend)
 
-	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil)
+	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -272,7 +272,7 @@ func TestSearcher_DocumentTopicIDsError(t *testing.T) {
 	cs := store.NewChunkStore(db)
 	s := NewSearcher(cs, authz, backend)
 
-	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil)
+	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -320,7 +320,7 @@ func TestSearcher_ChunkNotFoundSkipped(t *testing.T) {
 	cs := store.NewChunkStore(db)
 	s := NewSearcher(cs, authz, backend)
 
-	results, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil)
+	results, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -372,7 +372,7 @@ func TestSearcher_DocTopicNotFoundSkipped(t *testing.T) {
 	cs := store.NewChunkStore(db)
 	s := NewSearcher(cs, authz, backend)
 
-	results, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil)
+	results, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -397,7 +397,7 @@ func TestSearcher_EmptyChunkIDs(t *testing.T) {
 	cs := store.NewChunkStore(db)
 	s := NewSearcher(cs, authz, backend)
 
-	results, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil)
+	results, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

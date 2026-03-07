@@ -144,11 +144,13 @@ func runLoop(ctx context.Context, conn *grpc.ClientConn, llm LLM, embedder Embed
 			continue
 		}
 
-		// Search Creel for relevant past chunks.
+		// Search Creel for relevant past chunks, excluding the current session
+		// document so RAG results come from other sessions only.
 		searchResp, err := retrievalClient.Search(ctx, &pb.SearchRequest{
-			TopicIds:       []string{topicID},
-			QueryEmbedding: userEmbedding,
-			TopK:           topK,
+			TopicIds:           []string{topicID},
+			QueryEmbedding:     userEmbedding,
+			TopK:               topK,
+			ExcludeDocumentIds: []string{docID},
 		})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error searching context: %v\n", err)
@@ -226,16 +228,17 @@ func runLoop(ctx context.Context, conn *grpc.ClientConn, llm LLM, embedder Embed
 func buildMessages(retrieved []*pb.SearchResult, session []ChatMessage, currentInput string) []ChatMessage {
 	var messages []ChatMessage
 
-	// System message with context instructions.
-	systemPrompt := "You are a helpful assistant. Your conversation memory is stored in Creel and persists across sessions."
+	// Build the system prompt with explicit structure explanation.
+	var sb strings.Builder
+	sb.WriteString("You are a helpful assistant. Your conversation memory is stored in Creel and persists across sessions.\n\n")
+	sb.WriteString("Your context has two layers:\n")
+	sb.WriteString("1. SESSION HISTORY: The user/assistant message sequence that follows this system message is the complete, verbatim record of this conversation session. It is authoritative. If asked to recall or replay the conversation, use it exactly.\n")
+	sb.WriteString("2. RAG CONTEXT: Semantically retrieved snippets from OTHER conversation sessions (not the current one). These may provide useful background but are not part of the current conversation.\n")
 
 	// Add retrieved context if any.
 	if len(retrieved) > 0 {
-		// Sort by turn number (from metadata) for chronological ordering.
 		sort.Slice(retrieved, func(i, j int) bool {
-			ti := extractTurn(retrieved[i])
-			tj := extractTurn(retrieved[j])
-			return ti < tj
+			return extractTurn(retrieved[i]) < extractTurn(retrieved[j])
 		})
 
 		var contextParts []string
@@ -248,16 +251,18 @@ func buildMessages(retrieved []*pb.SearchResult, session []ChatMessage, currentI
 			contextParts = append(contextParts, fmt.Sprintf("[%s]: %s", role, chunk.GetContent()))
 		}
 		if len(contextParts) > 0 {
-			systemPrompt += "\n\nRelevant context from previous conversations:\n" + strings.Join(contextParts, "\n")
+			sb.WriteString("\n--- RAG CONTEXT (from other sessions) ---\n")
+			sb.WriteString(strings.Join(contextParts, "\n"))
+			sb.WriteString("\n--- END RAG CONTEXT ---")
 		}
 	}
 
-	messages = append(messages, ChatMessage{Role: "system", Content: systemPrompt})
+	messages = append(messages, ChatMessage{Role: "system", Content: sb.String()})
 
-	// Add recent session messages for continuity.
+	// Session history: complete, ordered conversation record.
 	messages = append(messages, session...)
 
-	// Add current user input.
+	// Current user input.
 	messages = append(messages, ChatMessage{Role: "user", Content: currentInput})
 
 	return messages

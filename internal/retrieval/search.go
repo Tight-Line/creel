@@ -35,7 +35,7 @@ func NewSearcher(chunkStore *store.ChunkStore, authorizer auth.Authorizer, backe
 
 // Search performs an ACL-filtered similarity search.
 // If topicIDs is empty, it searches all topics accessible to the principal.
-func (s *Searcher) Search(ctx context.Context, principal *auth.Principal, topicIDs []string, queryEmbedding []float64, topK int, metadataFilter map[string]any) ([]Result, error) {
+func (s *Searcher) Search(ctx context.Context, principal *auth.Principal, topicIDs []string, queryEmbedding []float64, topK int, metadataFilter map[string]any, excludeDocIDs []string) ([]Result, error) {
 	// Resolve accessible topics.
 	accessible, err := s.resolveTopics(ctx, principal, topicIDs)
 	if err != nil {
@@ -45,8 +45,8 @@ func (s *Searcher) Search(ctx context.Context, principal *auth.Principal, topicI
 		return nil, nil
 	}
 
-	// Get chunk IDs in accessible topics.
-	chunkIDs, err := s.chunkStore.ChunkIDsByTopics(ctx, accessible)
+	// Get chunk IDs in accessible topics, excluding specified documents.
+	chunkIDs, err := s.chunkStore.ChunkIDsByTopics(ctx, accessible, excludeDocIDs)
 	if err != nil {
 		return nil, fmt.Errorf("fetching chunk IDs: %w", err)
 	}

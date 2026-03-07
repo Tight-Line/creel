@@ -149,7 +149,7 @@ func TestSearchQueryCount(t *testing.T) {
 
 	// Search across all topics (no topic filter).
 	counter.Reset()
-	results, err := searcher.Search(ctx, principal, nil, fakeEmbedding(0, embDim), 15, nil)
+	results, err := searcher.Search(ctx, principal, nil, fakeEmbedding(0, embDim), 15, nil, nil)
 	if err != nil {
 		t.Fatalf("search (all topics) failed: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestSearchQueryCount(t *testing.T) {
 
 	// Search with explicit topic filter (subset).
 	counter.Reset()
-	results, err = searcher.Search(ctx, principal, topicIDs[:2], fakeEmbedding(0, embDim), 15, nil)
+	results, err = searcher.Search(ctx, principal, topicIDs[:2], fakeEmbedding(0, embDim), 15, nil, nil)
 	if err != nil {
 		t.Fatalf("search (filtered topics) failed: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestSearchQueryCount(t *testing.T) {
 
 	// Search with a metadata filter; should not add extra queries.
 	counter.Reset()
-	results, err = searcher.Search(ctx, principal, nil, fakeEmbedding(0, embDim), 15, map[string]any{"key": "value"})
+	results, err = searcher.Search(ctx, principal, nil, fakeEmbedding(0, embDim), 15, map[string]any{"key": "value"}, nil)
 	if err != nil {
 		t.Fatalf("search (metadata filter) failed: %v", err)
 	}

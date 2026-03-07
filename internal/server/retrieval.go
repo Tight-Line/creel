@@ -44,7 +44,7 @@ func (s *RetrievalServer) Search(ctx context.Context, req *pb.SearchRequest) (*p
 		metadataFilter = mf.AsMap()
 	}
 
-	results, err := s.searcher.Search(ctx, p, req.GetTopicIds(), req.GetQueryEmbedding(), topK, metadataFilter)
+	results, err := s.searcher.Search(ctx, p, req.GetTopicIds(), req.GetQueryEmbedding(), topK, metadataFilter, req.GetExcludeDocumentIds())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "search: %v", err)
 	}

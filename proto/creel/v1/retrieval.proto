@@ -20,6 +20,7 @@ message SearchRequest {
   bool follow_links = 5;
   int32 link_depth = 6;
   google.protobuf.Struct metadata_filter = 7;
+  repeated string exclude_document_ids = 8;
 }
 
 message SearchResult {

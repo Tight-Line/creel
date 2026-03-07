@@ -95,12 +95,23 @@ func (s *ChunkStore) SetEmbeddingID(ctx context.Context, chunkID, embeddingID st
 }
 
 // ChunkIDsByTopics returns all active chunk IDs belonging to the given topics.
-func (s *ChunkStore) ChunkIDsByTopics(ctx context.Context, topicIDs []string) ([]string, error) {
-	rows, err := s.pool.Query(ctx,
-		`SELECT c.id FROM chunks c
-		 JOIN documents d ON d.id = c.document_id
-		 WHERE d.topic_id = ANY($1) AND c.status = 'active'`, topicIDs,
-	)
+func (s *ChunkStore) ChunkIDsByTopics(ctx context.Context, topicIDs []string, excludeDocIDs []string) ([]string, error) {
+	var rows pgx.Rows
+	var err error
+	if len(excludeDocIDs) > 0 {
+		rows, err = s.pool.Query(ctx,
+			`SELECT c.id FROM chunks c
+			 JOIN documents d ON d.id = c.document_id
+			 WHERE d.topic_id = ANY($1) AND c.status = 'active'
+			   AND c.document_id != ALL($2)`, topicIDs, excludeDocIDs,
+		)
+	} else {
+		rows, err = s.pool.Query(ctx,
+			`SELECT c.id FROM chunks c
+			 JOIN documents d ON d.id = c.document_id
+			 WHERE d.topic_id = ANY($1) AND c.status = 'active'`, topicIDs,
+		)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("querying chunk IDs: %w", err)
 	}

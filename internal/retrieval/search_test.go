@@ -107,7 +107,7 @@ func TestSearcher_EndToEnd(t *testing.T) {
 	searcher := retrieval.NewSearcher(chunkStore, authorizer, backend)
 
 	t.Run("search all topics", func(t *testing.T) {
-		results, err := searcher.Search(ctx, principal, nil, fakeEmbedding(0, dim), 10, nil)
+		results, err := searcher.Search(ctx, principal, nil, fakeEmbedding(0, dim), 10, nil, nil)
 		if err != nil {
 			t.Fatalf("Search: %v", err)
 		}
@@ -126,7 +126,7 @@ func TestSearcher_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("search specific topics", func(t *testing.T) {
-		results, err := searcher.Search(ctx, principal, topicIDs[:1], fakeEmbedding(0, dim), 10, nil)
+		results, err := searcher.Search(ctx, principal, topicIDs[:1], fakeEmbedding(0, dim), 10, nil, nil)
 		if err != nil {
 			t.Fatalf("Search: %v", err)
 		}
@@ -139,7 +139,7 @@ func TestSearcher_EndToEnd(t *testing.T) {
 
 	t.Run("search inaccessible topic returns empty", func(t *testing.T) {
 		stranger := &auth.Principal{ID: "user:stranger@example.com"}
-		results, err := searcher.Search(ctx, stranger, nil, fakeEmbedding(0, dim), 10, nil)
+		results, err := searcher.Search(ctx, stranger, nil, fakeEmbedding(0, dim), 10, nil, nil)
 		if err != nil {
 			t.Fatalf("Search: %v", err)
 		}
@@ -149,7 +149,7 @@ func TestSearcher_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("search with metadata filter no match", func(t *testing.T) {
-		results, err := searcher.Search(ctx, principal, nil, fakeEmbedding(0, dim), 10, map[string]any{"nonexistent": "value"})
+		results, err := searcher.Search(ctx, principal, nil, fakeEmbedding(0, dim), 10, map[string]any{"nonexistent": "value"}, nil)
 		if err != nil {
 			t.Fatalf("Search: %v", err)
 		}
@@ -160,7 +160,7 @@ func TestSearcher_EndToEnd(t *testing.T) {
 
 	t.Run("search requested topics filtered to accessible", func(t *testing.T) {
 		// Request a topic the principal has access to plus a non-existent one.
-		results, err := searcher.Search(ctx, principal, []string{topicIDs[0], "non-existent-id"}, fakeEmbedding(0, dim), 10, nil)
+		results, err := searcher.Search(ctx, principal, []string{topicIDs[0], "non-existent-id"}, fakeEmbedding(0, dim), 10, nil, nil)
 		if err != nil {
 			t.Fatalf("Search: %v", err)
 		}
@@ -172,7 +172,7 @@ func TestSearcher_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("search with only non-accessible requested topics", func(t *testing.T) {
-		results, err := searcher.Search(ctx, principal, []string{"non-existent-id"}, fakeEmbedding(0, dim), 10, nil)
+		results, err := searcher.Search(ctx, principal, []string{"non-existent-id"}, fakeEmbedding(0, dim), 10, nil, nil)
 		if err != nil {
 			t.Fatalf("Search: %v", err)
 		}
