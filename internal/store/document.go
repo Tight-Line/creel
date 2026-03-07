@@ -37,7 +37,6 @@ func (s *DocumentStore) Create(ctx context.Context, topicID, slug, name, docType
 		metadata = map[string]any{}
 	}
 	metaJSON, err := json.Marshal(metadata)
-	// coverage:ignore - metadata is always JSON-serializable from protobuf input
 	if err != nil {
 		return nil, fmt.Errorf("marshaling metadata: %w", err)
 	}
@@ -105,7 +104,6 @@ func (s *DocumentStore) Update(ctx context.Context, id, name, docType string, me
 		metadata = map[string]any{}
 	}
 	metaJSON, err := json.Marshal(metadata)
-	// coverage:ignore - metadata is always JSON-serializable from protobuf input
 	if err != nil {
 		return nil, fmt.Errorf("marshaling metadata: %w", err)
 	}

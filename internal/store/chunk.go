@@ -38,7 +38,6 @@ func (s *ChunkStore) Create(ctx context.Context, documentID, content string, seq
 		metadata = map[string]any{}
 	}
 	metaJSON, err := json.Marshal(metadata)
-	// coverage:ignore - metadata is always JSON-serializable from protobuf input
 	if err != nil {
 		return nil, fmt.Errorf("marshaling metadata: %w", err)
 	}

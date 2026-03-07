@@ -74,7 +74,6 @@ func (s *SystemAccountStore) Create(ctx context.Context, name, description strin
 		return nil, "", fmt.Errorf("inserting API key: %w", err)
 	}
 
-	// coverage:ignore - requires transaction commit failure
 	if err := tx.Commit(ctx); err != nil {
 		return nil, "", fmt.Errorf("committing transaction: %w", err)
 	}
@@ -155,7 +154,6 @@ func (s *SystemAccountStore) RotateKey(ctx context.Context, accountID string, gr
 		return "", fmt.Errorf("inserting new key: %w", err)
 	}
 
-	// coverage:ignore - requires transaction commit failure
 	if err := tx.Commit(ctx); err != nil {
 		return "", fmt.Errorf("committing transaction: %w", err)
 	}
@@ -195,7 +193,6 @@ func (s *SystemAccountStore) LookupKeyHash(ctx context.Context, hash string) (*a
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
-	// coverage:ignore - requires database failure
 	if err != nil {
 		return nil, fmt.Errorf("looking up key: %w", err)
 	}

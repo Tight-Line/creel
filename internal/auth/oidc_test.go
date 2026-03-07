@@ -228,6 +228,120 @@ func TestClaimStringSlice(t *testing.T) {
 	})
 }
 
+func TestOIDCValidator_EmptyPrincipalClaim(t *testing.T) {
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generating RSA key: %v", err)
+	}
+
+	kid := "test-key-2"
+	mux := http.NewServeMux()
+	var serverURL string
+
+	mux.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"issuer":                                serverURL,
+			"jwks_uri":                              serverURL + "/keys",
+			"id_token_signing_alg_values_supported": []string{"RS256"},
+		})
+	})
+	mux.HandleFunc("/keys", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"keys": []map[string]any{{
+				"kty": "RSA", "alg": "RS256", "use": "sig", "kid": kid,
+				"n": b64url(privKey.N.Bytes()),
+				"e": b64url(big.NewInt(int64(privKey.E)).Bytes()),
+			}},
+		})
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	serverURL = server.URL
+
+	ctx := context.Background()
+	providers := []config.OIDCProviderConfig{{Issuer: serverURL, Audience: "creel"}}
+
+	// Empty principalClaim should default to "sub".
+	validator, err := NewOIDCValidator(ctx, providers, "", "groups")
+	if err != nil {
+		t.Fatalf("NewOIDCValidator: %v", err)
+	}
+
+	token := signJWT(t, privKey, kid, serverURL, "creel", map[string]any{
+		"sub": "alice",
+	}, time.Now().Add(time.Hour))
+
+	p, err := validator.Validate(ctx, token)
+	if err != nil {
+		t.Fatalf("Validate: %v", err)
+	}
+	if p == nil {
+		t.Fatal("expected principal, got nil")
+	}
+	if p.ID != "user:alice" {
+		t.Errorf("ID = %q, want user:alice", p.ID)
+	}
+}
+
+func TestOIDCValidator_MissingPrincipalClaim(t *testing.T) {
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generating RSA key: %v", err)
+	}
+
+	kid := "test-key-3"
+	mux := http.NewServeMux()
+	var serverURL string
+
+	mux.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"issuer":                                serverURL,
+			"jwks_uri":                              serverURL + "/keys",
+			"id_token_signing_alg_values_supported": []string{"RS256"},
+		})
+	})
+	mux.HandleFunc("/keys", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"keys": []map[string]any{{
+				"kty": "RSA", "alg": "RS256", "use": "sig", "kid": kid,
+				"n": b64url(privKey.N.Bytes()),
+				"e": b64url(big.NewInt(int64(privKey.E)).Bytes()),
+			}},
+		})
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	serverURL = server.URL
+
+	ctx := context.Background()
+	providers := []config.OIDCProviderConfig{{Issuer: serverURL, Audience: "creel"}}
+
+	// Use "email" as principal claim, but JWT will not have "email" field.
+	validator, err := NewOIDCValidator(ctx, providers, "email", "groups")
+	if err != nil {
+		t.Fatalf("NewOIDCValidator: %v", err)
+	}
+
+	token := signJWT(t, privKey, kid, serverURL, "creel", map[string]any{
+		"sub": "alice",
+		// No "email" field.
+	}, time.Now().Add(time.Hour))
+
+	p, err := validator.Validate(ctx, token)
+	if err != nil {
+		t.Fatalf("Validate: %v", err)
+	}
+	if p != nil {
+		t.Errorf("expected nil principal for missing claim, got %v", p)
+	}
+}
+
 func TestNewOIDCValidator_BadIssuer(t *testing.T) {
 	providers := []config.OIDCProviderConfig{
 		{Issuer: "http://localhost:99999", Audience: "creel"},

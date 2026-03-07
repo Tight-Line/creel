@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"math"
 	"os"
 	"testing"
 	"time"
@@ -316,6 +317,18 @@ func TestDocumentStore_Create_QueryRowError(t *testing.T) {
 	expectErr(t, err, "inserting document")
 }
 
+func TestDocumentStore_Create_BadMetadata(t *testing.T) {
+	s := NewDocumentStore(&mockDBTX{})
+	_, err := s.Create(ctx(), "tid", "slug", "name", "note", map[string]any{"bad": math.Inf(1)})
+	expectErr(t, err, "marshaling metadata")
+}
+
+func TestDocumentStore_Update_BadMetadata(t *testing.T) {
+	s := NewDocumentStore(&mockDBTX{})
+	_, err := s.Update(ctx(), "id", "name", "note", map[string]any{"bad": math.Inf(1)})
+	expectErr(t, err, "marshaling metadata")
+}
+
 func TestDocumentStore_Get_ErrNoRows(t *testing.T) {
 	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
 		return &mockRow{err: pgx.ErrNoRows}
@@ -426,6 +439,12 @@ func TestChunkStore_Create_QueryRowError(t *testing.T) {
 	s := NewChunkStore(db)
 	_, err := s.Create(ctx(), "did", "content", 1, nil)
 	expectErr(t, err, "inserting chunk")
+}
+
+func TestChunkStore_Create_BadMetadata(t *testing.T) {
+	s := NewChunkStore(&mockDBTX{})
+	_, err := s.Create(ctx(), "did", "content", 1, map[string]any{"bad": math.Inf(1)})
+	expectErr(t, err, "marshaling metadata")
 }
 
 func TestChunkStore_Get_ErrNoRows(t *testing.T) {
