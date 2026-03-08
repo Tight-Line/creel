@@ -421,6 +421,48 @@ func TestPostgresConfigFromEnv_Defaults(t *testing.T) {
 	}
 }
 
+func unsetEnv(t *testing.T, key string) {
+	t.Helper()
+	orig, existed := os.LookupEnv(key)
+	os.Unsetenv(key)
+	t.Cleanup(func() {
+		if existed {
+			os.Setenv(key, orig)
+		}
+	})
+}
+
+func TestLoadValidation_EncryptionKeyBadLength(t *testing.T) {
+	unsetEnv(t, "CREEL_ENCRYPTION_KEY")
+	path := writeTemp(t, `
+postgres:
+  host: localhost
+  user: creel
+  name: creel
+encryption_key: "tooshort"
+`)
+	_, err := Load(path)
+	if err == nil {
+		t.Error("expected validation error for short encryption key")
+	}
+}
+
+func TestLoadValidation_EncryptionKeyBadHex(t *testing.T) {
+	unsetEnv(t, "CREEL_ENCRYPTION_KEY")
+	// 64 chars but not valid hex (contains 'g').
+	path := writeTemp(t, `
+postgres:
+  host: localhost
+  user: creel
+  name: creel
+encryption_key: "ghijklmnopqrstuv0123456789abcdef0123456789abcdef0123456789abcdef"
+`)
+	_, err := Load(path)
+	if err == nil {
+		t.Error("expected validation error for invalid hex encryption key")
+	}
+}
+
 func writeTemp(t *testing.T, content string) string {
 	t.Helper()
 	dir := t.TempDir()

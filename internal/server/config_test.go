@@ -31,10 +31,60 @@ func TestConfigServer_RequiresSystemAccount(t *testing.T) {
 	s := configServer()
 	ctx := context.Background() // no principal
 
+	// API Key Config RPCs.
 	_, err := s.CreateAPIKeyConfig(ctx, &pb.CreateAPIKeyConfigRequest{Name: "x", Provider: "openai", ApiKey: "sk-x"})
 	requireCode(t, err, codes.Unauthenticated)
-
+	_, err = s.GetAPIKeyConfig(ctx, &pb.GetAPIKeyConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
 	_, err = s.ListAPIKeyConfigs(ctx, &pb.ListAPIKeyConfigsRequest{})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.UpdateAPIKeyConfig(ctx, &pb.UpdateAPIKeyConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.DeleteAPIKeyConfig(ctx, &pb.DeleteAPIKeyConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.SetDefaultAPIKeyConfig(ctx, &pb.SetDefaultAPIKeyConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+
+	// LLM Config RPCs.
+	_, err = s.CreateLLMConfig(ctx, &pb.CreateLLMConfigRequest{Name: "x", Provider: "openai", Model: "m", ApiKeyConfigId: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.GetLLMConfig(ctx, &pb.GetLLMConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.ListLLMConfigs(ctx, &pb.ListLLMConfigsRequest{})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.UpdateLLMConfig(ctx, &pb.UpdateLLMConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.DeleteLLMConfig(ctx, &pb.DeleteLLMConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.SetDefaultLLMConfig(ctx, &pb.SetDefaultLLMConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+
+	// Embedding Config RPCs.
+	_, err = s.CreateEmbeddingConfig(ctx, &pb.CreateEmbeddingConfigRequest{Name: "x", Provider: "openai", Model: "m", Dimensions: 1536, ApiKeyConfigId: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.GetEmbeddingConfig(ctx, &pb.GetEmbeddingConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.ListEmbeddingConfigs(ctx, &pb.ListEmbeddingConfigsRequest{})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.UpdateEmbeddingConfig(ctx, &pb.UpdateEmbeddingConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.DeleteEmbeddingConfig(ctx, &pb.DeleteEmbeddingConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.SetDefaultEmbeddingConfig(ctx, &pb.SetDefaultEmbeddingConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+
+	// Extraction Prompt Config RPCs.
+	_, err = s.CreateExtractionPromptConfig(ctx, &pb.CreateExtractionPromptConfigRequest{Name: "x", Prompt: "p"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.GetExtractionPromptConfig(ctx, &pb.GetExtractionPromptConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.ListExtractionPromptConfigs(ctx, &pb.ListExtractionPromptConfigsRequest{})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.UpdateExtractionPromptConfig(ctx, &pb.UpdateExtractionPromptConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.DeleteExtractionPromptConfig(ctx, &pb.DeleteExtractionPromptConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.SetDefaultExtractionPromptConfig(ctx, &pb.SetDefaultExtractionPromptConfigRequest{Id: "id"})
 	requireCode(t, err, codes.Unauthenticated)
 }
 
