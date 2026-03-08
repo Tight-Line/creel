@@ -22,8 +22,11 @@ services:
     volumes:
       - ./dashboard:/app
       - dashboard-vendor:/app/vendor
+      - /app/vendor
     ports:
       - "3000:3000"
+    environment:
+      CREEL_REST_ENDPOINT: "http://creel:8080"
 
 volumes:
   go-mod-cache:

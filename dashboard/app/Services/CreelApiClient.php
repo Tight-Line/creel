@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\CreelApiException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 class CreelApiClient
@@ -203,26 +204,27 @@ class CreelApiClient
     {
         $url = $this->baseUrl . $path;
 
-        $pending = Http::withToken($this->apiKey)
-            ->acceptJson()
-            ->timeout(10);
+        try {
+            $pending = Http::withToken($this->apiKey)
+                ->acceptJson()
+                ->timeout(10);
 
-        $response = match ($method) {
-            'GET' => $pending->get($url),
-            'POST' => $pending->post($url, $data),
-            'PATCH' => $pending->patch($url, $data),
-            'DELETE' => $pending->delete($url),
-        };
+            $response = match ($method) {
+                'GET' => $pending->get($url),
+                'POST' => $pending->post($url, $data),
+                'PATCH' => $pending->patch($url, $data),
+                'DELETE' => $pending->delete($url),
+            };
+        } catch (ConnectionException $e) {
+            throw new CreelApiException(0, '', "Cannot connect to Creel API at {$this->baseUrl}: {$e->getMessage()}");
+        }
 
         if ($response->failed()) {
             $body = $response->body();
-            $message = '';
             $decoded = json_decode($body, true);
-            if (is_array($decoded) && isset($decoded['message'])) {
-                $message = $decoded['message'];
-            } else {
-                $message = $body;
-            }
+            $message = (is_array($decoded) && isset($decoded['message']))
+                ? $decoded['message']
+                : $body;
             throw new CreelApiException($response->status(), $body, $message);
         }
 
