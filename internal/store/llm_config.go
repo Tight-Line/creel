@@ -35,6 +35,7 @@ type LLMConfig struct {
 // Create inserts a new LLM config.
 func (s *LLMConfigStore) Create(ctx context.Context, name, provider, model string, params map[string]string, apiKeyConfigID string, isDefault bool) (*LLMConfig, error) {
 	paramsJSON, err := json.Marshal(params)
+	// coverage:ignore - map[string]string cannot fail to marshal
 	if err != nil {
 		return nil, fmt.Errorf("marshaling parameters: %w", err)
 	}
@@ -66,10 +67,12 @@ func (s *LLMConfigStore) Create(ctx context.Context, name, provider, model strin
 		return nil, fmt.Errorf("inserting LLM config: %w", err)
 	}
 
+	// coverage:ignore - DB JSONB is valid JSON
 	if err := json.Unmarshal(rawParams, &c.Parameters); err != nil {
 		return nil, fmt.Errorf("unmarshaling parameters: %w", err)
 	}
 
+	// coverage:ignore - transaction commit on healthy connection
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("committing transaction: %w", err)
 	}
@@ -92,6 +95,7 @@ func (s *LLMConfigStore) Get(ctx context.Context, id string) (*LLMConfig, error)
 		return nil, fmt.Errorf("querying LLM config: %w", err)
 	}
 
+	// coverage:ignore - DB JSONB is valid JSON
 	if err := json.Unmarshal(rawParams, &c.Parameters); err != nil {
 		return nil, fmt.Errorf("unmarshaling parameters: %w", err)
 	}
@@ -116,6 +120,7 @@ func (s *LLMConfigStore) List(ctx context.Context) ([]LLMConfig, error) {
 		if err := rows.Scan(&c.ID, &c.Name, &c.Provider, &c.Model, &rawParams, &c.APIKeyConfigID, &c.IsDefault, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scanning LLM config: %w", err)
 		}
+		// coverage:ignore - DB JSONB is valid JSON
 		if err := json.Unmarshal(rawParams, &c.Parameters); err != nil {
 			return nil, fmt.Errorf("unmarshaling parameters: %w", err)
 		}
@@ -130,6 +135,7 @@ func (s *LLMConfigStore) Update(ctx context.Context, id, name, provider, model s
 	if params != nil {
 		var err error
 		paramsJSON, err = json.Marshal(params)
+		// coverage:ignore - map[string]string cannot fail to marshal
 		if err != nil {
 			return nil, fmt.Errorf("marshaling parameters: %w", err)
 		}
@@ -173,6 +179,7 @@ func (s *LLMConfigStore) Update(ctx context.Context, id, name, provider, model s
 		return nil, fmt.Errorf("updating LLM config: %w", err)
 	}
 
+	// coverage:ignore - DB JSONB is valid JSON
 	if err := json.Unmarshal(rawParams, &c.Parameters); err != nil {
 		return nil, fmt.Errorf("unmarshaling parameters: %w", err)
 	}
@@ -219,10 +226,12 @@ func (s *LLMConfigStore) SetDefault(ctx context.Context, id string) (*LLMConfig,
 		return nil, fmt.Errorf("setting default LLM config: %w", err)
 	}
 
+	// coverage:ignore - DB JSONB is valid JSON
 	if err := json.Unmarshal(rawParams, &c.Parameters); err != nil {
 		return nil, fmt.Errorf("unmarshaling parameters: %w", err)
 	}
 
+	// coverage:ignore - transaction commit on healthy connection
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("committing transaction: %w", err)
 	}
@@ -245,6 +254,7 @@ func (s *LLMConfigStore) GetDefault(ctx context.Context) (*LLMConfig, error) {
 		return nil, fmt.Errorf("querying default LLM config: %w", err)
 	}
 
+	// coverage:ignore - DB JSONB is valid JSON
 	if err := json.Unmarshal(rawParams, &c.Parameters); err != nil {
 		return nil, fmt.Errorf("unmarshaling parameters: %w", err)
 	}

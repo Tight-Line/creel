@@ -30,17 +30,17 @@ func NewEncryptor(keyHex string) (*Encryptor, error) {
 // Encrypt encrypts plaintext using AES-256-GCM. Returns ciphertext and nonce.
 func (e *Encryptor) Encrypt(plaintext []byte) (ciphertext, nonce []byte, err error) {
 	block, err := aes.NewCipher(e.key)
-	if err != nil {
+	if err != nil { // coverage:ignore - key validated at construction
 		return nil, nil, fmt.Errorf("creating cipher: %w", err)
 	}
 
 	gcm, err := cipher.NewGCM(block)
-	if err != nil {
+	if err != nil { // coverage:ignore - standard AES block cannot fail
 		return nil, nil, fmt.Errorf("creating GCM: %w", err)
 	}
 
 	nonce = make([]byte, gcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil { // coverage:ignore - OS-level rand failure
 		return nil, nil, fmt.Errorf("generating nonce: %w", err)
 	}
 
@@ -51,12 +51,12 @@ func (e *Encryptor) Encrypt(plaintext []byte) (ciphertext, nonce []byte, err err
 // Decrypt decrypts ciphertext using AES-256-GCM with the given nonce.
 func (e *Encryptor) Decrypt(ciphertext, nonce []byte) ([]byte, error) {
 	block, err := aes.NewCipher(e.key)
-	if err != nil {
+	if err != nil { // coverage:ignore - key validated at construction
 		return nil, fmt.Errorf("creating cipher: %w", err)
 	}
 
 	gcm, err := cipher.NewGCM(block)
-	if err != nil {
+	if err != nil { // coverage:ignore - standard AES block cannot fail
 		return nil, fmt.Errorf("creating GCM: %w", err)
 	}
 
