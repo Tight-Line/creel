@@ -40,7 +40,9 @@ COPY docker/start.sh /usr/local/bin/start.sh
 
 RUN chown -R www-data:www-data storage bootstrap/cache \
     && chown -R www-data:www-data /var/lib/nginx /var/log/nginx /run \
-    && chown -R www-data:www-data /var/log/supervisor
+    && chown -R www-data:www-data /var/log/supervisor \
+    && php artisan route:cache \
+    && php artisan view:cache
 
 EXPOSE 3000
 USER www-data
