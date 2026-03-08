@@ -1,4 +1,5 @@
 {{- if .Values.postgresql.install }}
+{{- $secretName := include "creel.secretName" . -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -44,14 +45,10 @@ spec:
             - name: POSTGRES_USER
               value: {{ .Values.postgresql.auth.username | quote }}
             - name: POSTGRES_PASSWORD
-              {{- if .Values.postgresql.auth.existingSecret }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgresql.auth.existingSecret }}
-                  key: {{ .Values.postgresql.auth.secretKey | default "password" }}
-              {{- else }}
-              value: {{ .Values.postgresql.auth.password | quote }}
-              {{- end }}
+                  name: {{ $secretName }}
+                  key: postgresql-password
             - name: POSTGRES_DB
               value: {{ .Values.postgresql.name | quote }}
           ports:
