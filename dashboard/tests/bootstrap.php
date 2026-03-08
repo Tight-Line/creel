@@ -13,4 +13,4 @@ putenv('APP_KEY=' . $_ENV['APP_KEY']);
 putenv('APP_ENV=' . $_ENV['APP_ENV']);
 putenv('SESSION_DRIVER=' . $_ENV['SESSION_DRIVER']);
 
-require __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';

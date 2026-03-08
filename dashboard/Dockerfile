@@ -1,10 +1,10 @@
 FROM php:8.4-fpm AS base
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    unzip \
     libzip-dev \
     nginx \
     supervisor \
+    unzip \
     && docker-php-ext-install zip pcntl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -39,9 +39,8 @@ COPY docker/php-fpm.conf /usr/local/etc/php-fpm-custom.conf
 
 RUN chown -R www-data:www-data storage bootstrap/cache \
     && chown -R www-data:www-data /var/lib/nginx /var/log/nginx /run \
-    && chown -R www-data:www-data /var/log/supervisor
-
-RUN php artisan config:cache \
+    && chown -R www-data:www-data /var/log/supervisor \
+    && php artisan config:cache \
     && php artisan route:cache \
     && php artisan view:cache
 
