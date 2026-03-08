@@ -1075,6 +1075,27 @@ func testEncryptor(t *testing.T) *crypto.Encryptor {
 	return enc
 }
 
+func TestAPIKeyConfigStore_Create_NilEncryptor(t *testing.T) {
+	s := NewAPIKeyConfigStore(&mockDBTX{}, nil)
+	_, err := s.Create(ctx(), "name", "openai", []byte("sk-test"), false)
+	expectErr(t, err, "encryption key not configured")
+}
+
+func TestAPIKeyConfigStore_Update_NilEncryptor(t *testing.T) {
+	s := NewAPIKeyConfigStore(&mockDBTX{}, nil)
+	_, err := s.Update(ctx(), "id", "name", "openai", []byte("sk-new"))
+	expectErr(t, err, "encryption key not configured")
+}
+
+func TestAPIKeyConfigStore_GetDecrypted_NilEncryptor(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: nil}
+	}}
+	s := NewAPIKeyConfigStore(db, nil)
+	_, err := s.GetDecrypted(ctx(), "id")
+	expectErr(t, err, "encryption key not configured")
+}
+
 func TestAPIKeyConfigStore_Create_BeginError(t *testing.T) {
 	db := &mockDBTX{beginFn: func(_ context.Context) (pgx.Tx, error) {
 		return nil, errMock
