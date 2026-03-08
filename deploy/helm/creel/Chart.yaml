@@ -8,7 +8,8 @@ maintainers:
   - name: Tight Line Software
     url: https://www.tightlinesoftware.com
 dependencies:
-  - name: postgresql
-    version: "~16"
+  - name: cloudnative-pg
+    alias: postgresql
+    version: "~0.23"
     repository: https://cloudnative-pg.github.io/charts
     condition: postgresql.install

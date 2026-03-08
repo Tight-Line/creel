@@ -17,6 +17,7 @@ auth:
   oidcIssuer: ""
   oidcAudience: creel
   principalClaim: email
+  # Required: SHA-256 hash of the system account API key.
   bootstrapKeyHash: ""
 
 vectorBackend:
@@ -74,3 +75,49 @@ autoscaling:
 
 ingress:
   enabled: false
+  className: ""
+  annotations: {}
+  tls: []
+  creel:
+    # Required when ingress is enabled.
+    host: ""
+  dashboard:
+    # Required when both ingress and dashboard are enabled.
+    host: ""
+
+# Dashboard admin UI. Communicates with Creel via the REST API.
+dashboard:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/tight-line/creel-dashboard
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  service:
+    port: 3000
+
+  auth:
+    username: admin
+    # Required: password for dashboard login.
+    password: ""
+    # Required: Creel system account API key for backend communication.
+    apiKey: ""
+    # Laravel encryption key (generate with: php artisan key:generate --show).
+    appKey: ""
+    # Alternative: reference existing Kubernetes secrets instead of inline values.
+    # passwordSecret: ""
+    # passwordSecretKey: password
+    # apiKeySecret: ""
+    # apiKeySecretKey: api-key
+    # appKeySecret: ""
+    # appKeySecretKey: app-key
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
