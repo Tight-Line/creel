@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI commands for full CRUD on all config types: `creel-cli config apikey`, `creel-cli config llm`, `creel-cli config embedding`, and `creel-cli config prompt`. Each supports `create`, `get`, `list`, `update`, `delete`, and `set-default`.
 - CLI `topic create` now accepts `--llm-config`, `--embedding-config`, and `--prompt-config` flags for binding configs at creation time.
 - CLI `topic update` command for modifying topic name, description, and config bindings.
+- Laravel admin dashboard (`dashboard/`) for managing configs, topics, and system accounts via the REST API. Session-based login with env var credentials. Runs on port 3000.
 
 ### Changed
 

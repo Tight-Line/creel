@@ -14,6 +14,18 @@ services:
       - go-build-cache:/root/.cache/go-build
       - ./creel.example.yaml:/etc/creel/creel.yaml:ro
 
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=3000"]
+    volumes:
+      - ./dashboard:/app
+      - dashboard-vendor:/app/vendor
+    ports:
+      - "3000:3000"
+
 volumes:
   go-mod-cache:
   go-build-cache:
+  dashboard-vendor:
