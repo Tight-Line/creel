@@ -38,11 +38,10 @@ compaction:
   retainCompactedChunks: true
 
 postgresql:
-  # "helm" installs PostgreSQL via CloudNativePG subchart.
-  # "external" uses a user-managed instance (provide host below).
-  source: external
-  # Set to true when source is "helm" to enable the CloudNativePG subchart.
+  # Set to true to deploy PostgreSQL as a StatefulSet in the cluster.
+  # Set to false and provide host below for an external instance.
   install: false
+  # image: pgvector/pgvector:pg17
 
   host: ""
   port: 5432
@@ -55,6 +54,10 @@ postgresql:
     password: ""
     existingSecret: ""
     secretKey: password
+
+  storage:
+    size: 5Gi
+    # storageClass: ""
 
 mcp:
   enabled: false
