@@ -37,6 +37,13 @@ spec:
               {{- else }}
               value: {{ .Values.postgresql.auth.password | quote }}
               {{- end }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
           volumeMounts:
             - name: config
               mountPath: /etc/creel
