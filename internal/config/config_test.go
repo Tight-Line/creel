@@ -424,10 +424,12 @@ func TestPostgresConfigFromEnv_Defaults(t *testing.T) {
 func unsetEnv(t *testing.T, key string) {
 	t.Helper()
 	orig, existed := os.LookupEnv(key)
-	os.Unsetenv(key)
+	if err := os.Unsetenv(key); err != nil {
+		t.Fatalf("unsetting %s: %v", key, err)
+	}
 	t.Cleanup(func() {
 		if existed {
-			os.Setenv(key, orig)
+			_ = os.Setenv(key, orig)
 		}
 	})
 }

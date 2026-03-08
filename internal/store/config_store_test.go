@@ -36,7 +36,9 @@ func setupConfigTestDB(t *testing.T) *pgxpool.Pool {
 	t.Cleanup(pool.Close)
 
 	// Clean config tables (order matters due to FK constraints).
-	for _, table := range []string{"topics", "llm_configs", "embedding_configs", "extraction_prompt_configs", "api_key_configs"} {
+	// Do NOT delete topics; ON DELETE SET NULL handles config FK references,
+	// and deleting topics interferes with concurrent dbtest package runs.
+	for _, table := range []string{"llm_configs", "embedding_configs", "extraction_prompt_configs", "api_key_configs"} {
 		if _, err := pool.Exec(ctx, "DELETE FROM "+table); err != nil {
 			t.Fatalf("cleaning %s: %v", table, err)
 		}
@@ -530,6 +532,11 @@ func TestTopicStore_Integration_ConfigBinding(t *testing.T) {
 	pool := setupConfigTestDB(t)
 	enc, _ := crypto.NewEncryptor(testEncryptionKey)
 	ctx := context.Background()
+
+	// Clean up stale test topics from previous runs.
+	for _, slug := range []string{"bound-topic", "unbound-topic"} {
+		_, _ = pool.Exec(ctx, `DELETE FROM topics WHERE slug = $1`, slug)
+	}
 
 	// Create prerequisite configs.
 	akStore := NewAPIKeyConfigStore(pool, enc)
