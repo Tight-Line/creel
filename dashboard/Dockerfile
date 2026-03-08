@@ -1,6 +1,6 @@
 FROM php:8.4-fpm AS base
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     libzip-dev \
     nginx \
@@ -12,7 +12,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 FROM base AS node
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -33,15 +33,18 @@ COPY . .
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=node /app/public/build ./public/build
 
-RUN chown -R www-data:www-data storage bootstrap/cache \
-    && rm -f /etc/nginx/sites-enabled/default
-
 COPY docker/nginx.conf /etc/nginx/sites-enabled/default
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/php-fpm.conf /usr/local/etc/php-fpm-custom.conf
+
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chown -R www-data:www-data /var/lib/nginx /var/log/nginx /run \
+    && chown -R www-data:www-data /var/log/supervisor
 
 RUN php artisan config:cache \
     && php artisan route:cache \
     && php artisan view:cache
 
 EXPOSE 3000
+USER www-data
 CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
