@@ -35,6 +35,7 @@ func main() {
 	root.AddCommand(healthCmd())
 	root.AddCommand(adminCmd())
 	root.AddCommand(topicCmd())
+	root.AddCommand(configCmd())
 	root.AddCommand(searchCmd())
 
 	if err := root.Execute(); err != nil {
@@ -200,6 +201,7 @@ func topicCmd() *cobra.Command {
 		Short: "Topic management",
 	}
 
+	var createLLMConfig, createEmbConfig, createPromptConfig string
 	createCmd := &cobra.Command{
 		Use:   "create [slug] [name]",
 		Short: "Create a topic",
@@ -211,10 +213,21 @@ func topicCmd() *cobra.Command {
 			}
 			defer func() { _ = conn.Close() }()
 
-			resp, err := pb.NewTopicServiceClient(conn).CreateTopic(authCtx(), &pb.CreateTopicRequest{
+			req := &pb.CreateTopicRequest{
 				Slug: args[0],
 				Name: args[1],
-			})
+			}
+			if createLLMConfig != "" {
+				req.LlmConfigId = &createLLMConfig
+			}
+			if createEmbConfig != "" {
+				req.EmbeddingConfigId = &createEmbConfig
+			}
+			if createPromptConfig != "" {
+				req.ExtractionPromptConfigId = &createPromptConfig
+			}
+
+			resp, err := pb.NewTopicServiceClient(conn).CreateTopic(authCtx(), req)
 			if err != nil {
 				return err
 			}
@@ -222,6 +235,50 @@ func topicCmd() *cobra.Command {
 			return nil
 		},
 	}
+	createCmd.Flags().StringVar(&createLLMConfig, "llm-config", "", "LLM config ID")
+	createCmd.Flags().StringVar(&createEmbConfig, "embedding-config", "", "embedding config ID")
+	createCmd.Flags().StringVar(&createPromptConfig, "prompt-config", "", "extraction prompt config ID")
+
+	var updateName, updateDescription, updateLLMConfig, updateEmbConfig, updatePromptConfig string
+	updateCmd := &cobra.Command{
+		Use:   "update [id]",
+		Short: "Update a topic",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			conn, err := dial()
+			if err != nil {
+				return err
+			}
+			defer func() { _ = conn.Close() }()
+
+			req := &pb.UpdateTopicRequest{
+				Id:          args[0],
+				Name:        updateName,
+				Description: updateDescription,
+			}
+			if updateLLMConfig != "" {
+				req.LlmConfigId = &updateLLMConfig
+			}
+			if updateEmbConfig != "" {
+				req.EmbeddingConfigId = &updateEmbConfig
+			}
+			if updatePromptConfig != "" {
+				req.ExtractionPromptConfigId = &updatePromptConfig
+			}
+
+			resp, err := pb.NewTopicServiceClient(conn).UpdateTopic(authCtx(), req)
+			if err != nil {
+				return err
+			}
+			printJSON(resp)
+			return nil
+		},
+	}
+	updateCmd.Flags().StringVar(&updateName, "name", "", "new name")
+	updateCmd.Flags().StringVar(&updateDescription, "description", "", "new description")
+	updateCmd.Flags().StringVar(&updateLLMConfig, "llm-config", "", "LLM config ID")
+	updateCmd.Flags().StringVar(&updateEmbConfig, "embedding-config", "", "embedding config ID")
+	updateCmd.Flags().StringVar(&updatePromptConfig, "prompt-config", "", "extraction prompt config ID")
 
 	listCmd := &cobra.Command{
 		Use:   "list",
@@ -302,7 +359,7 @@ func topicCmd() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(createCmd, listCmd, grantCmd, grantsCmd)
+	cmd.AddCommand(createCmd, updateCmd, listCmd, grantCmd, grantsCmd)
 	return cmd
 }
 
