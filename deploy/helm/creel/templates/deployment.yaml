@@ -85,13 +85,15 @@ spec:
             - name: metrics
               containerPort: {{ .Values.service.metrics.port }}
           livenessProbe:
-            grpc:
-              port: {{ .Values.service.grpc.port }}
+            httpGet:
+              path: /v1/health
+              port: rest
             initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
-            grpc:
-              port: {{ .Values.service.grpc.port }}
+            httpGet:
+              path: /v1/health
+              port: rest
             initialDelaySeconds: 5
             periodSeconds: 10
           volumeMounts:
