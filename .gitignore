@@ -32,3 +32,6 @@ gen/
 
 # Air live-reload build output
 tmp/
+
+# Dashboard (Laravel's own .gitignore handles vendor, node_modules, .env, build)
+dashboard/database/database.sqlite
