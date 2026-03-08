@@ -58,7 +58,7 @@ jobs:
           go test -race -coverprofile=coverage.out -covermode=atomic -count=1 \
             -p 1 -coverpkg=./internal/... ./...
 
-      - uses: shivammathur/setup-php@a1e83e39ae42f40e11a1595e7fe80e42de4f5167 # v2
+      - uses: shivammathur/setup-php@d59004228537ca90c8dca680592a08a675bf52b6 # v2
         with:
           php-version: '8.4'
           coverage: xdebug
