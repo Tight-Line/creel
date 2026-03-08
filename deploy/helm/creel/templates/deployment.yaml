@@ -19,6 +19,47 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       automountServiceAccountToken: false
+      initContainers:
+        - name: wait-for-migrations
+          image: {{ .Values.postgresql.image | default "pgvector/pgvector:pg17" }}
+          command: ["sh", "-c"]
+          args:
+            - |
+              until pg_isready -h $PGHOST -p $PGPORT -U $PGUSER; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready. Waiting for migrations..."
+              until psql -c "SELECT 1 FROM {{ .Values.postgresql.schema | default "creel" }}.schema_migrations LIMIT 1" > /dev/null 2>&1; do
+                echo "Waiting for schema migrations..."
+                sleep 2
+              done
+              echo "Migrations complete."
+          env:
+            - name: PGHOST
+              value: {{ .Values.postgresql.host | default (printf "%s-postgresql" .Release.Name) | quote }}
+            - name: PGPORT
+              value: {{ .Values.postgresql.port | quote }}
+            - name: PGUSER
+              value: {{ .Values.postgresql.auth.username | quote }}
+            - name: PGDATABASE
+              value: {{ .Values.postgresql.name | quote }}
+            - name: PGPASSWORD
+              {{- if .Values.postgresql.auth.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.auth.existingSecret }}
+                  key: {{ .Values.postgresql.auth.secretKey | default "password" }}
+              {{- else }}
+              value: {{ .Values.postgresql.auth.password | quote }}
+              {{- end }}
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
       containers:
         - name: creel
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
