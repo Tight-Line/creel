@@ -1,4 +1,5 @@
 {{- include "creel.validateRequired" . -}}
+{{- $secretName := include "creel.secretName" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -45,14 +46,15 @@ spec:
             - name: PGDATABASE
               value: {{ .Values.postgresql.name | quote }}
             - name: PGPASSWORD
-              {{- if .Values.postgresql.auth.existingSecret }}
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.postgresql.auth.existingSecret }}
                   name: {{ .Values.postgresql.auth.existingSecret }}
                   key: {{ .Values.postgresql.auth.secretKey | default "password" }}
-              {{- else }}
-              value: {{ .Values.postgresql.auth.password | quote }}
-              {{- end }}
+                  {{- else }}
+                  name: {{ $secretName }}
+                  key: postgresql-password
+                  {{- end }}
           resources:
             requests:
               cpu: 10m
@@ -69,14 +71,15 @@ spec:
             - "/etc/creel/creel.yaml"
           env:
             - name: CREEL_POSTGRES_PASSWORD
-              {{- if .Values.postgresql.auth.existingSecret }}
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.postgresql.auth.existingSecret }}
                   name: {{ .Values.postgresql.auth.existingSecret }}
                   key: {{ .Values.postgresql.auth.secretKey | default "password" }}
-              {{- else }}
-              value: {{ .Values.postgresql.auth.password | quote }}
-              {{- end }}
+                  {{- else }}
+                  name: {{ $secretName }}
+                  key: postgresql-password
+                  {{- end }}
           ports:
             - name: grpc
               containerPort: {{ .Values.service.grpc.port }}
@@ -104,5 +107,8 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
         - name: config
-          configMap:
-            name: {{ .Release.Name }}-creel-config
+          secret:
+            secretName: {{ $secretName }}
+            items:
+              - key: creel.yaml
+                path: creel.yaml
