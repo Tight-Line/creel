@@ -18,8 +18,8 @@ class LoginController extends Controller
             'password' => 'required|string',
         ]);
 
-        $username = env('DASHBOARD_USERNAME');
-        $password = env('DASHBOARD_PASSWORD');
+        $username = env('CREEL_DASHBOARD_USERNAME');
+        $password = env('CREEL_DASHBOARD_PASSWORD');
 
         if ($request->input('username') === $username && $request->input('password') === $password) {
             $request->session()->put('authenticated', true);
