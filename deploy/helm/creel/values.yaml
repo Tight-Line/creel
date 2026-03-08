@@ -17,7 +17,11 @@ auth:
   oidcIssuer: ""
   oidcAudience: creel
   principalClaim: email
-  # Required: SHA-256 hash of the system account API key.
+  # Optional: provide your own API key. If empty, one is auto-generated
+  # and stored in the creel-secrets Secret.
+  bootstrapApiKey: ""
+  # Optional: provide a pre-computed SHA-256 hash instead of the raw key.
+  # If both are empty, a key and hash are auto-generated.
   bootstrapKeyHash: ""
 
 vectorBackend:
@@ -103,19 +107,11 @@ dashboard:
 
   auth:
     username: admin
-    # Required: password for dashboard login.
+    # All keys below are auto-generated if empty and stored in the
+    # creel-secrets Secret. Provide explicit values to override.
     password: ""
-    # Required: Creel system account API key for backend communication.
     apiKey: ""
-    # Laravel encryption key (generate with: php artisan key:generate --show).
     appKey: ""
-    # Alternative: reference existing Kubernetes secrets instead of inline values.
-    # passwordSecret: ""
-    # passwordSecretKey: password
-    # apiKeySecret: ""
-    # apiKeySecretKey: api-key
-    # appKeySecret: ""
-    # appKeySecretKey: app-key
 
   resources:
     requests:
