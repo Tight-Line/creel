@@ -62,9 +62,9 @@ func TestTopicServer_CreateTopic_PromptRequiresLLM(t *testing.T) {
 
 	promptID := "prompt-1"
 	_, err := s.CreateTopic(ctx, &pb.CreateTopicRequest{
-		Slug:                      "test",
-		Name:                      "Test",
-		ExtractionPromptConfigId:  &promptID,
+		Slug:                     "test",
+		Name:                     "Test",
+		ExtractionPromptConfigId: &promptID,
 	})
 	requireCode(t, err, codes.InvalidArgument)
 }
@@ -78,10 +78,10 @@ func TestTopicServer_CreateTopic_PromptWithLLM_OK(t *testing.T) {
 	promptID := "prompt-1"
 	llmID := "llm-1"
 	_, err := s.CreateTopic(ctx, &pb.CreateTopicRequest{
-		Slug:                      "test",
-		Name:                      "Test",
+		Slug:                     "test",
+		Name:                     "Test",
 		LlmConfigId:              &llmID,
-		ExtractionPromptConfigId:  &promptID,
+		ExtractionPromptConfigId: &promptID,
 	})
 	// Should get past validation and fail on store (Internal), not InvalidArgument.
 	requireCode(t, err, codes.Internal)
@@ -96,9 +96,9 @@ func TestTopicServer_CreateTopic_WithConfigIDs(t *testing.T) {
 	llmID := "llm-1"
 	embID := "emb-1"
 	_, err := s.CreateTopic(ctx, &pb.CreateTopicRequest{
-		Slug:             "test",
-		Name:             "Test",
-		LlmConfigId:     &llmID,
+		Slug:              "test",
+		Name:              "Test",
+		LlmConfigId:       &llmID,
 		EmbeddingConfigId: &embID,
 	})
 	// Passes validation, fails on store.
@@ -113,8 +113,8 @@ func TestTopicServer_UpdateTopic_PromptRequiresLLM(t *testing.T) {
 
 	promptID := "prompt-1"
 	_, err := s.UpdateTopic(ctx, &pb.UpdateTopicRequest{
-		Id:                        "topic-1",
-		ExtractionPromptConfigId:  &promptID,
+		Id:                       "topic-1",
+		ExtractionPromptConfigId: &promptID,
 	})
 	requireCode(t, err, codes.InvalidArgument)
 }
@@ -128,8 +128,8 @@ func TestTopicServer_UpdateTopic_PromptWithExistingLLM_OK(t *testing.T) {
 
 	promptID := "prompt-1"
 	_, err := s.UpdateTopic(ctx, &pb.UpdateTopicRequest{
-		Id:                        "topic-1",
-		ExtractionPromptConfigId:  &promptID,
+		Id:                       "topic-1",
+		ExtractionPromptConfigId: &promptID,
 	})
 	// Should pass validation; the update itself returns a zero-value topic.
 	if err != nil {
@@ -223,7 +223,7 @@ func TestTopicServer_UpdateTopic_EmbeddingConfigMismatch(t *testing.T) {
 
 	newEmbID := "emb-new"
 	_, err := s.UpdateTopic(ctx, &pb.UpdateTopicRequest{
-		Id:               "topic-1",
+		Id:                "topic-1",
 		EmbeddingConfigId: &newEmbID,
 	})
 	requireCode(t, err, codes.InvalidArgument)
@@ -245,7 +245,7 @@ func TestTopicServer_UpdateTopic_EmbeddingConfigSameProviderModel(t *testing.T) 
 
 	newEmbID := "emb-new"
 	_, err := s.UpdateTopic(ctx, &pb.UpdateTopicRequest{
-		Id:               "topic-1",
+		Id:                "topic-1",
 		EmbeddingConfigId: &newEmbID,
 	})
 	// Should pass validation.
@@ -270,7 +270,7 @@ func TestTopicServer_UpdateTopic_EmbeddingConfigFetchError(t *testing.T) {
 
 	newEmbID := "emb-new"
 	_, err := s.UpdateTopic(ctx, &pb.UpdateTopicRequest{
-		Id:               "topic-1",
+		Id:                "topic-1",
 		EmbeddingConfigId: &newEmbID,
 	})
 	requireCode(t, err, codes.Internal)
@@ -297,7 +297,7 @@ func TestTopicServer_UpdateTopic_NewEmbeddingConfigFetchError(t *testing.T) {
 
 	newEmbID := "emb-new"
 	_, err := s.UpdateTopic(ctx, &pb.UpdateTopicRequest{
-		Id:               "topic-1",
+		Id:                "topic-1",
 		EmbeddingConfigId: &newEmbID,
 	})
 	requireCode(t, err, codes.Internal)

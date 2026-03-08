@@ -35,8 +35,9 @@ func setupConfigServerTest(t *testing.T) (*ConfigServer, func()) {
 		t.Fatalf("creating pool: %v", err)
 	}
 
-	// Clean config tables.
-	for _, table := range []string{"topics", "llm_configs", "embedding_configs", "extraction_prompt_configs", "api_key_configs"} {
+	// Clean config tables. ON DELETE SET NULL handles topic FK references,
+	// so we do not need to (and must not) delete topics here.
+	for _, table := range []string{"llm_configs", "embedding_configs", "extraction_prompt_configs", "api_key_configs"} {
 		if _, err := pool.Exec(ctx, "DELETE FROM "+table); err != nil {
 			t.Fatalf("cleaning %s: %v", table, err)
 		}
