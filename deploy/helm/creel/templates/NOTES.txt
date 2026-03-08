@@ -1,0 +1,36 @@
+Creel has been installed. All secrets are stored in:
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "creel.secretName" . }} -o yaml
+
+{{- if not .Values.auth.bootstrapApiKey }}
+
+==> Bootstrap API key (auto-generated)
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "creel.secretName" . }} \
+    -o jsonpath='{.data.bootstrap-api-key}' | base64 -d; echo
+{{- end }}
+
+{{- if and .Values.dashboard.enabled (not .Values.dashboard.auth.password) }}
+
+==> Dashboard password (auto-generated)
+
+  Username: {{ .Values.dashboard.auth.username }}
+  Password: kubectl -n {{ .Release.Namespace }} get secret {{ include "creel.secretName" . }} \
+    -o jsonpath='{.data.dashboard-password}' | base64 -d; echo
+{{- end }}
+
+{{- if and (not .Values.postgresql.auth.existingSecret) (not .Values.postgresql.auth.password) }}
+
+==> PostgreSQL password (auto-generated)
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "creel.secretName" . }} \
+    -o jsonpath='{.data.postgresql-password}' | base64 -d; echo
+{{- end }}
+
+{{- if and .Values.dashboard.enabled (not .Values.dashboard.auth.appKey) }}
+
+==> Laravel APP_KEY (auto-generated)
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "creel.secretName" . }} \
+    -o jsonpath='{.data.dashboard-app-key}' | base64 -d; echo
+{{- end }}
