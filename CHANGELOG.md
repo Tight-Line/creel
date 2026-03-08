@@ -18,8 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI `topic create` now accepts `--llm-config`, `--embedding-config`, and `--prompt-config` flags for binding configs at creation time.
 - CLI `topic update` command for modifying topic name, description, and config bindings.
 - Laravel admin dashboard (`dashboard/`) for managing configs, topics, and system accounts via the REST API. Session-based login with env var credentials. Runs on port 3000.
+- Dashboard Helm chart templates: Deployment, Service, and Ingress for the admin dashboard. Dashboard is enabled by default and communicates with Creel via the internal REST API.
+- Required-value validation in the Helm chart. Installing without `auth.bootstrapKeyHash`, `dashboard.auth.password`, `dashboard.auth.apiKey`, or ingress hostnames (when ingress is enabled) fails at template time with a clear error message.
+- JSON structured logging channel for the dashboard. Set `LOG_CHANNEL=json` for single-line JSON log output; used automatically in Helm deployments.
 
 ### Changed
+
+- Dashboard Dockerfile now uses nginx + php-fpm + supervisord for production serving instead of `php artisan serve`. The dev compose override still uses artisan serve for hot-reload.
+- Fixed CloudNativePG Helm chart dependency name (was `postgresql`, now correctly references `cloudnative-pg` with alias).
 
 - `TopicService.CreateTopic` and `UpdateTopic` now accept optional `llm_config_id`, `embedding_config_id`, and `extraction_prompt_config_id` fields.
 - `Topic` proto message includes config ID fields (field numbers 8-10).

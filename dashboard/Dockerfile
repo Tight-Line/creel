@@ -1,8 +1,10 @@
-FROM php:8.4-cli AS base
+FROM php:8.4-fpm AS base
 
 RUN apt-get update && apt-get install -y \
     unzip \
     libzip-dev \
+    nginx \
+    supervisor \
     && docker-php-ext-install zip pcntl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,9 +33,15 @@ COPY . .
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=node /app/public/build ./public/build
 
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && rm -f /etc/nginx/sites-enabled/default
+
+COPY docker/nginx.conf /etc/nginx/sites-enabled/default
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 RUN php artisan config:cache \
     && php artisan route:cache \
     && php artisan view:cache
 
 EXPOSE 3000
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=3000"]
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

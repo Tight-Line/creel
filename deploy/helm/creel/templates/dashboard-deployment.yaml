@@ -1,0 +1,83 @@
+{{- if .Values.dashboard.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-dashboard
+  labels:
+    app.kubernetes.io/name: creel-dashboard
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.dashboard.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: creel-dashboard
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: creel-dashboard
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: dashboard
+          image: "{{ .Values.dashboard.image.repository }}:{{ .Values.dashboard.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.dashboard.image.pullPolicy }}
+          env:
+            - name: APP_KEY
+              {{- if .Values.dashboard.auth.appKeySecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dashboard.auth.appKeySecret }}
+                  key: {{ .Values.dashboard.auth.appKeySecretKey | default "app-key" }}
+              {{- else }}
+              value: {{ .Values.dashboard.auth.appKey | quote }}
+              {{- end }}
+            - name: APP_ENV
+              value: production
+            - name: APP_DEBUG
+              value: "false"
+            - name: LOG_CHANNEL
+              value: json
+            - name: SESSION_DRIVER
+              value: cookie
+            - name: CREEL_REST_ENDPOINT
+              value: "http://{{ .Release.Name }}-creel:{{ .Values.service.rest.port }}"
+            - name: CREEL_API_KEY
+              {{- if .Values.dashboard.auth.apiKeySecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dashboard.auth.apiKeySecret }}
+                  key: {{ .Values.dashboard.auth.apiKeySecretKey | default "api-key" }}
+              {{- else }}
+              value: {{ .Values.dashboard.auth.apiKey | quote }}
+              {{- end }}
+            - name: CREEL_DASHBOARD_USERNAME
+              value: {{ .Values.dashboard.auth.username | quote }}
+            - name: CREEL_DASHBOARD_PASSWORD
+              {{- if .Values.dashboard.auth.passwordSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dashboard.auth.passwordSecret }}
+                  key: {{ .Values.dashboard.auth.passwordSecretKey | default "password" }}
+              {{- else }}
+              value: {{ .Values.dashboard.auth.password | quote }}
+              {{- end }}
+          ports:
+            - name: http
+              containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.dashboard.resources | nindent 12 }}
+{{- end }}
