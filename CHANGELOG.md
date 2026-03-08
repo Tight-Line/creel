@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-03-08
+
 ### Added
 
 - Two-phase multi-arch Docker builds: amd64 images are pushed immediately, then updated in-place with arm64 via manifest. Applies to both release and PR image workflows.
