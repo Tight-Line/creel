@@ -36,5 +36,6 @@ tmp/
 # Dashboard (Laravel's own .gitignore handles vendor, node_modules, .env, build)
 dashboard/database/database.sqlite
 
-# Helm chart downloaded dependencies
+# Helm chart downloaded dependencies and local values
 deploy/helm/creel/charts/*.tgz
+deploy/helm/creel/lab-values.yaml
