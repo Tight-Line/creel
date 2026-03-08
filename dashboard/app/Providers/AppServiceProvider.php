@@ -22,5 +22,7 @@ class AppServiceProvider extends ServiceProvider
     {
         ServeCommand::$passthroughVariables[] = 'CREEL_REST_ENDPOINT';
         ServeCommand::$passthroughVariables[] = 'CREEL_API_KEY';
+        ServeCommand::$passthroughVariables[] = 'DASHBOARD_USERNAME';
+        ServeCommand::$passthroughVariables[] = 'DASHBOARD_PASSWORD';
     }
 }
