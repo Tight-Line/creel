@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-03-08
+
 ### Added
 
 - Server-side configuration registry for LLM models, embedding models, API keys, and extraction prompts. New `ConfigService` with 24 RPCs (CRUD + SetDefault for each of the four config types). System account authentication required.
