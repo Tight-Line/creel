@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Two-phase multi-arch Docker builds: amd64 images are pushed immediately, then updated in-place with arm64 via manifest. Applies to both release and PR image workflows.
+- PR image workflow: every PR builds `creel` and `creel-dashboard` images tagged as `pr-{number}-{sha}`, with a PR comment showing pull commands and Helm overrides. Cleanup runs on PR close and daily for stale images (>15 days).
+- Database migration Job as a Helm pre-install/pre-upgrade hook. Runs `creel --migrate` once before the Deployment rolls out, avoiding race conditions with multiple replicas.
+- PHPUnit coverage reported to both SonarCloud and Codecov alongside Go coverage. CI test job split into `test-go` and `test-php` running in parallel.
+
+### Changed
+
+- Dashboard container now runs as `www-data` instead of root.
+- Replaced CloudNativePG operator dependency with a built-in PostgreSQL StatefulSet using `pgvector/pgvector:pg17`.
+
 ## [0.1.5] - 2026-03-08
 
 ### Added
