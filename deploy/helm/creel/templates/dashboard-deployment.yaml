@@ -42,14 +42,10 @@ spec:
           imagePullPolicy: {{ .Values.dashboard.image.pullPolicy }}
           env:
             - name: APP_KEY
-              {{- if .Values.dashboard.auth.appKeySecret }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.dashboard.auth.appKeySecret }}
-                  key: {{ .Values.dashboard.auth.appKeySecretKey | default "app-key" }}
-              {{- else }}
-              value: {{ .Values.dashboard.auth.appKey | quote }}
-              {{- end }}
+                  name: {{ include "creel.secretName" . }}
+                  key: dashboard-app-key
             - name: APP_ENV
               value: production
             - name: APP_DEBUG
@@ -61,25 +57,17 @@ spec:
             - name: CREEL_REST_ENDPOINT
               value: "http://{{ .Release.Name }}-creel:{{ .Values.service.rest.port }}"
             - name: CREEL_API_KEY
-              {{- if .Values.dashboard.auth.apiKeySecret }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.dashboard.auth.apiKeySecret }}
-                  key: {{ .Values.dashboard.auth.apiKeySecretKey | default "api-key" }}
-              {{- else }}
-              value: {{ .Values.dashboard.auth.apiKey | quote }}
-              {{- end }}
+                  name: {{ include "creel.secretName" . }}
+                  key: bootstrap-api-key
             - name: CREEL_DASHBOARD_USERNAME
               value: {{ .Values.dashboard.auth.username | quote }}
             - name: CREEL_DASHBOARD_PASSWORD
-              {{- if .Values.dashboard.auth.passwordSecret }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.dashboard.auth.passwordSecret }}
-                  key: {{ .Values.dashboard.auth.passwordSecretKey | default "password" }}
-              {{- else }}
-              value: {{ .Values.dashboard.auth.password | quote }}
-              {{- end }}
+                  name: {{ include "creel.secretName" . }}
+                  key: dashboard-password
           ports:
             - name: http
               containerPort: 3000
