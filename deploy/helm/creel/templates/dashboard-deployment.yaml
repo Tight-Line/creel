@@ -19,6 +19,23 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       automountServiceAccountToken: false
+      initContainers:
+        - name: wait-for-creel
+          image: busybox:1.37
+          command: ["sh", "-c"]
+          args:
+            - |
+              until wget -qO- http://{{ .Release.Name }}-creel:{{ .Values.service.rest.port }}/v1/health > /dev/null 2>&1; do
+                echo "Waiting for Creel REST API..."
+                sleep 2
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
       containers:
         - name: dashboard
           image: "{{ .Values.dashboard.image.repository }}:{{ .Values.dashboard.image.tag | default .Chart.AppVersion }}"
