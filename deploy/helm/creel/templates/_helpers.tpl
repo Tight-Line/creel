@@ -12,6 +12,9 @@ Validate required values and fail early if missing.
   {{- if not .Values.dashboard.auth.apiKey -}}
   {{- fail "dashboard.auth.apiKey is required when the dashboard is enabled. Set it to a valid Creel system account API key." -}}
   {{- end -}}
+  {{- if and (not .Values.dashboard.auth.appKey) (not .Values.dashboard.auth.appKeySecret) -}}
+  {{- fail "dashboard.auth.appKey (or dashboard.auth.appKeySecret) is required when the dashboard is enabled. Generate one with: echo \"base64:$(openssl rand -base64 32)\"" -}}
+  {{- end -}}
 {{- end -}}
 {{- if .Values.ingress.enabled -}}
   {{- if not .Values.ingress.creel.host -}}
