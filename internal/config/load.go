@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"reflect"
@@ -82,6 +83,15 @@ func validate(cfg *Config) error {
 	if err := validatePort("server.metrics_port", cfg.Server.MetricsPort); err != nil {
 		return err
 	}
+	if cfg.EncryptionKey != "" {
+		if len(cfg.EncryptionKey) != 64 {
+			return fmt.Errorf("encryption_key must be 64 hex characters (32 bytes), got %d", len(cfg.EncryptionKey))
+		}
+		if _, err := hex.DecodeString(cfg.EncryptionKey); err != nil {
+			return fmt.Errorf("encryption_key must be valid hex: %w", err)
+		}
+	}
+
 	return nil
 }
 

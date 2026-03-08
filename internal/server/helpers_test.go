@@ -435,7 +435,7 @@ func TestAdminServer_RevokeKey_StoreError(t *testing.T) {
 
 func TestTopicServer_CreateTopic_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
 	ctx := systemCtx()
 
 	_, err := s.CreateTopic(ctx, &pb.CreateTopicRequest{Slug: "s", Name: "n"})
@@ -444,7 +444,7 @@ func TestTopicServer_CreateTopic_StoreError(t *testing.T) {
 
 func TestTopicServer_GetTopic_AuthorizerError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")}, nil)
 	ctx := systemCtx()
 
 	_, err := s.GetTopic(ctx, &pb.GetTopicRequest{Id: "topic-1"})
@@ -453,7 +453,7 @@ func TestTopicServer_GetTopic_AuthorizerError(t *testing.T) {
 
 func TestTopicServer_GetTopic_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
 	ctx := systemCtx()
 
 	_, err := s.GetTopic(ctx, &pb.GetTopicRequest{Id: "topic-1"})
@@ -464,7 +464,7 @@ func TestTopicServer_ListTopics_NonSystemPrincipal(t *testing.T) {
 	// Non-system principals trigger the branch that appends ID+groups to principals.
 	// The query will fail because our mock DB errors, producing codes.Internal.
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
 	ctx := userCtx()
 
 	_, err := s.ListTopics(ctx, &pb.ListTopicsRequest{})
@@ -473,7 +473,7 @@ func TestTopicServer_ListTopics_NonSystemPrincipal(t *testing.T) {
 
 func TestTopicServer_ListTopics_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
 	ctx := systemCtx()
 
 	_, err := s.ListTopics(ctx, &pb.ListTopicsRequest{})
@@ -482,7 +482,7 @@ func TestTopicServer_ListTopics_StoreError(t *testing.T) {
 
 func TestTopicServer_UpdateTopic_AuthorizerError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")}, nil)
 	ctx := systemCtx()
 
 	_, err := s.UpdateTopic(ctx, &pb.UpdateTopicRequest{Id: "topic-1"})
@@ -490,17 +490,19 @@ func TestTopicServer_UpdateTopic_AuthorizerError(t *testing.T) {
 }
 
 func TestTopicServer_UpdateTopic_StoreError(t *testing.T) {
+	// UpdateTopic now calls Get first (for constraint validation), then Update.
+	// With failDBTX, the Get call fails, returning NotFound.
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
 	ctx := systemCtx()
 
 	_, err := s.UpdateTopic(ctx, &pb.UpdateTopicRequest{Id: "topic-1"})
-	requireCode(t, err, codes.Internal)
+	requireCode(t, err, codes.NotFound)
 }
 
 func TestTopicServer_DeleteTopic_AuthorizerError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")}, nil)
 	ctx := systemCtx()
 
 	_, err := s.DeleteTopic(ctx, &pb.DeleteTopicRequest{Id: "topic-1"})
@@ -509,7 +511,7 @@ func TestTopicServer_DeleteTopic_AuthorizerError(t *testing.T) {
 
 func TestTopicServer_DeleteTopic_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
 	ctx := systemCtx()
 
 	_, err := s.DeleteTopic(ctx, &pb.DeleteTopicRequest{Id: "topic-1"})
@@ -518,7 +520,7 @@ func TestTopicServer_DeleteTopic_StoreError(t *testing.T) {
 
 func TestTopicServer_GrantAccess_AuthorizerError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")}, nil)
 	ctx := systemCtx()
 
 	_, err := s.GrantAccess(ctx, &pb.GrantAccessRequest{
@@ -531,7 +533,7 @@ func TestTopicServer_GrantAccess_AuthorizerError(t *testing.T) {
 
 func TestTopicServer_GrantAccess_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
 	ctx := systemCtx()
 
 	_, err := s.GrantAccess(ctx, &pb.GrantAccessRequest{
@@ -544,7 +546,7 @@ func TestTopicServer_GrantAccess_StoreError(t *testing.T) {
 
 func TestTopicServer_RevokeAccess_AuthorizerError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")}, nil)
 	ctx := systemCtx()
 
 	_, err := s.RevokeAccess(ctx, &pb.RevokeAccessRequest{
@@ -556,7 +558,7 @@ func TestTopicServer_RevokeAccess_AuthorizerError(t *testing.T) {
 
 func TestTopicServer_RevokeAccess_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
 	ctx := systemCtx()
 
 	_, err := s.RevokeAccess(ctx, &pb.RevokeAccessRequest{
@@ -568,7 +570,7 @@ func TestTopicServer_RevokeAccess_StoreError(t *testing.T) {
 
 func TestTopicServer_ListGrants_AuthorizerError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{checkErr: errors.New("denied")}, nil)
 	ctx := systemCtx()
 
 	_, err := s.ListGrants(ctx, &pb.ListGrantsRequest{TopicId: "topic-1"})
@@ -577,7 +579,7 @@ func TestTopicServer_ListGrants_AuthorizerError(t *testing.T) {
 
 func TestTopicServer_ListGrants_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{})
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
 	ctx := systemCtx()
 
 	_, err := s.ListGrants(ctx, &pb.ListGrantsRequest{TopicId: "topic-1"})
@@ -1122,7 +1124,7 @@ func TestNilPrincipal_TopicServer(t *testing.T) {
 	db := &mockDBTX{}
 	ts := store.NewTopicStore(db)
 	authz := &mockAuthorizer{}
-	s := NewTopicServer(ts, authz)
+	s := NewTopicServer(ts, authz, nil)
 	ctx := context.Background() // no principal
 
 	_, err := s.CreateTopic(ctx, &pb.CreateTopicRequest{Slug: "s", Name: "n"})

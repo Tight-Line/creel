@@ -2,13 +2,27 @@ syntax = "proto3";
 
 package creel.v1;
 
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
 service LinkService {
-  rpc CreateLink(CreateLinkRequest) returns (Link);
-  rpc DeleteLink(DeleteLinkRequest) returns (DeleteLinkResponse);
-  rpc ListLinks(ListLinksRequest) returns (ListLinksResponse);
+  rpc CreateLink(CreateLinkRequest) returns (Link) {
+    option (google.api.http) = {
+      post: "/v1/links"
+      body: "*"
+    };
+  }
+  rpc DeleteLink(DeleteLinkRequest) returns (DeleteLinkResponse) {
+    option (google.api.http) = {
+      delete: "/v1/links/{id}"
+    };
+  }
+  rpc ListLinks(ListLinksRequest) returns (ListLinksResponse) {
+    option (google.api.http) = {
+      get: "/v1/chunks/{chunk_id}/links"
+    };
+  }
 }
 
 enum LinkType {

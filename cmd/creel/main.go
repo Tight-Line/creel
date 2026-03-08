@@ -4,13 +4,19 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
 	"github.com/Tight-Line/creel/internal/auth"
 	"github.com/Tight-Line/creel/internal/config"
+	"github.com/Tight-Line/creel/internal/crypto"
 	"github.com/Tight-Line/creel/internal/retrieval"
 	"github.com/Tight-Line/creel/internal/server"
 	"github.com/Tight-Line/creel/internal/store"
@@ -91,28 +97,51 @@ func run() error {
 	vectorBackend := pgvector.New(pool)
 	authorizer := auth.NewGrantAuthorizer(grantStore)
 
+	// Create config stores (requires encryption key for API key configs).
+	var encryptor *crypto.Encryptor
+	var apiKeyConfigStore *store.APIKeyConfigStore
+	if cfg.EncryptionKey != "" {
+		encryptor, err = crypto.NewEncryptor(cfg.EncryptionKey)
+		if err != nil {
+			return fmt.Errorf("creating encryptor: %w", err)
+		}
+	}
+	apiKeyConfigStore = store.NewAPIKeyConfigStore(pool, encryptor)
+	llmConfigStore := store.NewLLMConfigStore(pool)
+	embeddingConfigStore := store.NewEmbeddingConfigStore(pool)
+	extractionPromptConfigStore := store.NewExtractionPromptConfigStore(pool)
+
 	// Create and wire server.
 	srv := server.New(cfg.Server.GRPCPort, apiKeyValidator, oidcValidator)
 	adminServer := server.NewAdminServer(pool, accountStore, version)
-	topicServer := server.NewTopicServer(topicStore, authorizer)
+	topicServer := server.NewTopicServer(topicStore, authorizer, embeddingConfigStore)
 	docServer := server.NewDocumentServer(docStore, authorizer)
 	chunkServer := server.NewChunkServer(chunkStore, docStore, vectorBackend, authorizer)
 	searcher := retrieval.NewSearcher(chunkStore, authorizer, vectorBackend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authorizer)
 	retrievalServer := server.NewRetrievalServer(searcher, contextFetcher)
+	configServer := server.NewConfigServer(apiKeyConfigStore, llmConfigStore, embeddingConfigStore, extractionPromptConfigStore)
 	pb.RegisterAdminServiceServer(srv.GRPCServer(), adminServer)
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), topicServer)
 	pb.RegisterDocumentServiceServer(srv.GRPCServer(), docServer)
 	pb.RegisterChunkServiceServer(srv.GRPCServer(), chunkServer)
 	pb.RegisterRetrievalServiceServer(srv.GRPCServer(), retrievalServer)
+	pb.RegisterConfigServiceServer(srv.GRPCServer(), configServer)
 
 	// Handle shutdown signals.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	errCh := make(chan error, 1)
+	errCh := make(chan error, 2)
+
+	// Start gRPC server.
 	go func() {
 		errCh <- srv.Run()
+	}()
+
+	// Start REST gateway.
+	go func() {
+		errCh <- runRESTGateway(ctx, cfg.Server.GRPCPort, cfg.Server.RESTPort)
 	}()
 
 	select {
@@ -123,4 +152,34 @@ func run() error {
 	case err := <-errCh:
 		return err
 	}
+}
+
+// runRESTGateway starts an HTTP server that proxies to the gRPC server using grpc-gateway.
+func runRESTGateway(ctx context.Context, grpcPort, restPort int) error {
+	mux := runtime.NewServeMux()
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	endpoint := fmt.Sprintf("localhost:%d", grpcPort)
+
+	// Register all service handlers.
+	handlers := []func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error{
+		pb.RegisterAdminServiceHandlerFromEndpoint,
+		pb.RegisterTopicServiceHandlerFromEndpoint,
+		pb.RegisterDocumentServiceHandlerFromEndpoint,
+		pb.RegisterChunkServiceHandlerFromEndpoint,
+		pb.RegisterRetrievalServiceHandlerFromEndpoint,
+		pb.RegisterLinkServiceHandlerFromEndpoint,
+		pb.RegisterCompactionServiceHandlerFromEndpoint,
+		pb.RegisterConfigServiceHandlerFromEndpoint,
+	}
+	for _, h := range handlers {
+		if err := h(ctx, mux, endpoint, opts); err != nil {
+			return fmt.Errorf("registering REST handler: %w", err)
+		}
+	}
+
+	fmt.Printf("creel: REST gateway listening on :%d\n", restPort)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", restPort), mux); err != nil { // coverage:ignore - requires port conflict to test
+		return fmt.Errorf("REST gateway: %w", err)
+	}
+	return nil
 }

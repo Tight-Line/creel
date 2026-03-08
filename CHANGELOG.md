@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Server-side configuration registry for LLM models, embedding models, API keys, and extraction prompts. New `ConfigService` with 24 RPCs (CRUD + SetDefault for each of the four config types). System account authentication required.
+- AES-256-GCM encryption for API key configs stored at rest. Configure via `encryption_key` in YAML or `CREEL_ENCRYPTION_KEY` env var.
+- Topics can now be bound to LLM, embedding, and extraction prompt configs. NULL means "use default." Server enforces: extraction prompt requires LLM config; embedding config changes must match provider+model.
+- REST API via grpc-gateway. All gRPC services are now accessible over HTTP on the REST port (default 8080) with JSON request/response bodies.
+- Database migration 000004 adds `api_key_configs`, `llm_configs`, `embedding_configs`, and `extraction_prompt_configs` tables, plus nullable FK columns on `topics`.
+
+### Changed
+
+- `TopicService.CreateTopic` and `UpdateTopic` now accept optional `llm_config_id`, `embedding_config_id`, and `extraction_prompt_config_id` fields.
+- `Topic` proto message includes config ID fields (field numbers 8-10).
+- All proto files now include `google.api.http` annotations for REST routing.
+
 ## [0.1.4] - 2026-03-07
 
 ### Added

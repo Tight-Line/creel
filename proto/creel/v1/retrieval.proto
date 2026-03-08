@@ -2,14 +2,24 @@ syntax = "proto3";
 
 package creel.v1;
 
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 import "creel/v1/chunk.proto";
 import "creel/v1/link.proto";
 
 service RetrievalService {
-  rpc Search(SearchRequest) returns (SearchResponse);
-  rpc GetContext(GetContextRequest) returns (GetContextResponse);
+  rpc Search(SearchRequest) returns (SearchResponse) {
+    option (google.api.http) = {
+      post: "/v1/search"
+      body: "*"
+    };
+  }
+  rpc GetContext(GetContextRequest) returns (GetContextResponse) {
+    option (google.api.http) = {
+      get: "/v1/documents/{document_id}/context"
+    };
+  }
 }
 
 message SearchRequest {

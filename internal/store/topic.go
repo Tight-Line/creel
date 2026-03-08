@@ -20,13 +20,16 @@ func NewTopicStore(pool DBTX) *TopicStore {
 
 // Topic represents a stored topic.
 type Topic struct {
-	ID          string
-	Slug        string
-	Name        string
-	Description string
-	Owner       string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID                       string
+	Slug                     string
+	Name                     string
+	Description              string
+	Owner                    string
+	CreatedAt                time.Time
+	UpdatedAt                time.Time
+	LLMConfigID              *string
+	EmbeddingConfigID        *string
+	ExtractionPromptConfigID *string
 }
 
 // TopicGrant represents a stored topic grant.
@@ -39,15 +42,17 @@ type TopicGrant struct {
 	CreatedAt  time.Time
 }
 
-// Create inserts a new topic.
-func (s *TopicStore) Create(ctx context.Context, slug, name, description, owner string) (*Topic, error) {
+// Create inserts a new topic with optional config IDs.
+func (s *TopicStore) Create(ctx context.Context, slug, name, description, owner string, llmConfigID, embeddingConfigID, extractionPromptConfigID *string) (*Topic, error) {
 	var t Topic
 	err := s.pool.QueryRow(ctx,
-		`INSERT INTO topics (slug, name, description, owner)
-		 VALUES ($1, $2, $3, $4)
-		 RETURNING id, slug, name, description, owner, created_at, updated_at`,
-		slug, name, description, owner,
-	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt)
+		`INSERT INTO topics (slug, name, description, owner, llm_config_id, embedding_config_id, extraction_prompt_config_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		 RETURNING id, slug, name, description, owner, created_at, updated_at,
+		           llm_config_id, embedding_config_id, extraction_prompt_config_id`,
+		slug, name, description, owner, llmConfigID, embeddingConfigID, extractionPromptConfigID,
+	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
+		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID)
 	if err != nil {
 		return nil, fmt.Errorf("inserting topic: %w", err)
 	}
@@ -58,9 +63,11 @@ func (s *TopicStore) Create(ctx context.Context, slug, name, description, owner 
 func (s *TopicStore) Get(ctx context.Context, id string) (*Topic, error) {
 	var t Topic
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, slug, name, description, owner, created_at, updated_at
+		`SELECT id, slug, name, description, owner, created_at, updated_at,
+		        llm_config_id, embedding_config_id, extraction_prompt_config_id
 		 FROM topics WHERE id = $1`, id,
-	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt)
+	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
+		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("topic not found")
 	}
@@ -78,11 +85,13 @@ func (s *TopicStore) ListForPrincipals(ctx context.Context, principals []string)
 
 	if principals == nil {
 		rows, err = s.pool.Query(ctx,
-			`SELECT id, slug, name, description, owner, created_at, updated_at
+			`SELECT id, slug, name, description, owner, created_at, updated_at,
+			        llm_config_id, embedding_config_id, extraction_prompt_config_id
 			 FROM topics ORDER BY created_at`)
 	} else {
 		rows, err = s.pool.Query(ctx,
-			`SELECT DISTINCT t.id, t.slug, t.name, t.description, t.owner, t.created_at, t.updated_at
+			`SELECT DISTINCT t.id, t.slug, t.name, t.description, t.owner, t.created_at, t.updated_at,
+			        t.llm_config_id, t.embedding_config_id, t.extraction_prompt_config_id
 			 FROM topics t
 			 LEFT JOIN topic_grants g ON g.topic_id = t.id
 			 WHERE t.owner = ANY($1) OR g.principal = ANY($1)
@@ -96,7 +105,8 @@ func (s *TopicStore) ListForPrincipals(ctx context.Context, principals []string)
 	var topics []Topic
 	for rows.Next() {
 		var t Topic
-		if err := rows.Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
+			&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID); err != nil {
 			return nil, fmt.Errorf("scanning topic: %w", err)
 		}
 		topics = append(topics, t)
@@ -104,15 +114,22 @@ func (s *TopicStore) ListForPrincipals(ctx context.Context, principals []string)
 	return topics, rows.Err()
 }
 
-// Update modifies a topic's name and description.
-func (s *TopicStore) Update(ctx context.Context, id, name, description string) (*Topic, error) {
+// Update modifies a topic's name, description, and config bindings.
+func (s *TopicStore) Update(ctx context.Context, id, name, description string, llmConfigID, embeddingConfigID, extractionPromptConfigID *string) (*Topic, error) {
 	var t Topic
 	err := s.pool.QueryRow(ctx,
-		`UPDATE topics SET name = $2, description = $3, updated_at = now()
+		`UPDATE topics
+		 SET name = $2, description = $3,
+		     llm_config_id = COALESCE($4, llm_config_id),
+		     embedding_config_id = COALESCE($5, embedding_config_id),
+		     extraction_prompt_config_id = COALESCE($6, extraction_prompt_config_id),
+		     updated_at = now()
 		 WHERE id = $1
-		 RETURNING id, slug, name, description, owner, created_at, updated_at`,
-		id, name, description,
-	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt)
+		 RETURNING id, slug, name, description, owner, created_at, updated_at,
+		           llm_config_id, embedding_config_id, extraction_prompt_config_id`,
+		id, name, description, llmConfigID, embeddingConfigID, extractionPromptConfigID,
+	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
+		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("topic not found")
 	}
