@@ -2,17 +2,53 @@ syntax = "proto3";
 
 package creel.v1;
 
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 service TopicService {
-  rpc CreateTopic(CreateTopicRequest) returns (Topic);
-  rpc GetTopic(GetTopicRequest) returns (Topic);
-  rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
-  rpc UpdateTopic(UpdateTopicRequest) returns (Topic);
-  rpc DeleteTopic(DeleteTopicRequest) returns (DeleteTopicResponse);
-  rpc GrantAccess(GrantAccessRequest) returns (TopicGrant);
-  rpc RevokeAccess(RevokeAccessRequest) returns (RevokeAccessResponse);
-  rpc ListGrants(ListGrantsRequest) returns (ListGrantsResponse);
+  rpc CreateTopic(CreateTopicRequest) returns (Topic) {
+    option (google.api.http) = {
+      post: "/v1/topics"
+      body: "*"
+    };
+  }
+  rpc GetTopic(GetTopicRequest) returns (Topic) {
+    option (google.api.http) = {
+      get: "/v1/topics/{id}"
+    };
+  }
+  rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse) {
+    option (google.api.http) = {
+      get: "/v1/topics"
+    };
+  }
+  rpc UpdateTopic(UpdateTopicRequest) returns (Topic) {
+    option (google.api.http) = {
+      patch: "/v1/topics/{id}"
+      body: "*"
+    };
+  }
+  rpc DeleteTopic(DeleteTopicRequest) returns (DeleteTopicResponse) {
+    option (google.api.http) = {
+      delete: "/v1/topics/{id}"
+    };
+  }
+  rpc GrantAccess(GrantAccessRequest) returns (TopicGrant) {
+    option (google.api.http) = {
+      post: "/v1/topics/{topic_id}/grants"
+      body: "*"
+    };
+  }
+  rpc RevokeAccess(RevokeAccessRequest) returns (RevokeAccessResponse) {
+    option (google.api.http) = {
+      delete: "/v1/topics/{topic_id}/grants/{principal}"
+    };
+  }
+  rpc ListGrants(ListGrantsRequest) returns (ListGrantsResponse) {
+    option (google.api.http) = {
+      get: "/v1/topics/{topic_id}/grants"
+    };
+  }
 }
 
 message Topic {
@@ -23,6 +59,9 @@ message Topic {
   string owner = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
+  optional string llm_config_id = 8;
+  optional string embedding_config_id = 9;
+  optional string extraction_prompt_config_id = 10;
 }
 
 message TopicGrant {
@@ -45,6 +84,9 @@ message CreateTopicRequest {
   string slug = 1;
   string name = 2;
   string description = 3;
+  optional string llm_config_id = 4;
+  optional string embedding_config_id = 5;
+  optional string extraction_prompt_config_id = 6;
 }
 
 message GetTopicRequest {
@@ -65,6 +107,9 @@ message UpdateTopicRequest {
   string id = 1;
   string name = 2;
   string description = 3;
+  optional string llm_config_id = 4;
+  optional string embedding_config_id = 5;
+  optional string extraction_prompt_config_id = 6;
 }
 
 message DeleteTopicRequest {

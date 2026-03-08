@@ -12,6 +12,7 @@ type Config struct {
 	Embedding     EmbeddingConfig     `yaml:"embedding"`
 	Links         LinksConfig         `yaml:"links"`
 	Compaction    CompactionConfig    `yaml:"compaction"`
+	EncryptionKey string              `yaml:"encryption_key"`
 }
 
 type ServerConfig struct {

@@ -2,13 +2,27 @@ syntax = "proto3";
 
 package creel.v1;
 
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
 service ChunkService {
-  rpc IngestChunks(IngestChunksRequest) returns (IngestChunksResponse);
-  rpc GetChunk(GetChunkRequest) returns (Chunk);
-  rpc DeleteChunk(DeleteChunkRequest) returns (DeleteChunkResponse);
+  rpc IngestChunks(IngestChunksRequest) returns (IngestChunksResponse) {
+    option (google.api.http) = {
+      post: "/v1/documents/{document_id}/chunks"
+      body: "*"
+    };
+  }
+  rpc GetChunk(GetChunkRequest) returns (Chunk) {
+    option (google.api.http) = {
+      get: "/v1/chunks/{id}"
+    };
+  }
+  rpc DeleteChunk(DeleteChunkRequest) returns (DeleteChunkResponse) {
+    option (google.api.http) = {
+      delete: "/v1/chunks/{id}"
+    };
+  }
 }
 
 enum ChunkStatus {

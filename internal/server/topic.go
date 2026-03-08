@@ -15,15 +15,17 @@ import (
 // TopicServer implements the TopicService gRPC service.
 type TopicServer struct {
 	pb.UnimplementedTopicServiceServer
-	topicStore *store.TopicStore
-	authorizer auth.Authorizer
+	topicStore     *store.TopicStore
+	authorizer     auth.Authorizer
+	embeddingStore *store.EmbeddingConfigStore
 }
 
 // NewTopicServer creates a new topic service.
-func NewTopicServer(topicStore *store.TopicStore, authorizer auth.Authorizer) *TopicServer {
+func NewTopicServer(topicStore *store.TopicStore, authorizer auth.Authorizer, embeddingStore *store.EmbeddingConfigStore) *TopicServer {
 	return &TopicServer{
-		topicStore: topicStore,
-		authorizer: authorizer,
+		topicStore:     topicStore,
+		authorizer:     authorizer,
+		embeddingStore: embeddingStore,
 	}
 }
 
@@ -40,7 +42,28 @@ func (s *TopicServer) CreateTopic(ctx context.Context, req *pb.CreateTopicReques
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	t, err := s.topicStore.Create(ctx, req.GetSlug(), req.GetName(), req.GetDescription(), p.ID)
+	// Enforce: if extraction prompt is set, LLM config must also be set.
+	if req.ExtractionPromptConfigId != nil && req.GetExtractionPromptConfigId() != "" {
+		if req.LlmConfigId == nil || req.GetLlmConfigId() == "" {
+			return nil, status.Error(codes.InvalidArgument, "extraction_prompt_config_id requires llm_config_id")
+		}
+	}
+
+	var llmCfgID, embCfgID, promptCfgID *string
+	if req.LlmConfigId != nil {
+		v := req.GetLlmConfigId()
+		llmCfgID = &v
+	}
+	if req.EmbeddingConfigId != nil {
+		v := req.GetEmbeddingConfigId()
+		embCfgID = &v
+	}
+	if req.ExtractionPromptConfigId != nil {
+		v := req.GetExtractionPromptConfigId()
+		promptCfgID = &v
+	}
+
+	t, err := s.topicStore.Create(ctx, req.GetSlug(), req.GetName(), req.GetDescription(), p.ID, llmCfgID, embCfgID, promptCfgID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "creating topic: %v", err)
 	}
@@ -107,7 +130,60 @@ func (s *TopicServer) UpdateTopic(ctx context.Context, req *pb.UpdateTopicReques
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
-	t, err := s.topicStore.Update(ctx, req.GetId(), req.GetName(), req.GetDescription())
+	// Fetch current topic to validate constraints.
+	existing, err := s.topicStore.Get(ctx, req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "topic not found")
+	}
+
+	// Determine effective config IDs after update.
+	var llmCfgID, embCfgID, promptCfgID *string
+	if req.LlmConfigId != nil {
+		v := req.GetLlmConfigId()
+		llmCfgID = &v
+	}
+	if req.EmbeddingConfigId != nil {
+		v := req.GetEmbeddingConfigId()
+		embCfgID = &v
+	}
+	if req.ExtractionPromptConfigId != nil {
+		v := req.GetExtractionPromptConfigId()
+		promptCfgID = &v
+	}
+
+	// Enforce: if extraction prompt will be set, LLM config must exist.
+	effectivePromptID := existing.ExtractionPromptConfigID
+	if promptCfgID != nil {
+		effectivePromptID = promptCfgID
+	}
+	effectiveLLMID := existing.LLMConfigID
+	if llmCfgID != nil {
+		effectiveLLMID = llmCfgID
+	}
+	if effectivePromptID != nil && *effectivePromptID != "" {
+		if effectiveLLMID == nil || *effectiveLLMID == "" {
+			return nil, status.Error(codes.InvalidArgument, "extraction_prompt_config_id requires llm_config_id")
+		}
+	}
+
+	// Enforce: embedding config can only change if provider+model match.
+	if embCfgID != nil && existing.EmbeddingConfigID != nil && *existing.EmbeddingConfigID != "" && *embCfgID != *existing.EmbeddingConfigID {
+		if s.embeddingStore != nil {
+			oldCfg, err := s.embeddingStore.Get(ctx, *existing.EmbeddingConfigID)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "fetching current embedding config: %v", err)
+			}
+			newCfg, err := s.embeddingStore.Get(ctx, *embCfgID)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "fetching new embedding config: %v", err)
+			}
+			if oldCfg.Provider != newCfg.Provider || oldCfg.Model != newCfg.Model {
+				return nil, status.Error(codes.InvalidArgument, "embedding config can only change to one with the same provider and model")
+			}
+		}
+	}
+
+	t, err := s.topicStore.Update(ctx, req.GetId(), req.GetName(), req.GetDescription(), llmCfgID, embCfgID, promptCfgID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "updating topic: %v", err)
 	}
@@ -206,7 +282,7 @@ func (s *TopicServer) ListGrants(ctx context.Context, req *pb.ListGrantsRequest)
 }
 
 func storeTopicToProto(t *store.Topic) *pb.Topic {
-	return &pb.Topic{
+	p := &pb.Topic{
 		Id:          t.ID,
 		Slug:        t.Slug,
 		Name:        t.Name,
@@ -215,6 +291,16 @@ func storeTopicToProto(t *store.Topic) *pb.Topic {
 		CreatedAt:   timestamppb.New(t.CreatedAt),
 		UpdatedAt:   timestamppb.New(t.UpdatedAt),
 	}
+	if t.LLMConfigID != nil {
+		p.LlmConfigId = t.LLMConfigID
+	}
+	if t.EmbeddingConfigID != nil {
+		p.EmbeddingConfigId = t.EmbeddingConfigID
+	}
+	if t.ExtractionPromptConfigID != nil {
+		p.ExtractionPromptConfigId = t.ExtractionPromptConfigID
+	}
+	return p
 }
 
 func storeGrantToProto(g *store.TopicGrant) *pb.TopicGrant {

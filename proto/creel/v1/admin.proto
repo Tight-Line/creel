@@ -2,17 +2,44 @@ syntax = "proto3";
 
 package creel.v1;
 
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 service AdminService {
-  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc Health(HealthRequest) returns (HealthResponse) {
+    option (google.api.http) = {
+      get: "/v1/health"
+    };
+  }
 
   // System account management
-  rpc CreateSystemAccount(CreateSystemAccountRequest) returns (CreateSystemAccountResponse);
-  rpc ListSystemAccounts(ListSystemAccountsRequest) returns (ListSystemAccountsResponse);
-  rpc DeleteSystemAccount(DeleteSystemAccountRequest) returns (DeleteSystemAccountResponse);
-  rpc RotateKey(RotateKeyRequest) returns (RotateKeyResponse);
-  rpc RevokeKey(RevokeKeyRequest) returns (RevokeKeyResponse);
+  rpc CreateSystemAccount(CreateSystemAccountRequest) returns (CreateSystemAccountResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/accounts"
+      body: "*"
+    };
+  }
+  rpc ListSystemAccounts(ListSystemAccountsRequest) returns (ListSystemAccountsResponse) {
+    option (google.api.http) = {
+      get: "/v1/admin/accounts"
+    };
+  }
+  rpc DeleteSystemAccount(DeleteSystemAccountRequest) returns (DeleteSystemAccountResponse) {
+    option (google.api.http) = {
+      delete: "/v1/admin/accounts/{id}"
+    };
+  }
+  rpc RotateKey(RotateKeyRequest) returns (RotateKeyResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/accounts/{account_id}/rotate"
+      body: "*"
+    };
+  }
+  rpc RevokeKey(RevokeKeyRequest) returns (RevokeKeyResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/accounts/{account_id}/revoke"
+    };
+  }
 }
 
 message HealthRequest {}

@@ -2,12 +2,23 @@ syntax = "proto3";
 
 package creel.v1;
 
+import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
 import "creel/v1/chunk.proto";
 
 service CompactionService {
-  rpc Compact(CompactRequest) returns (CompactResponse);
-  rpc Uncompact(UncompactRequest) returns (UncompactResponse);
+  rpc Compact(CompactRequest) returns (CompactResponse) {
+    option (google.api.http) = {
+      post: "/v1/compact"
+      body: "*"
+    };
+  }
+  rpc Uncompact(UncompactRequest) returns (UncompactResponse) {
+    option (google.api.http) = {
+      post: "/v1/uncompact"
+      body: "*"
+    };
+  }
 }
 
 message CompactRequest {

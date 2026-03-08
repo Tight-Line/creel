@@ -2,15 +2,38 @@ syntax = "proto3";
 
 package creel.v1;
 
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
 service DocumentService {
-  rpc CreateDocument(CreateDocumentRequest) returns (Document);
-  rpc GetDocument(GetDocumentRequest) returns (Document);
-  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
-  rpc UpdateDocument(UpdateDocumentRequest) returns (Document);
-  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+  rpc CreateDocument(CreateDocumentRequest) returns (Document) {
+    option (google.api.http) = {
+      post: "/v1/documents"
+      body: "*"
+    };
+  }
+  rpc GetDocument(GetDocumentRequest) returns (Document) {
+    option (google.api.http) = {
+      get: "/v1/documents/{id}"
+    };
+  }
+  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse) {
+    option (google.api.http) = {
+      get: "/v1/topics/{topic_id}/documents"
+    };
+  }
+  rpc UpdateDocument(UpdateDocumentRequest) returns (Document) {
+    option (google.api.http) = {
+      patch: "/v1/documents/{id}"
+      body: "*"
+    };
+  }
+  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse) {
+    option (google.api.http) = {
+      delete: "/v1/documents/{id}"
+    };
+  }
 }
 
 message Document {

@@ -1,0 +1,346 @@
+syntax = "proto3";
+
+package creel.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service ConfigService {
+  // API key configs
+  rpc CreateAPIKeyConfig(CreateAPIKeyConfigRequest) returns (APIKeyConfig) {
+    option (google.api.http) = {
+      post: "/v1/config/apikey"
+      body: "*"
+    };
+  }
+  rpc GetAPIKeyConfig(GetAPIKeyConfigRequest) returns (APIKeyConfig) {
+    option (google.api.http) = {
+      get: "/v1/config/apikey/{id}"
+    };
+  }
+  rpc ListAPIKeyConfigs(ListAPIKeyConfigsRequest) returns (ListAPIKeyConfigsResponse) {
+    option (google.api.http) = {
+      get: "/v1/config/apikey"
+    };
+  }
+  rpc UpdateAPIKeyConfig(UpdateAPIKeyConfigRequest) returns (APIKeyConfig) {
+    option (google.api.http) = {
+      patch: "/v1/config/apikey/{id}"
+      body: "*"
+    };
+  }
+  rpc DeleteAPIKeyConfig(DeleteAPIKeyConfigRequest) returns (DeleteAPIKeyConfigResponse) {
+    option (google.api.http) = {
+      delete: "/v1/config/apikey/{id}"
+    };
+  }
+  rpc SetDefaultAPIKeyConfig(SetDefaultAPIKeyConfigRequest) returns (APIKeyConfig) {
+    option (google.api.http) = {
+      post: "/v1/config/apikey/{id}/default"
+    };
+  }
+
+  // LLM configs
+  rpc CreateLLMConfig(CreateLLMConfigRequest) returns (LLMConfig) {
+    option (google.api.http) = {
+      post: "/v1/config/llm"
+      body: "*"
+    };
+  }
+  rpc GetLLMConfig(GetLLMConfigRequest) returns (LLMConfig) {
+    option (google.api.http) = {
+      get: "/v1/config/llm/{id}"
+    };
+  }
+  rpc ListLLMConfigs(ListLLMConfigsRequest) returns (ListLLMConfigsResponse) {
+    option (google.api.http) = {
+      get: "/v1/config/llm"
+    };
+  }
+  rpc UpdateLLMConfig(UpdateLLMConfigRequest) returns (LLMConfig) {
+    option (google.api.http) = {
+      patch: "/v1/config/llm/{id}"
+      body: "*"
+    };
+  }
+  rpc DeleteLLMConfig(DeleteLLMConfigRequest) returns (DeleteLLMConfigResponse) {
+    option (google.api.http) = {
+      delete: "/v1/config/llm/{id}"
+    };
+  }
+  rpc SetDefaultLLMConfig(SetDefaultLLMConfigRequest) returns (LLMConfig) {
+    option (google.api.http) = {
+      post: "/v1/config/llm/{id}/default"
+    };
+  }
+
+  // Embedding configs
+  rpc CreateEmbeddingConfig(CreateEmbeddingConfigRequest) returns (EmbeddingConfig) {
+    option (google.api.http) = {
+      post: "/v1/config/embedding"
+      body: "*"
+    };
+  }
+  rpc GetEmbeddingConfig(GetEmbeddingConfigRequest) returns (EmbeddingConfig) {
+    option (google.api.http) = {
+      get: "/v1/config/embedding/{id}"
+    };
+  }
+  rpc ListEmbeddingConfigs(ListEmbeddingConfigsRequest) returns (ListEmbeddingConfigsResponse) {
+    option (google.api.http) = {
+      get: "/v1/config/embedding"
+    };
+  }
+  rpc UpdateEmbeddingConfig(UpdateEmbeddingConfigRequest) returns (EmbeddingConfig) {
+    option (google.api.http) = {
+      patch: "/v1/config/embedding/{id}"
+      body: "*"
+    };
+  }
+  rpc DeleteEmbeddingConfig(DeleteEmbeddingConfigRequest) returns (DeleteEmbeddingConfigResponse) {
+    option (google.api.http) = {
+      delete: "/v1/config/embedding/{id}"
+    };
+  }
+  rpc SetDefaultEmbeddingConfig(SetDefaultEmbeddingConfigRequest) returns (EmbeddingConfig) {
+    option (google.api.http) = {
+      post: "/v1/config/embedding/{id}/default"
+    };
+  }
+
+  // Extraction prompt configs
+  rpc CreateExtractionPromptConfig(CreateExtractionPromptConfigRequest) returns (ExtractionPromptConfig) {
+    option (google.api.http) = {
+      post: "/v1/config/prompt"
+      body: "*"
+    };
+  }
+  rpc GetExtractionPromptConfig(GetExtractionPromptConfigRequest) returns (ExtractionPromptConfig) {
+    option (google.api.http) = {
+      get: "/v1/config/prompt/{id}"
+    };
+  }
+  rpc ListExtractionPromptConfigs(ListExtractionPromptConfigsRequest) returns (ListExtractionPromptConfigsResponse) {
+    option (google.api.http) = {
+      get: "/v1/config/prompt"
+    };
+  }
+  rpc UpdateExtractionPromptConfig(UpdateExtractionPromptConfigRequest) returns (ExtractionPromptConfig) {
+    option (google.api.http) = {
+      patch: "/v1/config/prompt/{id}"
+      body: "*"
+    };
+  }
+  rpc DeleteExtractionPromptConfig(DeleteExtractionPromptConfigRequest) returns (DeleteExtractionPromptConfigResponse) {
+    option (google.api.http) = {
+      delete: "/v1/config/prompt/{id}"
+    };
+  }
+  rpc SetDefaultExtractionPromptConfig(SetDefaultExtractionPromptConfigRequest) returns (ExtractionPromptConfig) {
+    option (google.api.http) = {
+      post: "/v1/config/prompt/{id}/default"
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// API Key Config
+// ---------------------------------------------------------------------------
+
+message APIKeyConfig {
+  string id = 1;
+  string name = 2;
+  string provider = 3;
+  bool is_default = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  // Note: encrypted_key is never returned; api_key is write-only on create/update.
+}
+
+message CreateAPIKeyConfigRequest {
+  string name = 1;
+  string provider = 2;
+  string api_key = 3;  // plaintext; encrypted at rest
+  bool is_default = 4;
+}
+
+message GetAPIKeyConfigRequest {
+  string id = 1;
+}
+
+message ListAPIKeyConfigsRequest {}
+
+message ListAPIKeyConfigsResponse {
+  repeated APIKeyConfig configs = 1;
+}
+
+message UpdateAPIKeyConfigRequest {
+  string id = 1;
+  string name = 2;
+  string provider = 3;
+  string api_key = 4;  // if set, replaces the stored key
+}
+
+message DeleteAPIKeyConfigRequest {
+  string id = 1;
+}
+
+message DeleteAPIKeyConfigResponse {}
+
+message SetDefaultAPIKeyConfigRequest {
+  string id = 1;
+}
+
+// ---------------------------------------------------------------------------
+// LLM Config
+// ---------------------------------------------------------------------------
+
+message LLMConfig {
+  string id = 1;
+  string name = 2;
+  string provider = 3;
+  string model = 4;
+  map<string, string> parameters = 5;
+  string api_key_config_id = 6;
+  bool is_default = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message CreateLLMConfigRequest {
+  string name = 1;
+  string provider = 2;
+  string model = 3;
+  map<string, string> parameters = 4;
+  string api_key_config_id = 5;
+  bool is_default = 6;
+}
+
+message GetLLMConfigRequest {
+  string id = 1;
+}
+
+message ListLLMConfigsRequest {}
+
+message ListLLMConfigsResponse {
+  repeated LLMConfig configs = 1;
+}
+
+message UpdateLLMConfigRequest {
+  string id = 1;
+  string name = 2;
+  string provider = 3;
+  string model = 4;
+  map<string, string> parameters = 5;
+  string api_key_config_id = 6;
+}
+
+message DeleteLLMConfigRequest {
+  string id = 1;
+}
+
+message DeleteLLMConfigResponse {}
+
+message SetDefaultLLMConfigRequest {
+  string id = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Embedding Config
+// ---------------------------------------------------------------------------
+
+message EmbeddingConfig {
+  string id = 1;
+  string name = 2;
+  string provider = 3;
+  string model = 4;
+  int32 dimensions = 5;
+  string api_key_config_id = 6;
+  bool is_default = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message CreateEmbeddingConfigRequest {
+  string name = 1;
+  string provider = 2;
+  string model = 3;
+  int32 dimensions = 4;
+  string api_key_config_id = 5;
+  bool is_default = 6;
+}
+
+message GetEmbeddingConfigRequest {
+  string id = 1;
+}
+
+message ListEmbeddingConfigsRequest {}
+
+message ListEmbeddingConfigsResponse {
+  repeated EmbeddingConfig configs = 1;
+}
+
+message UpdateEmbeddingConfigRequest {
+  string id = 1;
+  string name = 2;
+  string api_key_config_id = 3;
+  // provider, model, dimensions cannot be changed (would require re-embedding)
+}
+
+message DeleteEmbeddingConfigRequest {
+  string id = 1;
+}
+
+message DeleteEmbeddingConfigResponse {}
+
+message SetDefaultEmbeddingConfigRequest {
+  string id = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Extraction Prompt Config
+// ---------------------------------------------------------------------------
+
+message ExtractionPromptConfig {
+  string id = 1;
+  string name = 2;
+  string prompt = 3;
+  string description = 4;
+  bool is_default = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreateExtractionPromptConfigRequest {
+  string name = 1;
+  string prompt = 2;
+  string description = 3;
+  bool is_default = 4;
+}
+
+message GetExtractionPromptConfigRequest {
+  string id = 1;
+}
+
+message ListExtractionPromptConfigsRequest {}
+
+message ListExtractionPromptConfigsResponse {
+  repeated ExtractionPromptConfig configs = 1;
+}
+
+message UpdateExtractionPromptConfigRequest {
+  string id = 1;
+  string name = 2;
+  string prompt = 3;
+  string description = 4;
+}
+
+message DeleteExtractionPromptConfigRequest {
+  string id = 1;
+}
+
+message DeleteExtractionPromptConfigResponse {}
+
+message SetDefaultExtractionPromptConfigRequest {
+  string id = 1;
+}
