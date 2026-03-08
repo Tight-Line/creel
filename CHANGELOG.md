@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Topics can now be bound to LLM, embedding, and extraction prompt configs. NULL means "use default." Server enforces: extraction prompt requires LLM config; embedding config changes must match provider+model.
 - REST API via grpc-gateway. All gRPC services are now accessible over HTTP on the REST port (default 8080) with JSON request/response bodies.
 - Database migration 000004 adds `api_key_configs`, `llm_configs`, `embedding_configs`, and `extraction_prompt_configs` tables, plus nullable FK columns on `topics`.
+- CLI commands for full CRUD on all config types: `creel-cli config apikey`, `creel-cli config llm`, `creel-cli config embedding`, and `creel-cli config prompt`. Each supports `create`, `get`, `list`, `update`, `delete`, and `set-default`.
+- CLI `topic create` now accepts `--llm-config`, `--embedding-config`, and `--prompt-config` flags for binding configs at creation time.
+- CLI `topic update` command for modifying topic name, description, and config bindings.
 
 ### Changed
 
