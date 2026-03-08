@@ -9,6 +9,7 @@
 /.idea
 /.nova
 /.phpunit.cache
+/coverage-clover.xml
 /.vscode
 /.zed
 /auth.json

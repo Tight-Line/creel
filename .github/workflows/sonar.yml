@@ -53,10 +53,24 @@ jobs:
       - run: buf generate
       - run: go mod tidy
 
-      - name: Run tests with coverage
+      - name: Run Go tests with coverage
         run: |
           go test -race -coverprofile=coverage.out -covermode=atomic -count=1 \
             -p 1 -coverpkg=./internal/... ./...
+
+      - uses: shivammathur/setup-php@a1e83e39ae42f40e11a1595e7fe80e42de4f5167 # v2
+        with:
+          php-version: '8.4'
+          coverage: xdebug
+
+      - name: Install PHP dependencies
+        working-directory: dashboard
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPUnit with coverage
+        working-directory: dashboard
+        run: |
+          php vendor/bin/phpunit --coverage-clover=coverage-clover.xml
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
