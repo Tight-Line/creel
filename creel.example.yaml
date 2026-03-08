@@ -54,4 +54,4 @@ compaction:
 # AES-256-GCM encryption key for API key configs (64 hex chars = 32 bytes).
 # Required for config management features. Generate with:
 #   openssl rand -hex 32
-# encryption_key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+encryption_key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"

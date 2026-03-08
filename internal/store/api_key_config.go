@@ -33,6 +33,9 @@ type APIKeyConfig struct {
 
 // Create inserts a new API key config with the key encrypted at rest.
 func (s *APIKeyConfigStore) Create(ctx context.Context, name, provider string, apiKey []byte, isDefault bool) (*APIKeyConfig, error) {
+	if s.encryptor == nil {
+		return nil, fmt.Errorf("encryption key not configured; set encryption_key in config")
+	}
 	encryptedKey, nonce, err := s.encryptor.Encrypt(apiKey)
 	if err != nil { // coverage:ignore - encryptor key validated at construction
 		return nil, fmt.Errorf("encrypting API key: %w", err)
@@ -108,6 +111,9 @@ func (s *APIKeyConfigStore) List(ctx context.Context) ([]APIKeyConfig, error) {
 // Update modifies an API key config. If apiKey is non-nil, the key is re-encrypted.
 func (s *APIKeyConfigStore) Update(ctx context.Context, id, name, provider string, apiKey []byte) (*APIKeyConfig, error) {
 	if apiKey != nil {
+		if s.encryptor == nil {
+			return nil, fmt.Errorf("encryption key not configured; set encryption_key in config")
+		}
 		encryptedKey, nonce, err := s.encryptor.Encrypt(apiKey)
 		// coverage:ignore - encryptor key validated at construction
 		if err != nil {
@@ -210,6 +216,9 @@ func (s *APIKeyConfigStore) GetDecrypted(ctx context.Context, id string) ([]byte
 		return nil, fmt.Errorf("querying encrypted key: %w", err)
 	}
 
+	if s.encryptor == nil {
+		return nil, fmt.Errorf("encryption key not configured; set encryption_key in config")
+	}
 	plaintext, err := s.encryptor.Decrypt(encryptedKey, nonce)
 	if err != nil { // coverage:ignore - would require corrupted DB data
 		return nil, fmt.Errorf("decrypting API key: %w", err)
