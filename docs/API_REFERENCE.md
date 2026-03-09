@@ -257,7 +257,10 @@ rpc Search(SearchRequest) returns (SearchResponse)
   follow_links: bool,
   link_depth: int,              // default 1
   metadata_filter: Filter,
-  exclude_document_ids: [uuid]  // omit chunks from these documents
+  exclude_document_ids: [uuid], // omit chunks from these documents
+  rerank: bool,                 // enable reranking (default: true if default RerankConfig exists)
+  rerank_config_id: uuid,       // override reranker (nullable; uses default if omitted)
+  rerank_candidates: int        // override candidate pool size (nullable; falls back to config, then top_k)
 }
 ```
 
@@ -288,10 +291,11 @@ rpc Search(SearchRequest) returns (SearchResponse)
 
 1. Caller must have read on all specified `topic_ids`; server rejects if any fail authz.
 2. Either `query_embedding` or `query_text` must be provided (not both). If `query_text`, the server computes the embedding via the configured embedding provider.
-3. Server resolves all chunk IDs in the accessible topics from PostgreSQL and passes them as a filter to the vector backend's `Search` method.
-4. If `follow_links` is true, for each top-k result, the server follows outbound links up to `link_depth` hops (default 1; max from server config). Linked chunks are only included if the caller has read access to the linked chunk's topic.
-5. All candidates (direct hits + linked chunks) are scored and re-ranked into the final result set.
-6. Results include a `via_link` reference when a result was reached through link traversal.
+3. Server resolves all chunk IDs in the accessible topics from PostgreSQL and passes them as a filter to the vector backend's `Search` method. If reranking is enabled, the vector search fetches `rerank_candidates` results (resolution order: request field, then RerankConfig `top_n_candidates`, then `top_k`).
+4. If `rerank` is true (or a default RerankConfig exists and `rerank` is not explicitly false), the candidate pool is re-scored by the configured reranker (Cohere, Jina, VoyageAI, or LLM-based cross-encoder) and trimmed to `top_k`.
+5. If `follow_links` is true, for each top-k result, the server follows outbound links up to `link_depth` hops (default 1; max from server config). Linked chunks are only included if the caller has read access to the linked chunk's topic.
+6. All candidates (direct hits + linked chunks) are scored and ranked into the final result set.
+7. Results include a `via_link` reference when a result was reached through link traversal.
 
 ### GetContext
 

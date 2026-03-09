@@ -302,6 +302,25 @@ api_key_config {
 }
 ```
 
+**RerankConfig**
+
+```
+rerank_config {
+  id:                uuid
+  name:              string (unique)
+  provider:          string (e.g. "cohere", "jina", "voyageai", "llm")
+  model:             string (e.g. "rerank-v3.5", "jina-reranker-v2-base-multilingual")
+  api_key_config_id: uuid -> api_key_config (nullable; not needed for "llm" provider)
+  llm_config_id:     uuid -> llm_config (nullable; required when provider is "llm")
+  top_n_candidates:  int (default over-fetch factor; e.g. 50)
+  is_default:        bool
+  created_at:        timestamp
+  updated_at:        timestamp
+}
+```
+
+When `provider` is `llm`, the reranker uses the referenced LLM config as a cross-encoder (relevance scoring via prompt). This is slower but requires no additional service.
+
 ### 3.3 Addressing
 
 Every chunk has a canonical address:
@@ -490,6 +509,7 @@ Per-principal memory with named scopes. Inspired by Mem0's architecture.
 - Configurable traversal depth (default 1; max configurable, recommended max 2)
 - Permission-gated: only chunks in accessible topics are returned or traversed
 - Metadata filtering on results
+- **Reranking**: optional second-stage scoring via a cross-encoder reranker (Cohere, Jina, VoyageAI, or LLM-based). Vector search over-fetches candidates (e.g., 50), the reranker re-scores them, and the final `top_k` are returned. Configurable via `RerankConfig` in the config registry; overridable per request.
 
 **Context mode (temporal retrieval):**
 
@@ -641,8 +661,8 @@ service AdminService {
 }
 
 service ConfigService {
-  // 24 RPCs: CRUD + SetDefault for LLMConfig, EmbeddingConfig,
-  // ExtractionPromptConfig, and APIKeyConfig
+  // 30 RPCs: CRUD + SetDefault for LLMConfig, EmbeddingConfig,
+  // ExtractionPromptConfig, APIKeyConfig, and RerankConfig
 }
 ```
 
@@ -686,6 +706,9 @@ service ConfigService {
   link_depth: int               // default 1
   metadata_filter: Filter
   exclude_document_ids: [uuid]  // omit chunks from these documents
+  rerank: bool                  // enable reranking (default: true if default RerankConfig exists)
+  rerank_config_id: uuid        // override reranker (nullable; uses default if omitted)
+  rerank_candidates: int        // override candidate pool size (nullable; falls back to config, then top_k)
 }
 ```
 
