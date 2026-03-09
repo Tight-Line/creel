@@ -1,6 +1,6 @@
 .PHONY: all build test vet lint proto-gen proto-lint clean run docker-build compose-up compose-down test-coverage test-coverage-check test-integration dev dev-down dev-migrate
 
-all: lint vet test build
+all: proto-gen lint vet test build
 
 build:
 	go build -o bin/creel ./cmd/creel
