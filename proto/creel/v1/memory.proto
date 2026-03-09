@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package creel.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+service MemoryService {
+  rpc GetMemory(GetMemoryRequest) returns (GetMemoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/memories/{scope}"
+    };
+  }
+  rpc SearchMemories(SearchMemoriesRequest) returns (SearchMemoriesResponse) {
+    option (google.api.http) = {
+      post: "/v1/memories:search"
+      body: "*"
+    };
+  }
+  rpc AddMemory(AddMemoryRequest) returns (Memory) {
+    option (google.api.http) = {
+      post: "/v1/memories"
+      body: "*"
+    };
+  }
+  rpc UpdateMemory(UpdateMemoryRequest) returns (Memory) {
+    option (google.api.http) = {
+      patch: "/v1/memories/{id}"
+      body: "*"
+    };
+  }
+  rpc DeleteMemory(DeleteMemoryRequest) returns (DeleteMemoryResponse) {
+    option (google.api.http) = {
+      delete: "/v1/memories/{id}"
+    };
+  }
+  rpc ListMemories(ListMemoriesRequest) returns (ListMemoriesResponse) {
+    option (google.api.http) = {
+      get: "/v1/memories/{scope}/list"
+    };
+  }
+  rpc ListScopes(ListScopesRequest) returns (ListScopesResponse) {
+    option (google.api.http) = {
+      get: "/v1/memories:scopes"
+    };
+  }
+}
+
+message Memory {
+  string id = 1;
+  string principal = 2;
+  string scope = 3;
+  string content = 4;
+  string subject = 5;
+  string predicate = 6;
+  string object = 7;
+  string source_chunk_id = 8;
+  string status = 9;
+  google.protobuf.Timestamp invalidated_at = 10;
+  google.protobuf.Struct metadata = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+message GetMemoryRequest {
+  string scope = 1;
+}
+
+message GetMemoryResponse {
+  repeated Memory memories = 1;
+}
+
+message SearchMemoriesRequest {
+  string scope = 1;
+  repeated double query_embedding = 2;
+  string query_text = 3;
+  int32 top_k = 4;
+}
+
+message SearchMemoriesResponse {
+  repeated MemorySearchResult results = 1;
+}
+
+message MemorySearchResult {
+  Memory memory = 1;
+  double score = 2;
+}
+
+message AddMemoryRequest {
+  string scope = 1;
+  string content = 2;
+  string subject = 3;
+  string predicate = 4;
+  string object = 5;
+  google.protobuf.Struct metadata = 6;
+}
+
+message UpdateMemoryRequest {
+  string id = 1;
+  string content = 2;
+  google.protobuf.Struct metadata = 3;
+}
+
+message DeleteMemoryRequest {
+  string id = 1;
+}
+
+message DeleteMemoryResponse {}
+
+message ListMemoriesRequest {
+  string scope = 1;
+  bool include_invalidated = 2;
+}
+
+message ListMemoriesResponse {
+  repeated Memory memories = 1;
+}
+
+message ListScopesRequest {}
+
+message ListScopesResponse {
+  repeated string scopes = 1;
+}
