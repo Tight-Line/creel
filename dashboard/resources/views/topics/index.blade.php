@@ -51,7 +51,11 @@
                                 <span class="text-slate-400">Default</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 text-right">
+                        <td class="px-6 py-4 text-right space-x-3">
+                            <a href="{{ route('documents.index', $topic['id']) }}"
+                               class="text-slate-600 hover:text-slate-800 text-sm font-medium">
+                                Documents
+                            </a>
                             <a href="{{ route('topics.edit', $topic['id']) }}"
                                class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                                 Edit

@@ -12,22 +12,25 @@ import (
 
 // Result represents a single search result with context.
 type Result struct {
-	Chunk   *store.Chunk
-	TopicID string
-	Score   float64
+	Chunk    *store.Chunk
+	TopicID  string
+	Score    float64
+	Document *store.Document
 }
 
 // Searcher performs ACL-filtered vector similarity search.
 type Searcher struct {
 	chunkStore *store.ChunkStore
+	docStore   *store.DocumentStore
 	authorizer auth.Authorizer
 	backend    vector.Backend
 }
 
 // NewSearcher creates a new Searcher.
-func NewSearcher(chunkStore *store.ChunkStore, authorizer auth.Authorizer, backend vector.Backend) *Searcher {
+func NewSearcher(chunkStore *store.ChunkStore, docStore *store.DocumentStore, authorizer auth.Authorizer, backend vector.Backend) *Searcher {
 	return &Searcher{
 		chunkStore: chunkStore,
+		docStore:   docStore,
 		authorizer: authorizer,
 		backend:    backend,
 	}
@@ -90,6 +93,12 @@ func (s *Searcher) Search(ctx context.Context, principal *auth.Principal, topicI
 		return nil, fmt.Errorf("fetching document topics: %w", err)
 	}
 
+	// Batch-fetch documents for citation metadata.
+	docs, err := s.docStore.GetMultiple(ctx, docIDs)
+	if err != nil {
+		return nil, fmt.Errorf("fetching documents: %w", err)
+	}
+
 	// Assemble results preserving search result order.
 	var results []Result
 	for _, sr := range searchResults {
@@ -102,9 +111,10 @@ func (s *Searcher) Search(ctx context.Context, principal *auth.Principal, topicI
 			continue
 		}
 		results = append(results, Result{
-			Chunk:   chunk,
-			TopicID: topicID,
-			Score:   sr.Score,
+			Chunk:    chunk,
+			TopicID:  topicID,
+			Score:    sr.Score,
+			Document: docs[chunk.DocumentID],
 		})
 	}
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\ExtractionPromptController;
 use App\Http\Controllers\LlmConfigController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\SystemAccountController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\TopicController;
 use Illuminate\Support\Facades\Route;
 
@@ -59,6 +60,11 @@ Route::middleware('auth.dashboard')->group(function () {
     Route::get('/topics', [TopicController::class, 'index'])->name('topics.index');
     Route::get('/topics/{id}/edit', [TopicController::class, 'edit'])->name('topics.edit');
     Route::patch('/topics/{id}', [TopicController::class, 'update'])->name('topics.update');
+
+    // Documents
+    Route::get('/topics/{topicId}/documents', [DocumentController::class, 'index'])->name('documents.index');
+    Route::get('/documents/{id}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
+    Route::patch('/documents/{id}', [DocumentController::class, 'update'])->name('documents.update');
 
     // System Accounts
     Route::get('/accounts', [SystemAccountController::class, 'index'])->name('accounts.index');

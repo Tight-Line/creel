@@ -52,10 +52,11 @@ func (s *RetrievalServer) Search(ctx context.Context, req *pb.SearchRequest) (*p
 	pbResults := make([]*pb.SearchResult, len(results))
 	for i, r := range results {
 		pbResults[i] = &pb.SearchResult{
-			Chunk:      storeChunkToProto(r.Chunk),
-			DocumentId: r.Chunk.DocumentID,
-			TopicId:    r.TopicID,
-			Score:      r.Score,
+			Chunk:            storeChunkToProto(r.Chunk),
+			DocumentId:       r.Chunk.DocumentID,
+			TopicId:          r.TopicID,
+			Score:            r.Score,
+			DocumentCitation: storeDocToCitation(r.Document),
 		}
 	}
 

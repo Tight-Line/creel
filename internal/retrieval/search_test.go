@@ -78,7 +78,7 @@ func TestSearcher_EndToEnd(t *testing.T) {
 			t.Fatalf("granting access: %v", err)
 		}
 
-		doc, err := docStore.Create(ctx, topic.ID, fmt.Sprintf("doc-%d", i), fmt.Sprintf("Doc %d", i), "text", nil)
+		doc, err := docStore.Create(ctx, topic.ID, fmt.Sprintf("doc-%d", i), fmt.Sprintf("Doc %d", i), "text", nil, nil, nil, nil)
 		if err != nil {
 			t.Fatalf("creating document: %v", err)
 		}
@@ -104,7 +104,7 @@ func TestSearcher_EndToEnd(t *testing.T) {
 	})
 
 	authorizer := auth.NewGrantAuthorizer(grantStore)
-	searcher := retrieval.NewSearcher(chunkStore, authorizer, backend)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authorizer, backend)
 
 	t.Run("search all topics", func(t *testing.T) {
 		results, err := searcher.Search(ctx, principal, nil, fakeEmbedding(0, dim), 10, nil, nil)
@@ -114,13 +114,18 @@ func TestSearcher_EndToEnd(t *testing.T) {
 		if len(results) == 0 {
 			t.Error("expected results")
 		}
-		// Verify results have topic IDs.
+		// Verify results have topic IDs and document citations.
 		for _, r := range results {
 			if r.TopicID == "" {
 				t.Error("result missing TopicID")
 			}
 			if r.Chunk == nil {
 				t.Error("result missing Chunk")
+			}
+			if r.Document == nil {
+				t.Error("result missing Document")
+			} else if r.Document.Name == "" {
+				t.Error("result Document has empty Name")
 			}
 		}
 	})

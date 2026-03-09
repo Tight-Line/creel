@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -286,6 +287,115 @@ func TestStructToMap_NilStruct(t *testing.T) {
 	got := structToMap(nil)
 	if got != nil {
 		t.Errorf("expected nil for nil struct, got %v", got)
+	}
+}
+
+func TestStoreDocToProto_WithCitationFields(t *testing.T) {
+	url := "https://example.com"
+	author := "John Doe"
+	publishedAt := time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)
+	d := &store.Document{
+		ID:          "doc-1",
+		TopicID:     "topic-1",
+		Slug:        "test-doc",
+		Name:        "Test Doc",
+		DocType:     "reference",
+		URL:         &url,
+		Author:      &author,
+		PublishedAt: &publishedAt,
+	}
+	proto := storeDocToProto(d)
+	if proto.Url != "https://example.com" {
+		t.Errorf("Url = %q, want %q", proto.Url, "https://example.com")
+	}
+	if proto.Author != "John Doe" {
+		t.Errorf("Author = %q, want %q", proto.Author, "John Doe")
+	}
+	if proto.PublishedAt == nil {
+		t.Fatal("PublishedAt is nil")
+	}
+	if got := proto.PublishedAt.AsTime(); !got.Equal(publishedAt) {
+		t.Errorf("PublishedAt = %v, want %v", got, publishedAt)
+	}
+}
+
+func TestStoreDocToProto_NilCitationFields(t *testing.T) {
+	d := &store.Document{
+		ID:      "doc-1",
+		TopicID: "topic-1",
+		Slug:    "test-doc",
+		Name:    "Test Doc",
+		DocType: "reference",
+	}
+	proto := storeDocToProto(d)
+	if proto.Url != "" {
+		t.Errorf("Url = %q, want empty", proto.Url)
+	}
+	if proto.Author != "" {
+		t.Errorf("Author = %q, want empty", proto.Author)
+	}
+	if proto.PublishedAt != nil {
+		t.Errorf("PublishedAt = %v, want nil", proto.PublishedAt)
+	}
+}
+
+func TestStoreDocToCitation(t *testing.T) {
+	url := "https://example.com"
+	author := "Jane Doe"
+	publishedAt := time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC)
+	d := &store.Document{
+		ID:          "doc-1",
+		TopicID:     "topic-1",
+		Slug:        "test-doc",
+		Name:        "Test Doc",
+		DocType:     "reference",
+		URL:         &url,
+		Author:      &author,
+		PublishedAt: &publishedAt,
+	}
+	c := storeDocToCitation(d)
+	if c.Id != "doc-1" {
+		t.Errorf("Id = %q, want %q", c.Id, "doc-1")
+	}
+	if c.Slug != "test-doc" {
+		t.Errorf("Slug = %q, want %q", c.Slug, "test-doc")
+	}
+	if c.Name != "Test Doc" {
+		t.Errorf("Name = %q, want %q", c.Name, "Test Doc")
+	}
+	if c.Url != "https://example.com" {
+		t.Errorf("Url = %q, want %q", c.Url, "https://example.com")
+	}
+	if c.Author != "Jane Doe" {
+		t.Errorf("Author = %q, want %q", c.Author, "Jane Doe")
+	}
+	if c.PublishedAt == nil {
+		t.Fatal("PublishedAt is nil")
+	}
+}
+
+func TestStoreDocToCitation_Nil(t *testing.T) {
+	c := storeDocToCitation(nil)
+	if c != nil {
+		t.Errorf("expected nil, got %v", c)
+	}
+}
+
+func TestStoreDocToCitation_NilFields(t *testing.T) {
+	d := &store.Document{
+		ID:   "doc-1",
+		Slug: "s",
+		Name: "n",
+	}
+	c := storeDocToCitation(d)
+	if c.Url != "" {
+		t.Errorf("Url = %q, want empty", c.Url)
+	}
+	if c.Author != "" {
+		t.Errorf("Author = %q, want empty", c.Author)
+	}
+	if c.PublishedAt != nil {
+		t.Errorf("PublishedAt = %v, want nil", c.PublishedAt)
 	}
 }
 
@@ -612,6 +722,23 @@ func TestDocumentServer_CreateDocument_StoreError(t *testing.T) {
 	requireCode(t, err, codes.Internal)
 }
 
+func TestDocumentServer_CreateDocument_WithCitationFields(t *testing.T) {
+	db := failDBTX()
+	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
+	ctx := systemCtx()
+
+	_, err := s.CreateDocument(ctx, &pb.CreateDocumentRequest{
+		TopicId:     "topic-1",
+		Slug:        "s",
+		Name:        "n",
+		Url:         "https://example.com",
+		Author:      "Test Author",
+		PublishedAt: timestamppb.Now(),
+	})
+	// Store fails, but the URL/Author/PublishedAt extraction was exercised.
+	requireCode(t, err, codes.Internal)
+}
+
 func TestDocumentServer_GetDocument_StoreError(t *testing.T) {
 	db := failDBTX()
 	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
@@ -708,6 +835,30 @@ func TestDocumentServer_UpdateDocument_StoreError(t *testing.T) {
 	ctx := systemCtx()
 
 	_, err := s.UpdateDocument(ctx, &pb.UpdateDocumentRequest{Id: "doc-1"})
+	requireCode(t, err, codes.Internal)
+}
+
+func TestDocumentServer_UpdateDocument_WithCitationFields(t *testing.T) {
+	calls := 0
+	db := &mockDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			calls++
+			if calls == 1 {
+				return &mockRow{err: nil} // TopicIDForDocument succeeds
+			}
+			return &mockRow{err: errors.New("db error")} // Update fails
+		},
+	}
+	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
+	ctx := systemCtx()
+
+	_, err := s.UpdateDocument(ctx, &pb.UpdateDocumentRequest{
+		Id:          "doc-1",
+		Url:         "https://example.com",
+		Author:      "Test Author",
+		PublishedAt: timestamppb.Now(),
+	})
+	// Store fails, but the URL/Author/PublishedAt extraction was exercised.
 	requireCode(t, err, codes.Internal)
 }
 
@@ -975,7 +1126,8 @@ func TestRetrievalServer_Search_SearcherError(t *testing.T) {
 	chunkStore := store.NewChunkStore(db)
 	authz := &mockAuthorizer{accessibleErr: errors.New("auth error")}
 	backend := &mockBackend{}
-	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
+	docStore := store.NewDocumentStore(db)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
 	s := NewRetrievalServer(searcher, contextFetcher)
 	ctx := systemCtx()
@@ -996,7 +1148,8 @@ func TestRetrievalServer_GetContext_MissingDocumentID(t *testing.T) {
 	chunkStore := store.NewChunkStore(db)
 	authz := &mockAuthorizer{}
 	backend := &mockBackend{}
-	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
+	docStore := store.NewDocumentStore(db)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
 	s := NewRetrievalServer(searcher, contextFetcher)
 	ctx := systemCtx()
@@ -1011,7 +1164,8 @@ func TestRetrievalServer_GetContext_ContextFetcherError(t *testing.T) {
 	chunkStore := store.NewChunkStore(db)
 	authz := &mockAuthorizer{}
 	backend := &mockBackend{}
-	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
+	docStore := store.NewDocumentStore(db)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
 	s := NewRetrievalServer(searcher, contextFetcher)
 	ctx := systemCtx()
@@ -1033,7 +1187,8 @@ func TestRetrievalServer_GetContext_Success_Empty(t *testing.T) {
 	chunkStore := store.NewChunkStore(db)
 	authz := &mockAuthorizer{}
 	backend := &mockBackend{}
-	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
+	docStore := store.NewDocumentStore(db)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
 	s := NewRetrievalServer(searcher, contextFetcher)
 	ctx := systemCtx()
@@ -1065,7 +1220,8 @@ func TestRetrievalServer_GetContext_Success_WithChunks(t *testing.T) {
 	chunkStore := store.NewChunkStore(db)
 	authz := &mockAuthorizer{}
 	backend := &mockBackend{}
-	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
+	docStore := store.NewDocumentStore(db)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
 	s := NewRetrievalServer(searcher, contextFetcher)
 	ctx := systemCtx()
@@ -1098,7 +1254,8 @@ func TestRetrievalServer_GetContext_WithSince(t *testing.T) {
 	chunkStore := store.NewChunkStore(db)
 	authz := &mockAuthorizer{}
 	backend := &mockBackend{}
-	searcher := retrieval.NewSearcher(chunkStore, authz, backend)
+	docStore := store.NewDocumentStore(db)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
 	s := NewRetrievalServer(searcher, contextFetcher)
 	ctx := systemCtx()
@@ -1199,7 +1356,8 @@ func TestNilPrincipal_RetrievalServer(t *testing.T) {
 	cs := store.NewChunkStore(db)
 	authz := &mockAuthorizer{}
 	backend := &mockBackend{}
-	searcher := retrieval.NewSearcher(cs, authz, backend)
+	ds := store.NewDocumentStore(db)
+	searcher := retrieval.NewSearcher(cs, ds, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(cs, authz)
 	s := NewRetrievalServer(searcher, contextFetcher)
 	ctx := context.Background()

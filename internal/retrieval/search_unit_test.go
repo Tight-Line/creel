@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Tight-Line/creel/internal/auth"
 	"github.com/Tight-Line/creel/internal/store"
@@ -135,8 +136,10 @@ func (m *mockDBTX) Begin(_ context.Context) (pgx.Tx, error) {
 func TestSearcher_ResolveTopicsError(t *testing.T) {
 	authz := &mockAuthorizer{accessErr: errors.New("authz unavailable")}
 	backend := &mockBackend{dim: 3}
-	cs := store.NewChunkStore(&mockDBTX{})
-	s := NewSearcher(cs, authz, backend)
+	db := &mockDBTX{}
+	cs := store.NewChunkStore(db)
+	ds := store.NewDocumentStore(db)
+	s := NewSearcher(cs, ds, authz, backend)
 
 	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err == nil {
@@ -160,7 +163,8 @@ func TestSearcher_ChunkIDsByTopicsError(t *testing.T) {
 		},
 	}
 	cs := store.NewChunkStore(db)
-	s := NewSearcher(cs, authz, backend)
+	ds := store.NewDocumentStore(db)
+	s := NewSearcher(cs, ds, authz, backend)
 
 	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err == nil {
@@ -187,7 +191,8 @@ func TestSearcher_BackendSearchError(t *testing.T) {
 		},
 	}
 	cs := store.NewChunkStore(db)
-	s := NewSearcher(cs, authz, backend)
+	ds := store.NewDocumentStore(db)
+	s := NewSearcher(cs, ds, authz, backend)
 
 	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err == nil {
@@ -225,7 +230,8 @@ func TestSearcher_GetMultipleError(t *testing.T) {
 		},
 	}
 	cs := store.NewChunkStore(db)
-	s := NewSearcher(cs, authz, backend)
+	ds := store.NewDocumentStore(db)
+	s := NewSearcher(cs, ds, authz, backend)
 
 	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err == nil {
@@ -270,7 +276,8 @@ func TestSearcher_DocumentTopicIDsError(t *testing.T) {
 		},
 	}
 	cs := store.NewChunkStore(db)
-	s := NewSearcher(cs, authz, backend)
+	ds := store.NewDocumentStore(db)
+	s := NewSearcher(cs, ds, authz, backend)
 
 	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err == nil {
@@ -278,6 +285,57 @@ func TestSearcher_DocumentTopicIDsError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "fetching document topics") {
 		t.Errorf("expected 'fetching document topics' in error, got: %v", err)
+	}
+}
+
+func TestSearcher_DocStoreGetMultipleError(t *testing.T) {
+	authz := &mockAuthorizer{accessTopics: []string{"topic-1"}}
+	backend := &mockBackend{
+		dim: 3,
+		results: []vector.SearchResult{
+			{ChunkID: "chunk-1", Score: 0.9},
+		},
+	}
+
+	db := &mockDBTX{
+		queryFn: func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
+			if strings.Contains(sql, "JOIN documents") {
+				return &mockRows{
+					data: [][]any{{"chunk-1"}},
+				}, nil
+			}
+			if strings.Contains(sql, "FROM chunks") {
+				return &mockRowsGetMultiple{
+					chunks: []getMultipleRow{
+						{id: "chunk-1", docID: "doc-1"},
+					},
+				}, nil
+			}
+			// DocumentTopicIDs succeeds (no slug in query).
+			if strings.Contains(sql, "FROM documents") && !strings.Contains(sql, "slug") {
+				return &mockRowsDocTopics{
+					docs: []docTopicRow{
+						{docID: "doc-1", topicID: "topic-1"},
+					},
+				}, nil
+			}
+			// DocumentStore.GetMultiple (has slug) errors.
+			if strings.Contains(sql, "slug") {
+				return nil, errors.New("doc get multiple failed")
+			}
+			return &mockRows{}, nil
+		},
+	}
+	cs := store.NewChunkStore(db)
+	ds := store.NewDocumentStore(db)
+	s := NewSearcher(cs, ds, authz, backend)
+
+	_, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "fetching documents") {
+		t.Errorf("expected 'fetching documents' in error, got: %v", err)
 	}
 }
 
@@ -306,7 +364,15 @@ func TestSearcher_ChunkNotFoundSkipped(t *testing.T) {
 					},
 				}, nil
 			}
-			// DocumentTopicIDs.
+			// DocumentStore.GetMultiple (has slug in SELECT).
+			if strings.Contains(sql, "slug") {
+				return &mockRowsDocGetMultiple{
+					docs: []docGetMultipleRow{
+						{id: "doc-1", topicID: "topic-1", slug: "doc-1", name: "Doc 1"},
+					},
+				}, nil
+			}
+			// DocumentTopicIDs (id, topic_id only).
 			if strings.Contains(sql, "FROM documents") {
 				return &mockRowsDocTopics{
 					docs: []docTopicRow{
@@ -318,7 +384,8 @@ func TestSearcher_ChunkNotFoundSkipped(t *testing.T) {
 		},
 	}
 	cs := store.NewChunkStore(db)
-	s := NewSearcher(cs, authz, backend)
+	ds := store.NewDocumentStore(db)
+	s := NewSearcher(cs, ds, authz, backend)
 
 	results, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err != nil {
@@ -358,6 +425,14 @@ func TestSearcher_DocTopicNotFoundSkipped(t *testing.T) {
 					},
 				}, nil
 			}
+			// DocumentStore.GetMultiple (has slug in SELECT).
+			if strings.Contains(sql, "slug") {
+				return &mockRowsDocGetMultiple{
+					docs: []docGetMultipleRow{
+						{id: "doc-1", topicID: "topic-1", slug: "doc-1", name: "Doc 1"},
+					},
+				}, nil
+			}
 			// DocumentTopicIDs returns only doc-1; doc-orphan is missing.
 			if strings.Contains(sql, "FROM documents") {
 				return &mockRowsDocTopics{
@@ -370,7 +445,8 @@ func TestSearcher_DocTopicNotFoundSkipped(t *testing.T) {
 		},
 	}
 	cs := store.NewChunkStore(db)
-	s := NewSearcher(cs, authz, backend)
+	ds := store.NewDocumentStore(db)
+	s := NewSearcher(cs, ds, authz, backend)
 
 	results, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err != nil {
@@ -395,7 +471,8 @@ func TestSearcher_EmptyChunkIDs(t *testing.T) {
 		},
 	}
 	cs := store.NewChunkStore(db)
-	s := NewSearcher(cs, authz, backend)
+	ds := store.NewDocumentStore(db)
+	s := NewSearcher(cs, ds, authz, backend)
 
 	results, err := s.Search(context.Background(), &auth.Principal{ID: "user:test"}, nil, []float64{1, 2, 3}, 10, nil, nil)
 	if err != nil {
@@ -485,5 +562,57 @@ func (m *mockRowsDocTopics) Scan(dest ...any) error {
 	row := m.docs[m.idx-1]
 	*dest[0].(*string) = row.docID
 	*dest[1].(*string) = row.topicID
+	return nil
+}
+
+// mockRowsDocGetMultiple provides rows for DocumentStore.GetMultiple
+// (id, topic_id, slug, name, doc_type, metadata, created_at, updated_at, url, author, published_at).
+type docGetMultipleRow struct {
+	id      string
+	topicID string
+	slug    string
+	name    string
+}
+
+type mockRowsDocGetMultiple struct {
+	docs   []docGetMultipleRow
+	idx    int
+	closed bool
+}
+
+func (m *mockRowsDocGetMultiple) Close()                                       { m.closed = true }
+func (m *mockRowsDocGetMultiple) Err() error                                   { return nil }
+func (m *mockRowsDocGetMultiple) CommandTag() pgconn.CommandTag                { return pgconn.CommandTag{} }
+func (m *mockRowsDocGetMultiple) FieldDescriptions() []pgconn.FieldDescription { return nil }
+func (m *mockRowsDocGetMultiple) RawValues() [][]byte                          { return nil }
+func (m *mockRowsDocGetMultiple) Conn() *pgx.Conn                              { return nil }
+func (m *mockRowsDocGetMultiple) Values() ([]any, error)                       { return nil, nil }
+
+func (m *mockRowsDocGetMultiple) Next() bool {
+	if m.idx < len(m.docs) {
+		m.idx++
+		return true
+	}
+	return false
+}
+
+func (m *mockRowsDocGetMultiple) Scan(dest ...any) error {
+	row := m.docs[m.idx-1]
+	// Scans: id, topic_id, slug, name, doc_type, metadata, created_at, updated_at, url, author, published_at
+	if len(dest) != 11 {
+		return errors.New("expected 11 scan destinations for document GetMultiple")
+	}
+	*dest[0].(*string) = row.id
+	*dest[1].(*string) = row.topicID
+	*dest[2].(*string) = row.slug
+	*dest[3].(*string) = row.name
+	*dest[4].(*string) = "text"
+	*dest[5].(*[]byte) = []byte("{}")
+	// created_at, updated_at are time.Time; zero values are fine.
+	// url, author are **string; nil is fine.
+	*dest[8].(**string) = nil
+	*dest[9].(**string) = nil
+	// published_at is **time.Time; nil is fine.
+	*dest[10].(**time.Time) = nil
 	return nil
 }

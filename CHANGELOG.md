@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Documents now support optional citation fields: `url`, `author`, and `published_at`. These can be set when creating or updating a document.
+- Search results include a `document_citation` with the source document's name, slug, URL, author, and publication date, making it easy to attribute results to their origin.
+- Dashboard shows document citation fields (URL, author, published date) and allows editing them. Topics list now links to each topic's documents.
+- CLI search output includes citation metadata (url, author, published date) when present.
+
 ## [0.1.11] - 2026-03-09
 
 ### Fixed

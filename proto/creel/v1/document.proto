@@ -45,6 +45,9 @@ message Document {
   google.protobuf.Struct metadata = 6;
   google.protobuf.Timestamp created_at = 7;
   google.protobuf.Timestamp updated_at = 8;
+  string url = 9;
+  string author = 10;
+  google.protobuf.Timestamp published_at = 11;
 }
 
 message CreateDocumentRequest {
@@ -53,6 +56,9 @@ message CreateDocumentRequest {
   string name = 3;
   string doc_type = 4;
   google.protobuf.Struct metadata = 5;
+  string url = 6;
+  string author = 7;
+  google.protobuf.Timestamp published_at = 8;
 }
 
 message GetDocumentRequest {
@@ -75,6 +81,9 @@ message UpdateDocumentRequest {
   string name = 2;
   string doc_type = 3;
   google.protobuf.Struct metadata = 4;
+  string url = 5;
+  string author = 6;
+  google.protobuf.Timestamp published_at = 7;
 }
 
 message DeleteDocumentRequest {

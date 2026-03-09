@@ -169,6 +169,23 @@ class CreelApiClient
         return $this->request('PATCH', "/v1/topics/{$id}", $data);
     }
 
+    // Documents
+
+    public function listDocuments(string $topicId): array
+    {
+        return $this->request('GET', "/v1/topics/{$topicId}/documents")['documents'] ?? [];
+    }
+
+    public function getDocument(string $id): array
+    {
+        return $this->request('GET', "/v1/documents/{$id}");
+    }
+
+    public function updateDocument(string $id, array $data): array
+    {
+        return $this->request('PATCH', "/v1/documents/{$id}", $data);
+    }
+
     // System Accounts
 
     public function listSystemAccounts(): array

@@ -74,7 +74,7 @@ func setupTestEnv(t *testing.T) *testEnv {
 
 	// Create authorizer and searcher.
 	authorizer := auth.NewGrantAuthorizer(grantStore)
-	searcher := retrieval.NewSearcher(chunkStore, authorizer, backend)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authorizer, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authorizer)
 
 	// Create a test system account for API key auth.
