@@ -28,7 +28,7 @@ func main() {
 		Short: "Creel CLI client",
 	}
 
-	root.PersistentFlags().StringVar(&endpoint, "endpoint", envOr("CREEL_ENDPOINT", "localhost:8443"), "gRPC server endpoint")
+	root.PersistentFlags().StringVar(&endpoint, "endpoint", envOr("CREEL_ENDPOINT", "127.0.0.1:8443"), "gRPC server endpoint")
 	root.PersistentFlags().StringVar(&apiKey, "api-key", os.Getenv("CREEL_API_KEY"), "API key for authentication")
 	root.PersistentFlags().BoolVar(&useTLS, "tls", false, "use TLS")
 

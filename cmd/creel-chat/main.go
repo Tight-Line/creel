@@ -34,7 +34,7 @@ func main() {
 		RunE:  run,
 	}
 
-	root.Flags().StringVar(&endpoint, "endpoint", envOr("CREEL_ENDPOINT", "localhost:8443"), "Creel gRPC endpoint")
+	root.Flags().StringVar(&endpoint, "endpoint", envOr("CREEL_ENDPOINT", "127.0.0.1:8443"), "Creel gRPC endpoint")
 	root.Flags().StringVar(&apiKey, "api-key", os.Getenv("CREEL_API_KEY"), "Creel API key")
 	root.Flags().BoolVar(&useTLS, "tls", false, "use TLS for gRPC connection")
 	root.Flags().StringVar(&provider, "provider", "openai", "chat LLM provider (openai or anthropic)")
@@ -100,7 +100,7 @@ func run(_ *cobra.Command, _ []string) error {
 
 	// Print resume command on exit.
 	fmt.Printf("\nTo resume this session:\n  creel-chat --resume %s --topic %s", docID, topicSlug)
-	if endpoint != "localhost:8443" {
+	if endpoint != "127.0.0.1:8443" {
 		fmt.Printf(" --endpoint %s", endpoint)
 	}
 	if useTLS {
