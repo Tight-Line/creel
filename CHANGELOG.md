@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Auto-generated Laravel `APP_KEY` was double-base64-encoded. Sprig's `randBytes` already returns base64; piping through `b64enc` encoded it a second time, producing a 44-byte key instead of 32 bytes. Laravel rejected it with "Unsupported cipher or incorrect key length."
+- Auto-generated bootstrap API key used `creel_` prefix instead of `creel_ak_`. The auth middleware requires the `creel_ak_` prefix to recognize a token as an API key.
+- Dashboard login credentials were read via `env()` instead of `config()`, returning null when config is cached. Moved `CREEL_DASHBOARD_USERNAME` and `CREEL_DASHBOARD_PASSWORD` into `config/creel.php`.
 - Mixed-content blocking on HTTPS deployments. Dashboard now trusts reverse proxies (`trustProxies(at: '*')`) so Laravel respects `X-Forwarded-Proto` from the ingress and generates HTTPS asset URLs.
 - Restored `config:cache`, `route:cache`, and `view:cache` in the startup script (after `.env` generation). Caching now works correctly since `.env` is populated before artisan runs.
 
