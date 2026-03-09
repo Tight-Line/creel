@@ -17,11 +17,14 @@ type RetrievalServer struct {
 	pb.UnimplementedRetrievalServiceServer
 	searcher       *retrieval.Searcher
 	contextFetcher *retrieval.ContextFetcher
+	embedder       EmbeddingProvider
 }
 
 // NewRetrievalServer creates a new retrieval service.
-func NewRetrievalServer(searcher *retrieval.Searcher, contextFetcher *retrieval.ContextFetcher) *RetrievalServer {
-	return &RetrievalServer{searcher: searcher, contextFetcher: contextFetcher}
+// The embedder is optional; if nil, query_text is not supported and clients
+// must provide query_embedding directly.
+func NewRetrievalServer(searcher *retrieval.Searcher, contextFetcher *retrieval.ContextFetcher, embedder EmbeddingProvider) *RetrievalServer {
+	return &RetrievalServer{searcher: searcher, contextFetcher: contextFetcher, embedder: embedder}
 }
 
 // Search performs ACL-filtered similarity search.
@@ -30,8 +33,19 @@ func (s *RetrievalServer) Search(ctx context.Context, req *pb.SearchRequest) (*p
 	if p == nil {
 		return nil, status.Error(codes.Unauthenticated, "not authenticated")
 	}
-	if len(req.GetQueryEmbedding()) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "query_embedding is required")
+	queryEmbedding := req.GetQueryEmbedding()
+	if len(queryEmbedding) == 0 && req.GetQueryText() != "" {
+		if s.embedder == nil {
+			return nil, status.Error(codes.FailedPrecondition, "embedding provider not configured; provide query_embedding directly")
+		}
+		var err error
+		queryEmbedding, err = s.embedder.Embed(ctx, req.GetQueryText())
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "computing embedding: %v", err)
+		}
+	}
+	if len(queryEmbedding) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "query_embedding or query_text is required")
 	}
 
 	topK := int(req.GetTopK())
@@ -44,7 +58,7 @@ func (s *RetrievalServer) Search(ctx context.Context, req *pb.SearchRequest) (*p
 		metadataFilter = mf.AsMap()
 	}
 
-	results, err := s.searcher.Search(ctx, p, req.GetTopicIds(), req.GetQueryEmbedding(), topK, metadataFilter, req.GetExcludeDocumentIds())
+	results, err := s.searcher.Search(ctx, p, req.GetTopicIds(), queryEmbedding, topK, metadataFilter, req.GetExcludeDocumentIds())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "search: %v", err)
 	}

@@ -1129,7 +1129,7 @@ func TestRetrievalServer_Search_SearcherError(t *testing.T) {
 	docStore := store.NewDocumentStore(db)
 	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
-	s := NewRetrievalServer(searcher, contextFetcher)
+	s := NewRetrievalServer(searcher, contextFetcher, nil)
 	ctx := systemCtx()
 
 	_, err := s.Search(ctx, &pb.SearchRequest{
@@ -1137,6 +1137,58 @@ func TestRetrievalServer_Search_SearcherError(t *testing.T) {
 		TopK:           5,
 	})
 	requireCode(t, err, codes.Internal)
+}
+
+func TestRetrievalServer_Search_QueryTextNoEmbedder(t *testing.T) {
+	db := failDBTX()
+	chunkStore := store.NewChunkStore(db)
+	authz := &mockAuthorizer{}
+	backend := &mockBackend{}
+	docStore := store.NewDocumentStore(db)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
+	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
+	s := NewRetrievalServer(searcher, contextFetcher, nil)
+	ctx := systemCtx()
+
+	_, err := s.Search(ctx, &pb.SearchRequest{
+		QueryText: "hello",
+		TopK:      5,
+	})
+	requireCode(t, err, codes.FailedPrecondition)
+}
+
+func TestRetrievalServer_Search_QueryTextEmbedError(t *testing.T) {
+	db := failDBTX()
+	chunkStore := store.NewChunkStore(db)
+	authz := &mockAuthorizer{}
+	backend := &mockBackend{}
+	docStore := store.NewDocumentStore(db)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
+	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
+	embedder := &mockEmbedder{err: errors.New("embed error")}
+	s := NewRetrievalServer(searcher, contextFetcher, embedder)
+	ctx := systemCtx()
+
+	_, err := s.Search(ctx, &pb.SearchRequest{
+		QueryText: "hello",
+		TopK:      5,
+	})
+	requireCode(t, err, codes.Internal)
+}
+
+func TestRetrievalServer_Search_QueryTextNeitherProvided(t *testing.T) {
+	db := failDBTX()
+	chunkStore := store.NewChunkStore(db)
+	authz := &mockAuthorizer{}
+	backend := &mockBackend{}
+	docStore := store.NewDocumentStore(db)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
+	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
+	s := NewRetrievalServer(searcher, contextFetcher, nil)
+	ctx := systemCtx()
+
+	_, err := s.Search(ctx, &pb.SearchRequest{TopK: 5})
+	requireCode(t, err, codes.InvalidArgument)
 }
 
 // ---------------------------------------------------------------------------
@@ -1151,7 +1203,7 @@ func TestRetrievalServer_GetContext_MissingDocumentID(t *testing.T) {
 	docStore := store.NewDocumentStore(db)
 	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
-	s := NewRetrievalServer(searcher, contextFetcher)
+	s := NewRetrievalServer(searcher, contextFetcher, nil)
 	ctx := systemCtx()
 
 	_, err := s.GetContext(ctx, &pb.GetContextRequest{})
@@ -1167,7 +1219,7 @@ func TestRetrievalServer_GetContext_ContextFetcherError(t *testing.T) {
 	docStore := store.NewDocumentStore(db)
 	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
-	s := NewRetrievalServer(searcher, contextFetcher)
+	s := NewRetrievalServer(searcher, contextFetcher, nil)
 	ctx := systemCtx()
 
 	_, err := s.GetContext(ctx, &pb.GetContextRequest{DocumentId: "doc-1"})
@@ -1190,7 +1242,7 @@ func TestRetrievalServer_GetContext_Success_Empty(t *testing.T) {
 	docStore := store.NewDocumentStore(db)
 	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
-	s := NewRetrievalServer(searcher, contextFetcher)
+	s := NewRetrievalServer(searcher, contextFetcher, nil)
 	ctx := systemCtx()
 
 	resp, err := s.GetContext(ctx, &pb.GetContextRequest{DocumentId: "doc-1"})
@@ -1223,7 +1275,7 @@ func TestRetrievalServer_GetContext_Success_WithChunks(t *testing.T) {
 	docStore := store.NewDocumentStore(db)
 	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
-	s := NewRetrievalServer(searcher, contextFetcher)
+	s := NewRetrievalServer(searcher, contextFetcher, nil)
 	ctx := systemCtx()
 
 	resp, err := s.GetContext(ctx, &pb.GetContextRequest{DocumentId: "doc-1"})
@@ -1257,7 +1309,7 @@ func TestRetrievalServer_GetContext_WithSince(t *testing.T) {
 	docStore := store.NewDocumentStore(db)
 	searcher := retrieval.NewSearcher(chunkStore, docStore, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authz)
-	s := NewRetrievalServer(searcher, contextFetcher)
+	s := NewRetrievalServer(searcher, contextFetcher, nil)
 	ctx := systemCtx()
 
 	now := timestamppb.Now()
@@ -1359,7 +1411,7 @@ func TestNilPrincipal_RetrievalServer(t *testing.T) {
 	ds := store.NewDocumentStore(db)
 	searcher := retrieval.NewSearcher(cs, ds, authz, backend)
 	contextFetcher := retrieval.NewContextFetcher(cs, authz)
-	s := NewRetrievalServer(searcher, contextFetcher)
+	s := NewRetrievalServer(searcher, contextFetcher, nil)
 	ctx := context.Background()
 
 	_, err := s.Search(ctx, &pb.SearchRequest{QueryEmbedding: []float64{1.0}})

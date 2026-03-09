@@ -370,10 +370,11 @@ func topicCmd() *cobra.Command {
 func searchCmd() *cobra.Command {
 	var topicIDs []string
 	var topK int32
+	var queryText string
 
 	cmd := &cobra.Command{
 		Use:   "search",
-		Short: "Search for chunks (requires embedding input via stdin)",
+		Short: "Search for chunks by text query or embedding",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			conn, err := dial()
 			if err != nil {
@@ -381,18 +382,24 @@ func searchCmd() *cobra.Command {
 			}
 			defer func() { _ = conn.Close() }()
 
-			// Read embedding from stdin as JSON array.
-			var embedding []float64
-			dec := json.NewDecoder(os.Stdin)
-			if err := dec.Decode(&embedding); err != nil {
-				return fmt.Errorf("reading embedding from stdin: %w", err)
+			req := &pb.SearchRequest{
+				TopicIds: topicIDs,
+				TopK:     topK,
 			}
 
-			resp, err := pb.NewRetrievalServiceClient(conn).Search(authCtx(), &pb.SearchRequest{
-				TopicIds:       topicIDs,
-				QueryEmbedding: embedding,
-				TopK:           topK,
-			})
+			if queryText != "" {
+				req.QueryText = queryText
+			} else {
+				// Fall back to reading embedding from stdin as JSON array.
+				var embedding []float64
+				dec := json.NewDecoder(os.Stdin)
+				if err := dec.Decode(&embedding); err != nil {
+					return fmt.Errorf("provide --query or pipe an embedding JSON array to stdin: %w", err)
+				}
+				req.QueryEmbedding = embedding
+			}
+
+			resp, err := pb.NewRetrievalServiceClient(conn).Search(authCtx(), req)
 			if err != nil {
 				return err
 			}
@@ -443,5 +450,6 @@ func searchCmd() *cobra.Command {
 
 	cmd.Flags().StringSliceVar(&topicIDs, "topic-ids", nil, "topic IDs to search (empty = all accessible)")
 	cmd.Flags().Int32Var(&topK, "top-k", 10, "number of results")
+	cmd.Flags().StringVar(&queryText, "query", "", "text query (requires embedding provider on server)")
 	return cmd
 }
