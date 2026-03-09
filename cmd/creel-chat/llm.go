@@ -19,6 +19,9 @@ type ChatMessage struct {
 // LLM generates chat completions.
 type LLM interface {
 	Chat(ctx context.Context, messages []ChatMessage) (string, error)
+	// ChatStream sends a streaming request and returns a channel of tokens.
+	// The caller must consume the channel to completion.
+	ChatStream(ctx context.Context, messages []ChatMessage) (<-chan StreamToken, error)
 }
 
 func newLLM(provider, model string) (LLM, error) {
@@ -54,8 +57,8 @@ type anthropicLLM struct {
 	model  string
 }
 
-func (l *anthropicLLM) Chat(ctx context.Context, messages []ChatMessage) (string, error) {
-	// Anthropic requires system message separate from the messages array.
+// buildAnthropicRequest builds the HTTP request body and headers for an Anthropic API call.
+func (l *anthropicLLM) buildAnthropicRequest(messages []ChatMessage, stream bool) (map[string]any, []map[string]string) {
 	var system string
 	var apiMessages []map[string]string
 	for _, m := range messages {
@@ -77,6 +80,15 @@ func (l *anthropicLLM) Chat(ctx context.Context, messages []ChatMessage) (string
 	if system != "" {
 		reqBody["system"] = system
 	}
+	if stream {
+		reqBody["stream"] = true
+	}
+
+	return reqBody, apiMessages
+}
+
+func (l *anthropicLLM) Chat(ctx context.Context, messages []ChatMessage) (string, error) {
+	reqBody, _ := l.buildAnthropicRequest(messages, false)
 
 	body, err := json.Marshal(reqBody)
 	if err != nil {
@@ -119,13 +131,46 @@ func (l *anthropicLLM) Chat(ctx context.Context, messages []ChatMessage) (string
 	return "", fmt.Errorf("anthropic returned no text content")
 }
 
+func (l *anthropicLLM) ChatStream(ctx context.Context, messages []ChatMessage) (<-chan StreamToken, error) {
+	reqBody, _ := l.buildAnthropicRequest(messages, true)
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.anthropic.com/v1/messages", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", l.apiKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("calling Anthropic API: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		return nil, fmt.Errorf("anthropic API returned %d: %s", resp.StatusCode, b)
+	}
+
+	// The body is kept open; ParseAnthropicStream reads it in a goroutine.
+	// The goroutine closes implicitly when the body is drained.
+	return ParseAnthropicStream(resp.Body), nil
+}
+
 // openaiLLM calls the OpenAI Chat Completions API.
 type openaiLLM struct {
 	apiKey string
 	model  string
 }
 
-func (l *openaiLLM) Chat(ctx context.Context, messages []ChatMessage) (string, error) {
+// buildOpenAIMessages converts ChatMessages to the OpenAI API format.
+func buildOpenAIMessages(messages []ChatMessage) []map[string]string {
 	var apiMessages []map[string]string
 	for _, m := range messages {
 		apiMessages = append(apiMessages, map[string]string{
@@ -133,6 +178,11 @@ func (l *openaiLLM) Chat(ctx context.Context, messages []ChatMessage) (string, e
 			"content": m.Content,
 		})
 	}
+	return apiMessages
+}
+
+func (l *openaiLLM) Chat(ctx context.Context, messages []ChatMessage) (string, error) {
+	apiMessages := buildOpenAIMessages(messages)
 
 	body, err := json.Marshal(map[string]any{
 		"model":    l.model,
@@ -174,4 +224,37 @@ func (l *openaiLLM) Chat(ctx context.Context, messages []ChatMessage) (string, e
 		return "", fmt.Errorf("OpenAI returned no choices")
 	}
 	return result.Choices[0].Message.Content, nil
+}
+
+func (l *openaiLLM) ChatStream(ctx context.Context, messages []ChatMessage) (<-chan StreamToken, error) {
+	apiMessages := buildOpenAIMessages(messages)
+
+	body, err := json.Marshal(map[string]any{
+		"model":    l.model,
+		"messages": apiMessages,
+		"stream":   true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("marshalling request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.openai.com/v1/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+l.apiKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("calling OpenAI API: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		return nil, fmt.Errorf("OpenAI API returned %d: %s", resp.StatusCode, b)
+	}
+
+	return ParseOpenAIStream(resp.Body), nil
 }
