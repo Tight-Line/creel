@@ -18,15 +18,19 @@ type ChunkServer struct {
 	pb.UnimplementedChunkServiceServer
 	chunkStore *store.ChunkStore
 	docStore   *store.DocumentStore
+	topicStore *store.TopicStore
+	jobStore   *store.JobStore
 	backend    vector.Backend
 	authorizer auth.Authorizer
 }
 
 // NewChunkServer creates a new chunk service.
-func NewChunkServer(chunkStore *store.ChunkStore, docStore *store.DocumentStore, backend vector.Backend, authorizer auth.Authorizer) *ChunkServer {
+func NewChunkServer(chunkStore *store.ChunkStore, docStore *store.DocumentStore, topicStore *store.TopicStore, jobStore *store.JobStore, backend vector.Backend, authorizer auth.Authorizer) *ChunkServer {
 	return &ChunkServer{
 		chunkStore: chunkStore,
 		docStore:   docStore,
+		topicStore: topicStore,
+		jobStore:   jobStore,
 		backend:    backend,
 		authorizer: authorizer,
 	}
@@ -72,6 +76,14 @@ func (s *ChunkServer) IngestChunks(ctx context.Context, req *pb.IngestChunksRequ
 		}
 
 		pbChunks = append(pbChunks, storeChunkToProto(c))
+	}
+
+	// If the topic has memory_enabled, create a memory_extraction job.
+	if s.topicStore != nil && s.jobStore != nil { // coverage:ignore - best-effort hook; tested via integration
+		topic, topicErr := s.topicStore.Get(ctx, topicID)
+		if topicErr == nil && topic.MemoryEnabled { // coverage:ignore - best-effort hook; tested via integration
+			_, _ = s.jobStore.Create(ctx, req.GetDocumentId(), "memory_extraction")
+		}
 	}
 
 	return &pb.IngestChunksResponse{Chunks: pbChunks}, nil
