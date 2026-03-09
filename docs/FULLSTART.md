@@ -276,12 +276,12 @@ curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   "http://localhost:8080/v1/documents/$DOC_DIRECT/chunks" | jq '.chunks[] | {id, sequence, content: .content[:60]}'
 ```
 
-Save the chunk IDs for the compaction step later:
+Save the chunk IDs as a JSON array for the compaction step later:
 
 ```bash
-CHUNK_IDS=$(curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  "http://localhost:8080/v1/documents/$DOC_DIRECT/context?last_n=10" | jq -r '[.chunks[].id] | join(",")')
-echo "Chunk IDs: $CHUNK_IDS"
+CHUNK_IDS_JSON=$(curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
+  "http://localhost:8080/v1/documents/$DOC_DIRECT/context?last_n=10" | jq '[.chunks[].id]')
+echo "Chunk IDs: $CHUNK_IDS_JSON"
 ```
 
 ## 9. Per-principal memory
@@ -330,16 +330,13 @@ bin/creel-cli memory list --scope fishing --all
 Compaction replaces multiple chunks with a summary, preserving links.
 
 ```bash
-# Parse the chunk IDs from step 8
-IFS=',' read -ra CIDS <<< "$CHUNK_IDS"
-
 # Compact all three streamer chunks into a summary
-curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  -d '{
-    "document_id": "'"$DOC_DIRECT"'",
-    "chunk_ids": ["'"${CIDS[0]}"'", "'"${CIDS[1]}"'", "'"${CIDS[2]}"'"],
-    "summary_content": "Streamer fishing essentials: always strip-set, use downstream swing retrieves. Articulated patterns trigger chase responses; fish them on sinking lines. Color rule: dark flies on dark days, bright flies on bright days."
-  }' \
+echo "{
+  \"document_id\": \"$DOC_DIRECT\",
+  \"chunk_ids\": $CHUNK_IDS_JSON,
+  \"summary_content\": \"Streamer fishing essentials: always strip-set, use downstream swing retrieves. Articulated patterns trigger chase responses; fish them on sinking lines. Color rule: dark flies on dark days, bright flies on bright days.\"
+}" | curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
+  -d @- \
   "http://localhost:8080/v1/compact" | jq '{
     summary_id: .summaryChunk.id,
     compacted_count: .compactedCount,
