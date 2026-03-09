@@ -6,6 +6,8 @@ Get Creel running locally in under 5 minutes.
 
 - Go 1.26+
 - Docker (for PostgreSQL/pgvector)
+- `jq` (for parsing JSON responses)
+- An OpenAI API key (for embeddings, search, and chat)
 
 ## 1. Start PostgreSQL and the Creel server
 
@@ -33,13 +35,30 @@ source .env
 
 No need to generate keys or create a config file for local development.
 
-## 4. Create a topic
+## 4. Configure an embedding provider
+
+Register your OpenAI API key so the server can compute embeddings for search:
+
+```bash
+export OPENAI_API_KEY="<your OpenAI key>"
+
+bin/creel-cli config apikey create \
+  --name openai --provider openai --api-key "$OPENAI_API_KEY" --default
+
+APIKEY_ID=$(bin/creel-cli config apikey list | jq -r '.configs[0].id')
+
+bin/creel-cli config embedding create \
+  --name openai-embed --provider openai --model text-embedding-3-small \
+  --dimensions 1536 --apikey-config "$APIKEY_ID" --default
+```
+
+## 5. Create a topic
 
 ```bash
 bin/creel-cli topic create my-notes "My Notes"
 ```
 
-## 5. Upload a document and search
+## 6. Upload a document and search
 
 Upload a document to your topic:
 
@@ -59,18 +78,15 @@ Once processing completes, search for content:
 bin/creel-cli search --topic my-notes --query "action items from meeting" --top-k 5
 ```
 
-Note: search with `--query` requires an embedding provider to be configured on the server. See the [Fullstart](FULLSTART.md) guide for how to set up providers.
-
-## 6. Try creel-chat (optional)
+## 7. Try creel-chat (optional)
 
 For an interactive demo with LLM-powered conversation memory:
 
 ```bash
-export OPENAI_API_KEY="<your OpenAI key>"  # for LLM + embeddings
 bin/creel-chat
 ```
 
-OpenAI is the default provider for both chat (GPT-5.4) and embeddings (text-embedding-3-small). See [CREEL_CHAT.md](CREEL_CHAT.md) for Anthropic, Ollama, and other options.
+OpenAI is the default provider for both chat and embeddings. See [CREEL_CHAT.md](CREEL_CHAT.md) for Anthropic, Ollama, and other options.
 
 ## Next steps
 
