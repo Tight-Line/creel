@@ -62,6 +62,12 @@ message Topic {
   optional string llm_config_id = 8;
   optional string embedding_config_id = 9;
   optional string extraction_prompt_config_id = 10;
+  optional ChunkingStrategy chunking_strategy = 11;
+}
+
+message ChunkingStrategy {
+  int32 chunk_size = 1;
+  int32 chunk_overlap = 2;
 }
 
 message TopicGrant {

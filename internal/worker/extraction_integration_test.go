@@ -79,7 +79,7 @@ func TestExtractionWorker_Integration(t *testing.T) {
 	}
 
 	// Run extraction worker.
-	w := NewExtractionWorker(docStore)
+	w := NewExtractionWorker(docStore, jobStore)
 	if w.Type() != "extraction" {
 		t.Errorf("Type() = %q, want extraction", w.Type())
 	}
@@ -88,13 +88,13 @@ func TestExtractionWorker_Integration(t *testing.T) {
 		t.Fatalf("processing: %v", err)
 	}
 
-	// Verify document is now ready.
+	// Verify document is still processing (chunking job created, not yet complete).
 	updatedDoc, err := docStore.Get(ctx, doc.ID)
 	if err != nil {
 		t.Fatalf("getting document: %v", err)
 	}
-	if updatedDoc.Status != "ready" {
-		t.Errorf("Status = %q, want ready", updatedDoc.Status)
+	if updatedDoc.Status != "processing" {
+		t.Errorf("Status = %q, want processing", updatedDoc.Status)
 	}
 
 	// Verify extracted text.
@@ -104,6 +104,22 @@ func TestExtractionWorker_Integration(t *testing.T) {
 	}
 	if content.ExtractedText == "" {
 		t.Error("expected non-empty extracted text")
+	}
+
+	// Verify a chunking job was created.
+	jobs, err := jobStore.List(ctx, store.ListJobsOptions{DocumentID: doc.ID, Status: "queued"})
+	if err != nil {
+		t.Fatalf("listing jobs: %v", err)
+	}
+	found := false
+	for _, j := range jobs {
+		if j.JobType == "chunking" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected a queued chunking job to be created")
 	}
 }
 
@@ -136,7 +152,7 @@ func TestExtractionWorker_PlainText_Integration(t *testing.T) {
 		t.Fatalf("creating job: %v", err)
 	}
 
-	w := NewExtractionWorker(docStore)
+	w := NewExtractionWorker(docStore, jobStore)
 	if err := w.Process(ctx, job); err != nil {
 		t.Fatalf("processing: %v", err)
 	}
@@ -179,7 +195,7 @@ func TestExtractionWorker_UnsupportedType_Integration(t *testing.T) {
 		t.Fatalf("creating job: %v", err)
 	}
 
-	w := NewExtractionWorker(docStore)
+	w := NewExtractionWorker(docStore, jobStore)
 	err = w.Process(ctx, job)
 	if err == nil {
 		t.Fatal("expected error for unsupported content type")

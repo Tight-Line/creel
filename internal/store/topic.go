@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -18,6 +19,12 @@ func NewTopicStore(pool DBTX) *TopicStore {
 	return &TopicStore{pool: pool}
 }
 
+// ChunkingStrategy configures how documents in a topic are chunked.
+type ChunkingStrategy struct {
+	ChunkSize    int `json:"chunk_size"`
+	ChunkOverlap int `json:"chunk_overlap"`
+}
+
 // Topic represents a stored topic.
 type Topic struct {
 	ID                       string
@@ -30,6 +37,7 @@ type Topic struct {
 	LLMConfigID              *string
 	EmbeddingConfigID        *string
 	ExtractionPromptConfigID *string
+	ChunkingStrategy         *ChunkingStrategy
 }
 
 // TopicGrant represents a stored topic grant.
@@ -42,38 +50,52 @@ type TopicGrant struct {
 	CreatedAt  time.Time
 }
 
+// scanTopicChunkingStrategy scans the chunking_strategy JSONB column into a Topic.
+func scanTopicChunkingStrategy(t *Topic, data []byte) {
+	if data != nil {
+		var cs ChunkingStrategy
+		if err := json.Unmarshal(data, &cs); err == nil {
+			t.ChunkingStrategy = &cs
+		}
+	}
+}
+
 // Create inserts a new topic with optional config IDs.
 func (s *TopicStore) Create(ctx context.Context, slug, name, description, owner string, llmConfigID, embeddingConfigID, extractionPromptConfigID *string) (*Topic, error) {
 	var t Topic
+	var chunkingBytes []byte
 	err := s.pool.QueryRow(ctx,
 		`INSERT INTO topics (slug, name, description, owner, llm_config_id, embedding_config_id, extraction_prompt_config_id)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 RETURNING id, slug, name, description, owner, created_at, updated_at,
-		           llm_config_id, embedding_config_id, extraction_prompt_config_id`,
+		           llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy`,
 		slug, name, description, owner, llmConfigID, embeddingConfigID, extractionPromptConfigID,
 	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
-		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID)
+		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes)
 	if err != nil {
 		return nil, fmt.Errorf("inserting topic: %w", err)
 	}
+	scanTopicChunkingStrategy(&t, chunkingBytes)
 	return &t, nil
 }
 
 // Get retrieves a topic by ID.
 func (s *TopicStore) Get(ctx context.Context, id string) (*Topic, error) {
 	var t Topic
+	var chunkingBytes []byte
 	err := s.pool.QueryRow(ctx,
 		`SELECT id, slug, name, description, owner, created_at, updated_at,
-		        llm_config_id, embedding_config_id, extraction_prompt_config_id
+		        llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy
 		 FROM topics WHERE id = $1`, id,
 	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
-		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID)
+		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("topic not found")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("querying topic: %w", err)
 	}
+	scanTopicChunkingStrategy(&t, chunkingBytes)
 	return &t, nil
 }
 
@@ -86,12 +108,12 @@ func (s *TopicStore) ListForPrincipals(ctx context.Context, principals []string)
 	if principals == nil {
 		rows, err = s.pool.Query(ctx,
 			`SELECT id, slug, name, description, owner, created_at, updated_at,
-			        llm_config_id, embedding_config_id, extraction_prompt_config_id
+			        llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy
 			 FROM topics ORDER BY created_at`)
 	} else {
 		rows, err = s.pool.Query(ctx,
 			`SELECT DISTINCT t.id, t.slug, t.name, t.description, t.owner, t.created_at, t.updated_at,
-			        t.llm_config_id, t.embedding_config_id, t.extraction_prompt_config_id
+			        t.llm_config_id, t.embedding_config_id, t.extraction_prompt_config_id, t.chunking_strategy
 			 FROM topics t
 			 LEFT JOIN topic_grants g ON g.topic_id = t.id
 			 WHERE t.owner = ANY($1) OR g.principal = ANY($1)
@@ -105,10 +127,12 @@ func (s *TopicStore) ListForPrincipals(ctx context.Context, principals []string)
 	var topics []Topic
 	for rows.Next() {
 		var t Topic
+		var chunkingBytes []byte
 		if err := rows.Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
-			&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID); err != nil {
+			&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes); err != nil {
 			return nil, fmt.Errorf("scanning topic: %w", err)
 		}
+		scanTopicChunkingStrategy(&t, chunkingBytes)
 		topics = append(topics, t)
 	}
 	return topics, rows.Err()
@@ -117,6 +141,7 @@ func (s *TopicStore) ListForPrincipals(ctx context.Context, principals []string)
 // Update modifies a topic's name, description, and config bindings.
 func (s *TopicStore) Update(ctx context.Context, id, name, description string, llmConfigID, embeddingConfigID, extractionPromptConfigID *string) (*Topic, error) {
 	var t Topic
+	var chunkingBytes []byte
 	err := s.pool.QueryRow(ctx,
 		`UPDATE topics
 		 SET name = $2, description = $3,
@@ -126,16 +151,17 @@ func (s *TopicStore) Update(ctx context.Context, id, name, description string, l
 		     updated_at = now()
 		 WHERE id = $1
 		 RETURNING id, slug, name, description, owner, created_at, updated_at,
-		           llm_config_id, embedding_config_id, extraction_prompt_config_id`,
+		           llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy`,
 		id, name, description, llmConfigID, embeddingConfigID, extractionPromptConfigID,
 	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
-		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID)
+		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("topic not found")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("updating topic: %w", err)
 	}
+	scanTopicChunkingStrategy(&t, chunkingBytes)
 	return &t, nil
 }
 

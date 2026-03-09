@@ -2209,3 +2209,38 @@ func TestExtractionPromptConfigStore_GetDefault_OtherError(t *testing.T) {
 	_, err := s.GetDefault(ctx())
 	expectErr(t, err, "querying default extraction prompt config")
 }
+
+// ---------------------------------------------------------------------------
+// Topic: ChunkingStrategy tests
+// ---------------------------------------------------------------------------
+
+func TestScanTopicChunkingStrategy_ValidJSON(t *testing.T) {
+	topic := &Topic{}
+	data := []byte(`{"chunk_size":1024,"chunk_overlap":100}`)
+	scanTopicChunkingStrategy(topic, data)
+	if topic.ChunkingStrategy == nil {
+		t.Fatal("expected ChunkingStrategy to be set")
+	}
+	if topic.ChunkingStrategy.ChunkSize != 1024 {
+		t.Errorf("ChunkSize = %d, want 1024", topic.ChunkingStrategy.ChunkSize)
+	}
+	if topic.ChunkingStrategy.ChunkOverlap != 100 {
+		t.Errorf("ChunkOverlap = %d, want 100", topic.ChunkingStrategy.ChunkOverlap)
+	}
+}
+
+func TestScanTopicChunkingStrategy_NilData(t *testing.T) {
+	topic := &Topic{}
+	scanTopicChunkingStrategy(topic, nil)
+	if topic.ChunkingStrategy != nil {
+		t.Error("expected ChunkingStrategy to be nil for nil data")
+	}
+}
+
+func TestScanTopicChunkingStrategy_InvalidJSON(t *testing.T) {
+	topic := &Topic{}
+	scanTopicChunkingStrategy(topic, []byte("not json"))
+	if topic.ChunkingStrategy != nil {
+		t.Error("expected ChunkingStrategy to be nil for invalid JSON")
+	}
+}

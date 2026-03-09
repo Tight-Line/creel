@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Document processing pipeline now runs end-to-end: extraction, chunking, embedding. Uploaded documents are automatically split into chunks and embedded, becoming searchable without manual intervention.
+- Chunking worker splits extracted text into fixed-size chunks with configurable overlap (default: 2048 characters, 200 character overlap).
+- Embedding worker computes vector embeddings for document chunks and stores them in the vector backend. Documents are marked "ready" once all chunks are embedded.
+- Topics support a `chunking_strategy` field (JSONB) to customize chunk size and overlap per topic. NULL uses server defaults.
+- Pluggable `EmbeddingProvider` interface for computing embeddings. Ships with a deterministic stub provider for testing; real OpenAI/Ollama providers can be added later.
 - `UploadDocument` RPC for managed document ingestion. Upload a file directly or provide a `source_url` to fetch from. Creates the document with status `pending` and enqueues an extraction job automatically.
 - Document status tracking. Documents now have a `status` field (`pending`, `processing`, `ready`, `failed`) that reflects their processing state. Documents created via `CreateDocument` default to `ready`; uploads start as `pending`.
 - Extraction worker that processes uploaded documents. Supports `text/plain` (passthrough) and `text/html` (tag stripping with script/style removal). Unsupported content types fail gracefully and mark the document as `failed`.

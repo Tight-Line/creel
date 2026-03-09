@@ -15,11 +15,12 @@ import (
 // ExtractionWorker extracts text from uploaded document content.
 type ExtractionWorker struct {
 	docStore *store.DocumentStore
+	jobStore *store.JobStore
 }
 
 // NewExtractionWorker creates a new extraction worker.
-func NewExtractionWorker(docStore *store.DocumentStore) *ExtractionWorker {
-	return &ExtractionWorker{docStore: docStore}
+func NewExtractionWorker(docStore *store.DocumentStore, jobStore *store.JobStore) *ExtractionWorker {
+	return &ExtractionWorker{docStore: docStore, jobStore: jobStore}
 }
 
 // Type returns the job type this worker handles.
@@ -56,8 +57,13 @@ func (w *ExtractionWorker) Process(ctx context.Context, job *store.ProcessingJob
 		return fmt.Errorf("saving extracted text: %w", err)
 	}
 
-	if err := w.docStore.UpdateStatus(ctx, job.DocumentID, "ready"); err != nil {
-		return fmt.Errorf("setting document status to ready: %w", err)
+	// Create the next pipeline job: chunking.
+	if _, err := w.jobStore.Create(ctx, job.DocumentID, "chunking"); err != nil {
+		// coverage:ignore - requires DB failure after successful claim
+		if setErr := w.docStore.UpdateStatus(ctx, job.DocumentID, "failed"); setErr != nil {
+			return fmt.Errorf("setting document status to failed after job creation error: %w (original: %v)", setErr, err)
+		}
+		return fmt.Errorf("creating chunking job: %w", err)
 	}
 
 	return nil

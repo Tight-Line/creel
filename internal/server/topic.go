@@ -302,6 +302,12 @@ func storeTopicToProto(t *store.Topic) *pb.Topic {
 	if t.ExtractionPromptConfigID != nil {
 		p.ExtractionPromptConfigId = t.ExtractionPromptConfigID
 	}
+	if t.ChunkingStrategy != nil {
+		p.ChunkingStrategy = &pb.ChunkingStrategy{
+			ChunkSize:    int32(t.ChunkingStrategy.ChunkSize),
+			ChunkOverlap: int32(t.ChunkingStrategy.ChunkOverlap),
+		}
+	}
 	return p
 }
 
