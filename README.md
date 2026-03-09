@@ -54,6 +54,7 @@ See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.
 | Guide | Description |
 |-------|-------------|
 | [Quickstart](docs/QUICKSTART.md) | End-to-end setup in under 5 minutes |
+| [Fullstart](docs/FULLSTART.md) | Hands-on walkthrough of every feature |
 | [Concepts](docs/CONCEPTS.md) | Data model, auth, search modes, memory, document processing |
 | [API Reference](docs/API_REFERENCE.md) | All 63 RPCs with request/response details |
 | [Development](docs/DEVELOPMENT.md) | Dev environment, testing, adding RPCs and workers |

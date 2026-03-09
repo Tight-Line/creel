@@ -1,6 +1,6 @@
 # Fullstart
 
-A hands-on walkthrough that exercises every major Creel feature: document upload, processing pipeline, search with citations, per-principal memory, compaction, cross-topic RAG, and interactive chat.
+A hands-on walkthrough that exercises every major Creel feature: provider configuration, document upload, processing pipeline, search with citations, per-principal memory, compaction, cross-topic RAG, and interactive chat.
 
 The [Quickstart](QUICKSTART.md) gets you running in 5 minutes. This guide goes deeper; expect 20-30 minutes.
 
@@ -9,7 +9,7 @@ The [Quickstart](QUICKSTART.md) gets you running in 5 minutes. This guide goes d
 - Go 1.26+
 - Docker (for PostgreSQL/pgvector and the Creel server)
 - `curl` and `jq` (for REST API calls)
-- An OpenAI API key (for creel-chat and real embeddings; the CLI walkthrough works without one)
+- An OpenAI API key (required for real embeddings, search, and chat)
 
 ## 1. Start the stack and build tools
 
@@ -27,7 +27,46 @@ bin/creel-cli health
 
 You should see `"status":"ok"` and a version string.
 
-## 2. Create topics
+## 2. Configure providers
+
+Register your OpenAI API key so the server can compute real embeddings and power LLM-based memory extraction. Without this, the server falls back to stub providers that produce deterministic but non-semantic embeddings.
+
+```bash
+# Store your OpenAI API key (encrypted at rest)
+bin/creel-cli config apikey create \
+  --name "openai" \
+  --provider openai \
+  --api-key "$OPENAI_API_KEY" \
+  --default
+
+# Get the config ID for the next steps
+APIKEY_ID=$(bin/creel-cli config apikey list | jq -r '.configs[0].id')
+
+# Create a default embedding config
+bin/creel-cli config embedding create \
+  --name "openai-embed" \
+  --provider openai \
+  --model text-embedding-3-small \
+  --dimensions 1536 \
+  --apikey-config "$APIKEY_ID" \
+  --default
+
+# Create a default LLM config (used by memory extraction workers)
+bin/creel-cli config llm create \
+  --name "openai-llm" \
+  --provider openai \
+  --model gpt-4o \
+  --apikey-config "$APIKEY_ID" \
+  --default
+
+# Verify
+bin/creel-cli config embedding list
+bin/creel-cli config llm list
+```
+
+All document processing and search from this point forward uses real OpenAI embeddings.
+
+## 3. Create topics
 
 We will create two topics to demonstrate cross-topic search later.
 
@@ -36,7 +75,7 @@ bin/creel-cli topic create fly-fishing "Fly Fishing Knowledge Base"
 bin/creel-cli topic create ski-conditions "Ski Conditions Reports"
 ```
 
-Save the topic IDs from the output; you will need them. For convenience:
+Save the topic IDs:
 
 ```bash
 FISH_TOPIC=$(bin/creel-cli topic list | jq -r '.topics[] | select(.slug=="fly-fishing") | .id')
@@ -45,12 +84,11 @@ echo "Fish topic: $FISH_TOPIC"
 echo "Ski topic:  $SKI_TOPIC"
 ```
 
-## 3. Upload documents (managed pipeline)
+## 4. Upload documents (managed pipeline)
 
 Create some sample documents and upload them. The server handles extraction, chunking, and embedding automatically.
 
 ```bash
-# A plain text document with citation metadata
 cat > /tmp/hatch-chart.txt << 'EOF'
 Western Maine Hatch Chart - 2026 Season
 
@@ -138,12 +176,12 @@ bin/creel-cli upload \
   --content-type text/plain
 ```
 
-## 4. Monitor processing jobs
+## 5. Monitor processing jobs
 
 Watch the pipeline process your documents:
 
 ```bash
-# List all jobs
+# List all jobs for the fishing topic
 bin/creel-cli jobs list --topic "$FISH_TOPIC"
 
 # Check a specific job
@@ -153,7 +191,6 @@ bin/creel-cli jobs status <JOB_ID>
 The pipeline runs extraction, then chunking, then embedding. Each stage creates a follow-on job. Wait until all jobs show `completed`:
 
 ```bash
-# Poll until done (usually a few seconds with stub embeddings)
 bin/creel-cli jobs list --topic "$FISH_TOPIC" --status completed
 bin/creel-cli jobs list --topic "$SKI_TOPIC" --status completed
 ```
@@ -167,12 +204,18 @@ curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
 
 You should see `"status": "ready"` for both fishing documents.
 
-## 5. Search with citations
+## 6. Search with citations
 
-Search uses the REST API. With stub embeddings, results are based on deterministic hashing rather than real semantic similarity, but the full pipeline is exercised.
+Now that documents are indexed with real embeddings, search returns semantically relevant results. You can search using natural language via `query_text`; the server computes the embedding using the default embedding config you registered in step 2.
 
 ```bash
-# Search the fishing topic
+# Search the fishing topic using the CLI
+bin/creel-cli search --topic-ids "$FISH_TOPIC" --query "best flies for evening fishing" --top-k 5
+```
+
+Or via REST with full citation details:
+
+```bash
 curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   -d "{\"topic_ids\": [\"$FISH_TOPIC\"], \"query_text\": \"best flies for evening fishing\", \"top_k\": 5}" \
   "http://localhost:8080/v1/search" | jq '.results[] | {
@@ -196,7 +239,7 @@ curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   }'
 ```
 
-## 6. GetContext (temporal retrieval)
+## 7. GetContext (temporal retrieval)
 
 GetContext returns chunks from a single document in sequence order; this is the temporal layer.
 
@@ -213,7 +256,7 @@ curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   }'
 ```
 
-## 7. Direct chunk ingestion (power-user path)
+## 8. Direct chunk ingestion (power-user path)
 
 Instead of uploading a file, you can ingest pre-chunked content directly. This is the "power user" path for agents that handle their own chunking.
 
@@ -225,7 +268,7 @@ DOC_DIRECT=$(curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
 
 echo "Direct document: $DOC_DIRECT"
 
-# Ingest pre-chunked content (server computes stub embeddings)
+# Ingest pre-chunked content (server computes embeddings)
 curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   -d '{
     "document_id": "'"$DOC_DIRECT"'",
@@ -238,7 +281,7 @@ curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   "http://localhost:8080/v1/documents/$DOC_DIRECT/chunks" | jq '.chunks[] | {id, sequence, content: .content[:60]}'
 ```
 
-Save one of the chunk IDs for the compaction step later:
+Save the chunk IDs for the compaction step later:
 
 ```bash
 CHUNK_IDS=$(curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
@@ -246,7 +289,7 @@ CHUNK_IDS=$(curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
 echo "Chunk IDs: $CHUNK_IDS"
 ```
 
-## 8. Per-principal memory
+## 9. Per-principal memory
 
 Memory is scoped to your principal (the `dev` account in this case) and organized by named scopes.
 
@@ -287,12 +330,12 @@ bin/creel-cli memory delete "$WULFF_ID"
 bin/creel-cli memory list --scope fishing --all
 ```
 
-## 9. Compaction
+## 10. Compaction
 
 Compaction replaces multiple chunks with a summary, preserving links.
 
 ```bash
-# Parse the chunk IDs from step 7
+# Parse the chunk IDs from step 8
 IFS=',' read -ra CIDS <<< "$CHUNK_IDS"
 
 # Compact all three streamer chunks into a summary
@@ -340,7 +383,7 @@ curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
 # Should be 3
 ```
 
-## 10. Dashboard
+## 11. Dashboard
 
 The admin dashboard runs on port 3000. Open [http://localhost:3000](http://localhost:3000) and log in:
 
@@ -353,9 +396,9 @@ From the dashboard you can:
 - View system accounts and API keys
 - Manage server configuration (LLM, embedding, prompt configs)
 
-## 11. Interactive chat with creel-chat
+## 12. Interactive chat with creel-chat
 
-This step requires an OpenAI API key for real LLM responses and embeddings.
+creel-chat is a terminal REPL that uses Creel for RAG and memory, with streaming LLM responses.
 
 ```bash
 export OPENAI_API_KEY="your-key-here"
@@ -370,7 +413,7 @@ Try these interactions:
 > What flies should I use in June?
 ```
 
-The RAG layer should pull in hatch chart chunks with citations. The memory layer knows you prefer dry flies.
+The RAG layer pulls in hatch chart chunks with citations. The memory layer knows you prefer dry flies.
 
 ```
 > /remember I caught a 20-inch brook trout on a Green Drake last June
@@ -403,44 +446,6 @@ To resume this session:
 
 Use it to continue the conversation later with full session history.
 
-## 12. Config management
-
-Register real provider configs if you want server-side embeddings and LLM-powered memory extraction instead of stubs.
-
-```bash
-# Store an OpenAI API key
-bin/creel-cli config apikey create \
-  --name "openai-prod" \
-  --provider openai \
-  --api-key "$OPENAI_API_KEY" \
-  --default
-
-# The key is encrypted at rest with the server's encryption_key.
-# Verify it was stored (key value is redacted):
-bin/creel-cli config apikey list
-
-# Create an embedding config
-APIKEY_ID=$(bin/creel-cli config apikey list | jq -r '.configs[0].id')
-
-bin/creel-cli config embedding create \
-  --name "openai-embed" \
-  --provider openai \
-  --model text-embedding-3-small \
-  --dimensions 1536 \
-  --apikey-config "$APIKEY_ID" \
-  --default
-
-# Create an LLM config (for memory extraction workers)
-bin/creel-cli config llm create \
-  --name "openai-llm" \
-  --provider openai \
-  --model gpt-4o \
-  --apikey-config "$APIKEY_ID" \
-  --default
-```
-
-Once default configs are registered, the server uses them instead of stubs for new document processing and memory extraction. Existing documents are not re-processed; upload new ones to see real embeddings in action.
-
 ## Cleanup
 
 ```bash
@@ -452,17 +457,17 @@ rm -f /tmp/hatch-chart.txt /tmp/rangeley-report.html /tmp/ski-report.txt
 
 | Feature | Steps |
 |---------|-------|
-| Managed document upload | 3, 4 |
-| Processing pipeline (extraction, chunking, embedding) | 3, 4 |
-| Search with citations | 5 |
-| Temporal context retrieval | 6 |
-| Direct chunk ingestion | 7 |
-| Per-principal memory (CRUD, scopes, soft-delete) | 8 |
-| Compaction and uncompaction | 9 |
-| Admin dashboard | 10 |
-| Interactive chat with RAG + memory | 11 |
-| Cross-topic search | 5, 11 |
-| Config management (API keys, embedding, LLM) | 12 |
+| Provider configuration (API keys, embedding, LLM) | 2 |
+| Managed document upload | 4, 5 |
+| Processing pipeline (extraction, chunking, embedding) | 4, 5 |
+| Search with citations (`query_text`) | 6 |
+| Temporal context retrieval | 7 |
+| Direct chunk ingestion | 8 |
+| Per-principal memory (CRUD, scopes, soft-delete) | 9 |
+| Compaction and uncompaction | 10 |
+| Admin dashboard | 11 |
+| Interactive chat with RAG + memory | 12 |
+| Cross-topic search | 6, 12 |
 
 ## Next steps
 

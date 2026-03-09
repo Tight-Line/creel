@@ -149,10 +149,11 @@ func run() error {
 	chunkServer := server.NewChunkServer(chunkStore, docStore, topicStore, jobStore, vectorBackend, authorizer)
 	searcher := retrieval.NewSearcher(chunkStore, docStore, authorizer, vectorBackend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authorizer)
-	retrievalServer := server.NewRetrievalServer(searcher, contextFetcher)
+	singleEmbedder := &singleTextEmbedder{batch: embeddingProvider}
+	retrievalServer := server.NewRetrievalServer(searcher, contextFetcher, singleEmbedder)
 	configServer := server.NewConfigServer(apiKeyConfigStore, llmConfigStore, embeddingConfigStore, extractionPromptConfigStore)
 	jobServer := server.NewJobServer(jobStore, docStore, authorizer)
-	memoryServer := server.NewMemoryServer(memoryStore, vectorBackend, nil)
+	memoryServer := server.NewMemoryServer(memoryStore, vectorBackend, singleEmbedder)
 	pb.RegisterAdminServiceServer(srv.GRPCServer(), adminServer)
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), topicServer)
 	pb.RegisterDocumentServiceServer(srv.GRPCServer(), docServer)
@@ -223,4 +224,21 @@ func runRESTGateway(ctx context.Context, grpcPort, restPort int) error {
 		return fmt.Errorf("REST gateway: %w", err)
 	}
 	return nil
+}
+
+// singleTextEmbedder adapts a batch worker.EmbeddingProvider to the
+// server.EmbeddingProvider interface (single text -> single vector).
+type singleTextEmbedder struct {
+	batch worker.EmbeddingProvider
+}
+
+func (s *singleTextEmbedder) Embed(ctx context.Context, text string) ([]float64, error) {
+	vecs, err := s.batch.Embed(ctx, []string{text})
+	if err != nil {
+		return nil, err
+	}
+	if len(vecs) == 0 {
+		return nil, fmt.Errorf("embedding provider returned no vectors")
+	}
+	return vecs[0], nil
 }

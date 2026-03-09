@@ -59,7 +59,7 @@ Once processing completes, search for content:
 bin/creel-cli search --topic my-notes --query "action items from meeting" --top-k 5
 ```
 
-Note: search with `--query` requires an embedding provider to be configured. The dev config includes one by default.
+Note: search with `--query` requires an embedding provider to be configured on the server. See the [Fullstart](FULLSTART.md) guide for how to set up providers.
 
 ## 6. Try creel-chat (optional)
 
@@ -74,7 +74,8 @@ OpenAI is the default provider for both chat (GPT-5.4) and embeddings (text-embe
 
 ## Next steps
 
+- [Fullstart](FULLSTART.md): in-depth walkthrough of every feature (search, memory, compaction, chat)
 - [Concepts](CONCEPTS.md): covers document processing, memory, and citations
-- [API Reference](API_REFERENCE.md): all 28 RPCs
+- [API Reference](API_REFERENCE.md): all 63 RPCs
 - [Development](DEVELOPMENT.md): set up a dev environment
 - [Deployment](DEPLOYMENT.md): production deployment with Helm
