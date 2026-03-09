@@ -107,6 +107,8 @@ bin/creel-cli search --topic my-notes --query "what are the action items" --top-
 creel-chat calls OpenAI directly for embeddings and chat (separate from the server-side config). It uses the same `OPENAI_API_KEY` you exported in step 4:
 
 ```bash
+# --topic my-notes scopes RAG search to that topic.
+# --cross-topic would search all your topics instead.
 bin/creel-chat --topic my-notes
 ```
 
@@ -114,9 +116,13 @@ Ask it about your uploaded document:
 
 ```
 you> What are the blockers from the standup?
+assistant> The blockers from the standup are:
+
+- Staging database needs a `pgvector` extension upgrade before load tests
+- The OIDC provider sandbox is down; Sarah is waiting on IT
 ```
 
-See [CREEL_CHAT.md](CREEL_CHAT.md) for Anthropic, Ollama, and other options. The [Fullstart](FULLSTART.md) guide has a detailed walkthrough of RAG, memory, and cross-topic search with creel-chat.
+See [CREEL_CHAT.md](CREEL_CHAT.md) for Anthropic, Ollama, and other provider options. The [Fullstart](FULLSTART.md) guide walks through RAG, memory persistence across sessions, and cross-topic search with creel-chat.
 
 ## Next steps
 
