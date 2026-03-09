@@ -14,17 +14,10 @@ class AuthTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $_ENV['CREEL_DASHBOARD_USERNAME'] = 'testuser';
-        $_ENV['CREEL_DASHBOARD_PASSWORD'] = 'testpass';
-        $_SERVER['CREEL_DASHBOARD_USERNAME'] = 'testuser';
-        $_SERVER['CREEL_DASHBOARD_PASSWORD'] = 'testpass';
-    }
-
-    protected function tearDown(): void
-    {
-        unset($_ENV['CREEL_DASHBOARD_USERNAME'], $_ENV['CREEL_DASHBOARD_PASSWORD']);
-        unset($_SERVER['CREEL_DASHBOARD_USERNAME'], $_SERVER['CREEL_DASHBOARD_PASSWORD']);
-        parent::tearDown();
+        config([
+            'creel.dashboard_username' => 'testuser',
+            'creel.dashboard_password' => 'testpass',
+        ]);
     }
 
     public function test_login_page_renders(): void
