@@ -393,7 +393,47 @@ func searchCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			printJSON(resp)
+
+			// Build output with citation info when present.
+			type citationOutput struct {
+				URL         string `json:"url,omitempty"`
+				Author      string `json:"author,omitempty"`
+				PublishedAt string `json:"published_at,omitempty"`
+			}
+			type resultOutput struct {
+				ChunkID    string          `json:"chunk_id"`
+				DocumentID string          `json:"document_id"`
+				TopicID    string          `json:"topic_id"`
+				Score      float64         `json:"score"`
+				Content    string          `json:"content"`
+				Citation   *citationOutput `json:"citation,omitempty"`
+			}
+			var output []resultOutput
+			for _, r := range resp.GetResults() {
+				out := resultOutput{
+					DocumentID: r.GetDocumentId(),
+					TopicID:    r.GetTopicId(),
+					Score:      r.GetScore(),
+				}
+				if r.GetChunk() != nil {
+					out.ChunkID = r.GetChunk().GetId()
+					out.Content = r.GetChunk().GetContent()
+				}
+				if dc := r.GetDocumentCitation(); dc != nil {
+					c := &citationOutput{
+						URL:    dc.GetUrl(),
+						Author: dc.GetAuthor(),
+					}
+					if dc.GetPublishedAt() != nil {
+						c.PublishedAt = dc.GetPublishedAt().AsTime().Format("2006-01-02")
+					}
+					if c.URL != "" || c.Author != "" || c.PublishedAt != "" {
+						out.Citation = c
+					}
+				}
+				output = append(output, out)
+			}
+			printJSON(output)
 			return nil
 		},
 	}

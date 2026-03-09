@@ -316,19 +316,19 @@ func TestDocumentStore_Create_QueryRowError(t *testing.T) {
 		return &mockRow{err: errMock}
 	}}
 	s := NewDocumentStore(db)
-	_, err := s.Create(ctx(), "tid", "slug", "name", "note", nil)
+	_, err := s.Create(ctx(), "tid", "slug", "name", "note", nil, nil, nil, nil)
 	expectErr(t, err, "inserting document")
 }
 
 func TestDocumentStore_Create_BadMetadata(t *testing.T) {
 	s := NewDocumentStore(&mockDBTX{})
-	_, err := s.Create(ctx(), "tid", "slug", "name", "note", map[string]any{"bad": math.Inf(1)})
+	_, err := s.Create(ctx(), "tid", "slug", "name", "note", map[string]any{"bad": math.Inf(1)}, nil, nil, nil)
 	expectErr(t, err, "marshaling metadata")
 }
 
 func TestDocumentStore_Update_BadMetadata(t *testing.T) {
 	s := NewDocumentStore(&mockDBTX{})
-	_, err := s.Update(ctx(), "id", "name", "note", map[string]any{"bad": math.Inf(1)})
+	_, err := s.Update(ctx(), "id", "name", "note", map[string]any{"bad": math.Inf(1)}, nil, nil, nil)
 	expectErr(t, err, "marshaling metadata")
 }
 
@@ -382,7 +382,7 @@ func TestDocumentStore_Update_ErrNoRows(t *testing.T) {
 		return &mockRow{err: pgx.ErrNoRows}
 	}}
 	s := NewDocumentStore(db)
-	_, err := s.Update(ctx(), "id", "name", "note", nil)
+	_, err := s.Update(ctx(), "id", "name", "note", nil, nil, nil, nil)
 	expectErr(t, err, "document not found")
 }
 
@@ -391,7 +391,7 @@ func TestDocumentStore_Update_OtherError(t *testing.T) {
 		return &mockRow{err: errMock}
 	}}
 	s := NewDocumentStore(db)
-	_, err := s.Update(ctx(), "id", "name", "note", nil)
+	_, err := s.Update(ctx(), "id", "name", "note", nil, nil, nil, nil)
 	expectErr(t, err, "updating document")
 }
 
@@ -429,6 +429,44 @@ func TestDocumentStore_TopicIDForDocument_OtherError(t *testing.T) {
 	s := NewDocumentStore(db)
 	_, err := s.TopicIDForDocument(ctx(), "id")
 	expectErr(t, err, "querying document topic")
+}
+
+func TestDocumentStore_GetMultiple_EmptyIDs(t *testing.T) {
+	s := NewDocumentStore(&mockDBTX{})
+	result, err := s.GetMultiple(ctx(), nil)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if result != nil {
+		t.Fatalf("expected nil result, got %v", result)
+	}
+}
+
+func TestDocumentStore_GetMultiple_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewDocumentStore(db)
+	_, err := s.GetMultiple(ctx(), []string{"id1"})
+	expectErr(t, err, "querying documents")
+}
+
+func TestDocumentStore_GetMultiple_ScanError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{nextOnce: true, scanErr: errMock}, nil
+	}}
+	s := NewDocumentStore(db)
+	_, err := s.GetMultiple(ctx(), []string{"id1"})
+	expectErr(t, err, "scanning document")
+}
+
+func TestDocumentStore_GetMultiple_RowsErr(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{iterErr: errMock}, nil
+	}}
+	s := NewDocumentStore(db)
+	_, err := s.GetMultiple(ctx(), []string{"id1"})
+	expectErr(t, err, "mock error")
 }
 
 // ---------------------------------------------------------------------------

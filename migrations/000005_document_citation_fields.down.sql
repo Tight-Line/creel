@@ -1,0 +1,4 @@
+ALTER TABLE documents
+    DROP COLUMN IF EXISTS url,
+    DROP COLUMN IF EXISTS author,
+    DROP COLUMN IF EXISTS published_at;

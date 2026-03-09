@@ -33,12 +33,23 @@ message SearchRequest {
   repeated string exclude_document_ids = 8;
 }
 
+message DocumentCitation {
+  string id = 1;
+  string slug = 2;
+  string name = 3;
+  string url = 4;
+  string author = 5;
+  google.protobuf.Timestamp published_at = 6;
+  google.protobuf.Struct metadata = 7;
+}
+
 message SearchResult {
   Chunk chunk = 1;
   string document_id = 2;
   string topic_id = 3;
   double score = 4;
   Link via_link = 5;
+  DocumentCitation document_citation = 6;
 }
 
 message SearchResponse {

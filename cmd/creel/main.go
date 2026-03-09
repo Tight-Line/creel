@@ -117,7 +117,7 @@ func run() error {
 	topicServer := server.NewTopicServer(topicStore, authorizer, embeddingConfigStore)
 	docServer := server.NewDocumentServer(docStore, authorizer)
 	chunkServer := server.NewChunkServer(chunkStore, docStore, vectorBackend, authorizer)
-	searcher := retrieval.NewSearcher(chunkStore, authorizer, vectorBackend)
+	searcher := retrieval.NewSearcher(chunkStore, docStore, authorizer, vectorBackend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authorizer)
 	retrievalServer := server.NewRetrievalServer(searcher, contextFetcher)
 	configServer := server.NewConfigServer(apiKeyConfigStore, llmConfigStore, embeddingConfigStore, extractionPromptConfigStore)

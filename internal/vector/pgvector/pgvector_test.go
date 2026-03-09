@@ -222,7 +222,7 @@ func TestPgvectorConformance(t *testing.T) {
 	t.Cleanup(func() { _ = topicStore.Delete(ctx, topic.ID) })
 
 	docStore := store.NewDocumentStore(pool)
-	doc, err := docStore.Create(ctx, topic.ID, "conformance-doc", "Conformance Doc", "text", nil)
+	doc, err := docStore.Create(ctx, topic.ID, "conformance-doc", "Conformance Doc", "text", nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("creating document: %v", err)
 	}

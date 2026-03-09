@@ -92,7 +92,7 @@ func seedFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool, backend 
 
 		for di := 0; di < docsPerTopic; di++ {
 			docSlug := fmt.Sprintf("doc-%d-%d", ti, di)
-			doc, err := docStore.Create(ctx, topic.ID, docSlug, docSlug, "text", nil)
+			doc, err := docStore.Create(ctx, topic.ID, docSlug, docSlug, "text", nil, nil, nil, nil)
 			if err != nil {
 				t.Fatalf("creating document %s: %v", docSlug, err)
 			}
@@ -143,9 +143,10 @@ func TestSearchQueryCount(t *testing.T) {
 	// Set up the searcher with a query counter.
 	counter := dbtest.NewQueryCounter(pool)
 	countedChunkStore := store.NewChunkStore(counter)
+	countedDocStore := store.NewDocumentStore(counter)
 	countedGrantStore := store.NewGrantStore(counter)
 	authorizer := auth.NewGrantAuthorizer(countedGrantStore)
-	searcher := retrieval.NewSearcher(countedChunkStore, authorizer, vectorBackend)
+	searcher := retrieval.NewSearcher(countedChunkStore, countedDocStore, authorizer, vectorBackend)
 
 	// Search across all topics (no topic filter).
 	counter.Reset()
@@ -158,9 +159,10 @@ func TestSearchQueryCount(t *testing.T) {
 
 	// The batched path should use:
 	// 1 for AccessibleTopics (grants), 1 for ChunkIDsByTopics,
-	// 1 for GetMultiple, 1 for DocumentTopicIDs = 4 queries.
-	// Allow headroom to 6 but NOT anything proportional to result count.
-	const maxQueries = 6
+	// 1 for GetMultiple (chunks), 1 for DocumentTopicIDs,
+	// 1 for GetMultiple (documents) = 5 queries.
+	// Allow headroom to 7 but NOT anything proportional to result count.
+	const maxQueries = 7
 	if allCount > maxQueries {
 		t.Errorf("search (all topics) used %d queries (max %d); likely N+1 regression", allCount, maxQueries)
 	}
@@ -218,7 +220,7 @@ func TestNPlusOneDetection(t *testing.T) {
 	})
 
 	docStore := store.NewDocumentStore(pool)
-	doc, err := docStore.Create(ctx, topic.ID, "n1-doc", "N1 Doc", "text", nil)
+	doc, err := docStore.Create(ctx, topic.ID, "n1-doc", "N1 Doc", "text", nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("creating document: %v", err)
 	}

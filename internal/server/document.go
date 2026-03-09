@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -48,7 +49,22 @@ func (s *DocumentServer) CreateDocument(ctx context.Context, req *pb.CreateDocum
 		docType = "reference"
 	}
 
-	d, err := s.docStore.Create(ctx, req.GetTopicId(), req.GetSlug(), req.GetName(), docType, meta)
+	var url, author *string
+	if req.GetUrl() != "" {
+		u := req.GetUrl()
+		url = &u
+	}
+	if req.GetAuthor() != "" {
+		a := req.GetAuthor()
+		author = &a
+	}
+	var publishedAt *time.Time
+	if req.GetPublishedAt() != nil {
+		t := req.GetPublishedAt().AsTime()
+		publishedAt = &t
+	}
+
+	d, err := s.docStore.Create(ctx, req.GetTopicId(), req.GetSlug(), req.GetName(), docType, meta, url, author, publishedAt)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "creating document: %v", err)
 	}
@@ -123,7 +139,23 @@ func (s *DocumentServer) UpdateDocument(ctx context.Context, req *pb.UpdateDocum
 	}
 
 	meta := structToMap(req.GetMetadata())
-	d, err := s.docStore.Update(ctx, req.GetId(), req.GetName(), req.GetDocType(), meta)
+
+	var url, author *string
+	if req.GetUrl() != "" {
+		u := req.GetUrl()
+		url = &u
+	}
+	if req.GetAuthor() != "" {
+		a := req.GetAuthor()
+		author = &a
+	}
+	var publishedAt *time.Time
+	if req.GetPublishedAt() != nil {
+		t := req.GetPublishedAt().AsTime()
+		publishedAt = &t
+	}
+
+	d, err := s.docStore.Update(ctx, req.GetId(), req.GetName(), req.GetDocType(), meta, url, author, publishedAt)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "updating document: %v", err)
 	}
@@ -156,7 +188,7 @@ func (s *DocumentServer) DeleteDocument(ctx context.Context, req *pb.DeleteDocum
 }
 
 func storeDocToProto(d *store.Document) *pb.Document {
-	return &pb.Document{
+	doc := &pb.Document{
 		Id:        d.ID,
 		TopicId:   d.TopicID,
 		Slug:      d.Slug,
@@ -166,6 +198,38 @@ func storeDocToProto(d *store.Document) *pb.Document {
 		CreatedAt: timestamppb.New(d.CreatedAt),
 		UpdatedAt: timestamppb.New(d.UpdatedAt),
 	}
+	if d.URL != nil {
+		doc.Url = *d.URL
+	}
+	if d.Author != nil {
+		doc.Author = *d.Author
+	}
+	if d.PublishedAt != nil {
+		doc.PublishedAt = timestamppb.New(*d.PublishedAt)
+	}
+	return doc
+}
+
+func storeDocToCitation(d *store.Document) *pb.DocumentCitation {
+	if d == nil {
+		return nil
+	}
+	c := &pb.DocumentCitation{
+		Id:       d.ID,
+		Slug:     d.Slug,
+		Name:     d.Name,
+		Metadata: mapToStruct(d.Metadata),
+	}
+	if d.URL != nil {
+		c.Url = *d.URL
+	}
+	if d.Author != nil {
+		c.Author = *d.Author
+	}
+	if d.PublishedAt != nil {
+		c.PublishedAt = timestamppb.New(*d.PublishedAt)
+	}
+	return c
 }
 
 func structToMap(s *structpb.Struct) map[string]any {
