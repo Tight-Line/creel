@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,6 +22,7 @@ import (
 	"github.com/Tight-Line/creel/internal/server"
 	"github.com/Tight-Line/creel/internal/store"
 	"github.com/Tight-Line/creel/internal/vector/pgvector"
+	"github.com/Tight-Line/creel/internal/worker"
 )
 
 // version is set at build time via -ldflags.
@@ -111,6 +113,10 @@ func run() error {
 	embeddingConfigStore := store.NewEmbeddingConfigStore(pool)
 	extractionPromptConfigStore := store.NewExtractionPromptConfigStore(pool)
 
+	// Create job store and worker pool.
+	jobStore := store.NewJobStore(pool)
+	workerPool := worker.NewPool(jobStore, cfg.Workers.Concurrency, cfg.Workers.PollInterval, slog.Default())
+
 	// Create and wire server.
 	srv := server.New(cfg.Server.GRPCPort, apiKeyValidator, oidcValidator)
 	adminServer := server.NewAdminServer(pool, accountStore, version)
@@ -121,12 +127,14 @@ func run() error {
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authorizer)
 	retrievalServer := server.NewRetrievalServer(searcher, contextFetcher)
 	configServer := server.NewConfigServer(apiKeyConfigStore, llmConfigStore, embeddingConfigStore, extractionPromptConfigStore)
+	jobServer := server.NewJobServer(jobStore, docStore, authorizer)
 	pb.RegisterAdminServiceServer(srv.GRPCServer(), adminServer)
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), topicServer)
 	pb.RegisterDocumentServiceServer(srv.GRPCServer(), docServer)
 	pb.RegisterChunkServiceServer(srv.GRPCServer(), chunkServer)
 	pb.RegisterRetrievalServiceServer(srv.GRPCServer(), retrievalServer)
 	pb.RegisterConfigServiceServer(srv.GRPCServer(), configServer)
+	pb.RegisterJobServiceServer(srv.GRPCServer(), jobServer)
 
 	// Handle shutdown signals.
 	sigCh := make(chan os.Signal, 1)
@@ -144,12 +152,17 @@ func run() error {
 		errCh <- runRESTGateway(ctx, cfg.Server.GRPCPort, cfg.Server.RESTPort)
 	}()
 
+	// Start worker pool.
+	workerPool.Start(ctx)
+
 	select {
 	case sig := <-sigCh:
 		fmt.Printf("\ncreel: received %v, shutting down...\n", sig)
+		workerPool.Stop()
 		srv.GracefulStop()
 		return nil
 	case err := <-errCh:
+		workerPool.Stop()
 		return err
 	}
 }
@@ -170,6 +183,7 @@ func runRESTGateway(ctx context.Context, grpcPort, restPort int) error {
 		pb.RegisterLinkServiceHandlerFromEndpoint,
 		pb.RegisterCompactionServiceHandlerFromEndpoint,
 		pb.RegisterConfigServiceHandlerFromEndpoint,
+		pb.RegisterJobServiceHandlerFromEndpoint,
 	}
 	for _, h := range handlers {
 		if err := h(ctx, mux, endpoint, opts); err != nil {

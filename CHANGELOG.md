@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Background job infrastructure for document processing pipelines. Jobs track status (queued, running, completed, failed) with progress and error details. No worker types are registered yet; this lays the groundwork for future extraction, chunking, and embedding workers.
+- New `JobService` API with `GetJob` and `ListJobs` RPCs. Jobs can be filtered by topic, document, or status. Permission checks ensure you can only see jobs for topics you have read access to.
+- CLI commands `creel-cli jobs list` and `creel-cli jobs status <id>` for monitoring processing jobs.
+- Worker pool configuration via `workers.concurrency` and `workers.poll_interval` settings (defaults: 4 workers, 5s poll interval).
 - Documents now support optional citation fields: `url`, `author`, and `published_at`. These can be set when creating or updating a document.
 - Search results include a `document_citation` with the source document's name, slug, URL, author, and publication date, making it easy to attribute results to their origin.
 - Dashboard shows document citation fields (URL, author, published date) and allows editing them. Topics list now links to each topic's documents.

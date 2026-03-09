@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLoadFromYAML(t *testing.T) {
@@ -78,6 +79,12 @@ postgres:
 	}
 	if cfg.Postgres.SSLMode != "disable" {
 		t.Errorf("Postgres.SSLMode = %q, want default disable", cfg.Postgres.SSLMode)
+	}
+	if cfg.Workers.Concurrency != 4 {
+		t.Errorf("Workers.Concurrency = %d, want default 4", cfg.Workers.Concurrency)
+	}
+	if cfg.Workers.PollInterval != 5*time.Second {
+		t.Errorf("Workers.PollInterval = %v, want default 5s", cfg.Workers.PollInterval)
 	}
 }
 
@@ -462,6 +469,69 @@ encryption_key: "ghijklmnopqrstuv0123456789abcdef0123456789abcdef0123456789abcde
 	_, err := Load(path)
 	if err == nil {
 		t.Error("expected validation error for invalid hex encryption key")
+	}
+}
+
+func TestLoadDefaults_Workers(t *testing.T) {
+	path := writeTemp(t, `
+postgres:
+  host: localhost
+  user: creel
+  name: creel
+`)
+	t.Setenv("CREEL_WORKERS_CONCURRENCY", "")
+	t.Setenv("CREEL_WORKERS_POLL_INTERVAL", "")
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Workers.Concurrency != 4 {
+		t.Errorf("Workers.Concurrency = %d, want default 4", cfg.Workers.Concurrency)
+	}
+	if cfg.Workers.PollInterval != 5*time.Second {
+		t.Errorf("Workers.PollInterval = %v, want default 5s", cfg.Workers.PollInterval)
+	}
+}
+
+func TestLoadEnvOverrides_Workers(t *testing.T) {
+	path := writeTemp(t, `
+postgres:
+  host: localhost
+  user: creel
+  name: creel
+`)
+	t.Setenv("CREEL_WORKERS_CONCURRENCY", "8")
+	t.Setenv("CREEL_WORKERS_POLL_INTERVAL", "10s")
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Workers.Concurrency != 8 {
+		t.Errorf("Workers.Concurrency = %d, want 8", cfg.Workers.Concurrency)
+	}
+	if cfg.Workers.PollInterval != 10*time.Second {
+		t.Errorf("Workers.PollInterval = %v, want 10s", cfg.Workers.PollInterval)
+	}
+}
+
+func TestLoadEnvOverrides_Duration_Invalid(t *testing.T) {
+	path := writeTemp(t, `
+postgres:
+  host: localhost
+  user: creel
+  name: creel
+`)
+	t.Setenv("CREEL_WORKERS_POLL_INTERVAL", "not-a-duration")
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	// Invalid duration should be ignored; defaults should apply.
+	if cfg.Workers.PollInterval != 5*time.Second {
+		t.Errorf("Workers.PollInterval = %v, want default 5s", cfg.Workers.PollInterval)
 	}
 }
 
