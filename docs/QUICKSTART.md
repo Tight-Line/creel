@@ -52,18 +52,40 @@ bin/creel-cli config embedding create \
   --dimensions 1536 --apikey-config "$APIKEY_ID" --default
 ```
 
-## 5. Create a topic
+## 5. Create a topic and upload a document
 
 ```bash
 bin/creel-cli topic create my-notes "My Notes"
 ```
 
-## 6. Upload a document and search
-
-Upload a document to your topic:
+Create a sample document and upload it:
 
 ```bash
-bin/creel-cli upload --topic my-notes --file notes.txt --name "Meeting Notes" --author "Nick"
+cat > /tmp/sample-notes.txt << 'EOF'
+Team standup notes - March 2026
+
+Sprint goals: finalize the v2 API migration and ship the new dashboard.
+
+Action items:
+- Sarah: update the authentication flow to support OIDC by Friday
+- James: run load tests against the staging cluster; target 500 req/s
+- Priya: draft the migration guide for existing API consumers
+
+Decisions:
+- We will deprecate the v1 endpoints on June 1 with a 90-day sunset notice
+- The new rate limiter will default to 100 req/min per API key
+- Dashboard will ship behind a feature flag for the first two weeks
+
+Blockers:
+- Staging database needs a pgvector extension upgrade before load tests
+- The OIDC provider sandbox is down; Sarah is waiting on IT
+EOF
+
+bin/creel-cli upload \
+  --topic my-notes \
+  --file /tmp/sample-notes.txt \
+  --name "Team Standup Notes" \
+  --author "Nick"
 ```
 
 Creel processes the document asynchronously. Check the job status:
@@ -72,21 +94,29 @@ Creel processes the document asynchronously. Check the job status:
 bin/creel-cli jobs list --topic my-notes
 ```
 
-Once processing completes, search for content:
+## 6. Search
+
+Once all jobs show `completed`, search for content:
 
 ```bash
-bin/creel-cli search --topic my-notes --query "action items from meeting" --top-k 5
+bin/creel-cli search --topic my-notes --query "what are the action items" --top-k 5
 ```
 
 ## 7. Try creel-chat (optional)
 
-For an interactive demo with LLM-powered conversation memory:
+creel-chat calls OpenAI directly for embeddings and chat (separate from the server-side config). It uses the same `OPENAI_API_KEY` you exported in step 4:
 
 ```bash
-bin/creel-chat
+bin/creel-chat --topic my-notes
 ```
 
-OpenAI is the default provider for both chat and embeddings. See [CREEL_CHAT.md](CREEL_CHAT.md) for Anthropic, Ollama, and other options.
+Ask it about your uploaded document:
+
+```
+you> What are the blockers from the standup?
+```
+
+See [CREEL_CHAT.md](CREEL_CHAT.md) for Anthropic, Ollama, and other options. The [Fullstart](FULLSTART.md) guide has a detailed walkthrough of RAG, memory, and cross-topic search with creel-chat.
 
 ## Next steps
 

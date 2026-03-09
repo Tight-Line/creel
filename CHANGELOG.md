@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Topic owners now appear in `AccessibleTopics` results automatically. Previously, searching your own topics required an explicit grant; now ownership implies access.
+- Content type auto-detection in the extraction worker. Uploads without an explicit content type use `http.DetectContentType` to infer the type from raw bytes.
+- `query_text` support in the Search RPC. The server computes the embedding using the default embedding config, so clients no longer need to call the embedding API directly.
+- CLI: `document list`, `document get`, and `document delete` commands.
+- CLI: topic and document slugs are resolved to UUIDs automatically wherever an ID is expected.
+- CLI: `--query` flag on the `search` command for text-based search via the server.
+
+### Changed
+
+- CLI: `search --topic-ids` renamed to `search --topic` for consistency. Accepts comma-separated values or repeated flags.
+- creel-chat no longer creates a self-grant when creating or joining a topic (no longer needed now that `AccessibleTopics` includes owned topics).
+
 ## [0.2.0] - 2026-03-09
 
 ### Added

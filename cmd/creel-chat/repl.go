@@ -27,14 +27,6 @@ func ensureTopic(ctx context.Context, conn *grpc.ClientConn, slug string) (strin
 
 	for _, t := range resp.GetTopics() {
 		if t.GetSlug() == slug {
-			// Ensure we have a grant (idempotent; GrantAccess upserts).
-			if _, err := client.GrantAccess(ctx, &pb.GrantAccessRequest{
-				TopicId:    t.GetId(),
-				Principal:  t.GetOwner(),
-				Permission: pb.Permission_PERMISSION_ADMIN,
-			}); err != nil {
-				return "", fmt.Errorf("ensuring self access: %w", err)
-			}
 			return t.GetId(), nil
 		}
 	}
@@ -45,16 +37,6 @@ func ensureTopic(ctx context.Context, conn *grpc.ClientConn, slug string) (strin
 	})
 	if err != nil {
 		return "", fmt.Errorf("creating topic: %w", err)
-	}
-
-	// Grant ourselves admin so AccessibleTopics includes this topic in searches.
-	// (AccessibleTopics only checks topic_grants, not ownership.)
-	if _, err := client.GrantAccess(ctx, &pb.GrantAccessRequest{
-		TopicId:    topic.GetId(),
-		Principal:  topic.GetOwner(),
-		Permission: pb.Permission_PERMISSION_ADMIN,
-	}); err != nil {
-		return "", fmt.Errorf("granting self access: %w", err)
 	}
 
 	return topic.GetId(), nil
