@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Simplified dashboard startup: removed all `artisan` caching commands (`config:cache`, `route:cache`, `view:cache`). The startup script now just generates `.env` from container env vars and launches supervisord. Caching was causing NULL values because phpdotenv's repository isn't populated when `config:cache` runs inside the container.
+- Default gRPC endpoint changed from `localhost:8443` to `127.0.0.1:8443` in creel-chat, creel-cli, docs, and `.env`. Avoids 20-second connection delays on dual-stack systems where `localhost` resolves to `::1` (IPv6) first.
+
 ## [0.1.8] - 2026-03-09
 
 ### Fixed
 
-- Dashboard startup in Docker/Kubernetes: Laravel's `env()` reads from `.env` via phpdotenv, not from system environment variables. The startup script now generates `.env` from the container environment before running `config:cache`.
+- Dashboard startup in Docker/Kubernetes: Laravel's `env()` reads from `.env` via phpdotenv, not from system environment variables. The startup script generates `.env` from the container environment at boot.
 
 ## [0.1.7] - 2026-03-09
 
