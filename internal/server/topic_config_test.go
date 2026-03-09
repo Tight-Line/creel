@@ -327,3 +327,37 @@ func TestTopicServer_StoreTopicToProto_AllConfigIDs(t *testing.T) {
 		t.Errorf("ExtractionPromptConfigId = %q, want prompt-1", p.GetExtractionPromptConfigId())
 	}
 }
+
+func TestStoreTopicToProto_ChunkingStrategy(t *testing.T) {
+	topic := &store.Topic{
+		ID:   "t2",
+		Slug: "chunked",
+		Name: "Chunked Topic",
+		ChunkingStrategy: &store.ChunkingStrategy{
+			ChunkSize:    1024,
+			ChunkOverlap: 100,
+		},
+	}
+	p := storeTopicToProto(topic)
+	if p.GetChunkingStrategy() == nil {
+		t.Fatal("expected ChunkingStrategy to be set")
+	}
+	if p.GetChunkingStrategy().GetChunkSize() != 1024 {
+		t.Errorf("ChunkSize = %d, want 1024", p.GetChunkingStrategy().GetChunkSize())
+	}
+	if p.GetChunkingStrategy().GetChunkOverlap() != 100 {
+		t.Errorf("ChunkOverlap = %d, want 100", p.GetChunkingStrategy().GetChunkOverlap())
+	}
+}
+
+func TestStoreTopicToProto_NilChunkingStrategy(t *testing.T) {
+	topic := &store.Topic{
+		ID:   "t3",
+		Slug: "no-chunking",
+		Name: "No Chunking",
+	}
+	p := storeTopicToProto(topic)
+	if p.GetChunkingStrategy() != nil {
+		t.Error("expected ChunkingStrategy to be nil")
+	}
+}

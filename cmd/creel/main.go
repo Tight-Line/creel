@@ -118,10 +118,18 @@ func run() error {
 	jobStore := store.NewJobStore(pool)
 	workerPool := worker.NewPool(jobStore, cfg.Workers.Concurrency, cfg.Workers.PollInterval, slog.Default())
 
-	// Create fetcher and register extraction worker.
+	// Create fetcher and register workers.
 	httpFetcher := fetch.NewHTTPFetcher()
-	extractionWorker := worker.NewExtractionWorker(docStore)
+	extractionWorker := worker.NewExtractionWorker(docStore, jobStore)
 	workerPool.Register(extractionWorker)
+
+	// Create and register chunking and embedding workers.
+	chunkingWorker := worker.NewChunkingWorker(docStore, chunkStore, jobStore, topicStore)
+	workerPool.Register(chunkingWorker)
+
+	embeddingProvider := worker.NewStubEmbeddingProvider(vectorBackend.EmbeddingDimension())
+	embeddingWorker := worker.NewEmbeddingWorker(docStore, chunkStore, topicStore, jobStore, vectorBackend, embeddingProvider)
+	workerPool.Register(embeddingWorker)
 
 	// Create and wire server.
 	srv := server.New(cfg.Server.GRPCPort, apiKeyValidator, oidcValidator)
