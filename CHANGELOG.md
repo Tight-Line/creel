@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-03-09
+
 ### Added
 
 - Auto-generated secrets for bootstrap API key, Laravel APP_KEY, dashboard password, and PostgreSQL password. All stored in a single Kubernetes Secret; preserved across upgrades via `lookup`. Zero required values when `postgresql.install=true` and ingress is disabled.
