@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Auto-generated secrets for bootstrap API key, Laravel APP_KEY, dashboard password, and PostgreSQL password. All stored in a single Kubernetes Secret; preserved across upgrades via `lookup`. Zero required values when `postgresql.install=true` and ingress is disabled.
+- `NOTES.txt` output after `helm install` showing retrieval commands for each auto-generated secret.
+- Init container ordering: creel Deployment waits for PostgreSQL readiness and completed migrations before starting. Dashboard waits for creel REST API. Migration Job waits for PostgreSQL when `postgresql.install=true`.
+
+### Changed
+
+- Migration Job hook changed from `pre-install,pre-upgrade` to `post-install,pre-upgrade` so PostgreSQL StatefulSet exists before migrations run on first install.
+- `creel.yaml` config file moved from ConfigMap to Secret, making the Secret the single source of truth for all sensitive values.
+- All container env vars for secrets now use `secretKeyRef` instead of inline values.
+- Creel readiness and liveness probes switched from gRPC to HTTP (`/v1/health` on the REST port) because the server does not implement `grpc.health.v1.Health`.
+- Dashboard config caching moved from Dockerfile build time to runtime startup script, fixing `MissingAppKeyException` when `APP_KEY` is injected via env var.
+- Migration Job hook-delete-policy now includes `hook-failed` so failed Jobs are cleaned up automatically.
+
 ## [0.1.6] - 2026-03-08
 
 ### Added
