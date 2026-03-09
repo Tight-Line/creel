@@ -1,7 +1,10 @@
 // Package config handles loading and validating Creel server configuration.
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // Config is the top-level server configuration.
 type Config struct {
@@ -13,6 +16,12 @@ type Config struct {
 	Links         LinksConfig         `yaml:"links"`
 	Compaction    CompactionConfig    `yaml:"compaction"`
 	EncryptionKey string              `yaml:"encryption_key"`
+	Workers       WorkersConfig       `yaml:"workers"`
+}
+
+type WorkersConfig struct {
+	Concurrency  int           `yaml:"concurrency"`
+	PollInterval time.Duration `yaml:"poll_interval"`
 }
 
 type ServerConfig struct {

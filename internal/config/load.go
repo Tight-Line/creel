@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -60,6 +61,12 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.Postgres.SSLMode == "" {
 		cfg.Postgres.SSLMode = "disable"
+	}
+	if cfg.Workers.Concurrency == 0 {
+		cfg.Workers.Concurrency = 4
+	}
+	if cfg.Workers.PollInterval == 0 {
+		cfg.Workers.PollInterval = 5 * time.Second
 	}
 }
 
@@ -130,6 +137,14 @@ func applyEnvToStruct(v reflect.Value, prefix string) {
 
 		val, ok := os.LookupEnv(envKey)
 		if !ok {
+			continue
+		}
+
+		// Handle time.Duration specially (underlying kind is int64).
+		if fv.Type() == reflect.TypeOf(time.Duration(0)) {
+			if d, err := time.ParseDuration(val); err == nil {
+				fv.SetInt(int64(d))
+			}
 			continue
 		}
 

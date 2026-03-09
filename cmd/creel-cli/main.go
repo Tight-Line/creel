@@ -37,6 +37,7 @@ func main() {
 	root.AddCommand(topicCmd())
 	root.AddCommand(configCmd())
 	root.AddCommand(searchCmd())
+	root.AddCommand(jobsCmd())
 
 	if err := root.Execute(); err != nil {
 		os.Exit(1)

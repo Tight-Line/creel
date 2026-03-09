@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package creel.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+service JobService {
+  rpc GetJob(GetJobRequest) returns (ProcessingJob) {
+    option (google.api.http) = {
+      get: "/v1/jobs/{id}"
+    };
+  }
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
+    option (google.api.http) = {
+      get: "/v1/jobs"
+    };
+  }
+}
+
+message ProcessingJob {
+  string id = 1;
+  string document_id = 2;
+  string job_type = 3;
+  string status = 4;
+  google.protobuf.Struct progress = 5;
+  string error = 6;
+  google.protobuf.Timestamp started_at = 7;
+  google.protobuf.Timestamp completed_at = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message GetJobRequest {
+  string id = 1;
+}
+
+message ListJobsRequest {
+  string topic_id = 1;
+  string document_id = 2;
+  string status = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListJobsResponse {
+  repeated ProcessingJob jobs = 1;
+  string next_page_token = 2;
+}
