@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-03-09
+
 ### Fixed
 
 - Increased dashboard readiness probe `initialDelaySeconds` from 5 to 15 and liveness from 10 to 30. The startup script now runs `config:cache`, `route:cache`, and `view:cache` before launching supervisord, which needs more time before the first probe.
