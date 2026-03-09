@@ -8,7 +8,7 @@
 
 Self-hosted memory-as-a-service for AI agents.
 
-Creel provides topic-scoped memory with principal-based RBAC, Zettelkasten-style chunk-to-chunk linking across topic boundaries, and dual-mode retrieval (semantic search + temporal context). It runs in your infrastructure via Helm chart.
+Creel provides topic-scoped memory with principal-based RBAC, server-side document processing, per-principal memory (Mem0-style), and dual-mode retrieval (semantic search with citations + temporal context). Upload documents and Creel handles extraction, chunking, and embedding automatically. It runs in your infrastructure via Helm chart.
 
 ## Quick start
 
@@ -22,36 +22,48 @@ make build
 # Source the dev environment (sets CREEL_ENDPOINT and CREEL_API_KEY)
 source .env
 
-# Create a topic
-bin/creel-cli topic create my-notes "My Notes"
+# Create a topic and upload a document
+bin/creel-cli topic create --slug my-notes --name "My Notes"
+bin/creel-cli upload --topic my-notes --file notes.pdf --name "Meeting Notes"
+
+# Check processing status
+bin/creel-cli jobs list --topic my-notes
+
+# Search (once processing completes)
+bin/creel-cli search --topic my-notes --query "action items" --top-k 5
 ```
 
 See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.
 
 ## Key features
 
-- **Topic > Document > Chunk** hierarchy with RBAC
-- **Cross-topic linking** with permission-gated traversal
+- **Upload and forget**: upload PDFs, HTML, or plain text; Creel extracts, chunks, and embeds in the background
+- **Document citations**: search results include document metadata (title, author, URL, date) for proper attribution
+- **Per-principal memory**: automatic fact extraction from conversations with Mem0-style conflict resolution (ADD/UPDATE/DELETE/NOOP)
+- **Topic > Document > Chunk** hierarchy with RBAC and cross-topic linking
 - **Dual-mode retrieval**: RAG (semantic search) and context (temporal ordering)
-- **Client-driven compaction** with link preservation
+- **Server-driven compaction** with link preservation
 - **Pluggable vector backends**: pgvector (reference), OpenAI, Qdrant, Weaviate
-- **28 gRPC RPCs** across 7 services
+- **63 gRPC/REST RPCs** across 10 services
+- **Two ingestion paths**: managed (upload and forget) and direct (pre-chunked, pre-embedded) for power users
+- **Admin dashboard**: Laravel-based web UI for config, topic, and system account management
+- **creel-chat**: interactive demo agent with streaming, memory, cross-topic RAG, and citation display
 
 ## Documentation
 
 | Guide | Description |
 |-------|-------------|
 | [Quickstart](docs/QUICKSTART.md) | End-to-end setup in under 5 minutes |
-| [Concepts](docs/CONCEPTS.md) | Data model, auth, search modes, linking, compaction |
-| [API Reference](docs/API_REFERENCE.md) | All 28 RPCs with request/response details |
-| [Development](docs/DEVELOPMENT.md) | Dev environment, testing, adding new RPCs |
+| [Concepts](docs/CONCEPTS.md) | Data model, auth, search modes, memory, document processing |
+| [API Reference](docs/API_REFERENCE.md) | All 63 RPCs with request/response details |
+| [Development](docs/DEVELOPMENT.md) | Dev environment, testing, adding RPCs and workers |
 | [Deployment](docs/DEPLOYMENT.md) | Helm chart, configuration, OIDC setup |
 | [creel-chat](docs/CREEL_CHAT.md) | Interactive demo agent with conversation memory |
 | [Architecture](docs/ARCHITECTURE.md) | Full design document and roadmap |
 
 ## Status
 
-Early development (v0.1.0). Phase 1 is complete; see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for release history.
+Active development (v0.1.x). Phases 1-5 are complete; Phases 6-9 (integration layers, linking, compaction, additional backends) are next. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
