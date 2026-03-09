@@ -1,6 +1,6 @@
 # Fullstart
 
-A hands-on walkthrough that exercises every major Creel feature: provider configuration, document upload, processing pipeline, search with citations, per-principal memory, compaction, cross-topic RAG, and interactive chat.
+A hands-on walkthrough that exercises every major Creel feature: provider configuration, document upload, processing pipeline, search with citations, per-principal memory, cross-topic RAG, and interactive chat.
 
 The [Quickstart](QUICKSTART.md) gets you running in 5 minutes. This guide goes deeper; expect 20-30 minutes.
 
@@ -276,14 +276,6 @@ curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   "http://localhost:8080/v1/documents/$DOC_DIRECT/chunks" | jq '.chunks[] | {id, sequence, content: .content[:60]}'
 ```
 
-Save the chunk IDs as a JSON array for the compaction step later:
-
-```bash
-CHUNK_IDS_JSON=$(curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  "http://localhost:8080/v1/documents/$DOC_DIRECT/context?last_n=10" | jq '[.chunks[].id]')
-echo "Chunk IDs: $CHUNK_IDS_JSON"
-```
-
 ## 9. Per-principal memory
 
 Memory is scoped to your principal (the `dev` account in this case) and organized by named scopes.
@@ -325,57 +317,7 @@ bin/creel-cli memory delete "$WULFF_ID"
 bin/creel-cli memory list --scope fishing --all
 ```
 
-## 10. Compaction
-
-Compaction replaces multiple chunks with a summary, preserving links.
-
-```bash
-# Compact all three streamer chunks into a summary
-echo "{
-  \"document_id\": \"$DOC_DIRECT\",
-  \"chunk_ids\": $CHUNK_IDS_JSON,
-  \"summary_content\": \"Streamer fishing essentials: always strip-set, use downstream swing retrieves. Articulated patterns trigger chase responses; fish them on sinking lines. Color rule: dark flies on dark days, bright flies on bright days.\"
-}" | curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  -d @- \
-  "http://localhost:8080/v1/compact" | jq '{
-    summary_id: .summaryChunk.id,
-    compacted_count: .compactedCount,
-    summary: .summaryChunk.content[:120]
-  }'
-```
-
-Save the summary chunk ID:
-
-```bash
-SUMMARY_ID=$(curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  "http://localhost:8080/v1/documents/$DOC_DIRECT/context?last_n=10" | jq -r '.chunks[0].id')
-echo "Summary chunk: $SUMMARY_ID"
-```
-
-Verify the original chunks are now compacted and only the summary appears in context:
-
-```bash
-# GetContext only returns active chunks
-curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  "http://localhost:8080/v1/documents/$DOC_DIRECT/context?last_n=10" | jq '.chunks | length'
-# Should be 1 (just the summary)
-```
-
-Uncompact to restore the originals:
-
-```bash
-curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  -d "{\"summary_chunk_id\": \"$SUMMARY_ID\"}" \
-  "http://localhost:8080/v1/uncompact" | jq '.restoredChunks | length'
-# Should be 3
-
-# Verify they are back
-curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  "http://localhost:8080/v1/documents/$DOC_DIRECT/context?last_n=10" | jq '.chunks | length'
-# Should be 3
-```
-
-## 11. Dashboard
+## 10. Dashboard
 
 The admin dashboard runs on port 3000. Open [http://localhost:3000](http://localhost:3000) and log in:
 
@@ -388,7 +330,7 @@ From the dashboard you can:
 - View system accounts and API keys
 - Manage server configuration (LLM, embedding, prompt configs)
 
-## 12. Interactive chat with creel-chat
+## 11. Interactive chat with creel-chat
 
 creel-chat is a terminal REPL that uses Creel for RAG and memory, with streaming LLM responses. It calls OpenAI directly for both embeddings and chat completion, so you need `OPENAI_API_KEY` in your shell environment (separate from the server-side config you set in step 2).
 
@@ -498,10 +440,9 @@ rm -f /tmp/hatch-chart.txt /tmp/rangeley-report.html /tmp/ski-report.txt
 | Temporal context retrieval | 7 |
 | Direct chunk ingestion | 8 |
 | Per-principal memory (CRUD, scopes, soft-delete) | 9 |
-| Compaction and uncompaction | 10 |
-| Admin dashboard | 11 |
-| Interactive chat with RAG + memory | 12 |
-| Cross-topic search | 6, 12 |
+| Admin dashboard | 10 |
+| Interactive chat with RAG + memory | 11 |
+| Cross-topic search | 6, 11 |
 
 ## Next steps
 
