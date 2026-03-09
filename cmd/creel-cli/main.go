@@ -38,6 +38,7 @@ func main() {
 	root.AddCommand(healthCmd())
 	root.AddCommand(adminCmd())
 	root.AddCommand(topicCmd())
+	root.AddCommand(documentCmd())
 	root.AddCommand(configCmd())
 	root.AddCommand(searchCmd())
 	root.AddCommand(jobsCmd())
