@@ -190,6 +190,9 @@ internal/vector/    vector backend interface + implementations
 internal/worker/    background job processing (extraction, chunking, embedding, memory)
 internal/memory/    memory extraction and maintenance logic
 internal/crypto/    AES-256-GCM encryption for API key configs
+internal/fetch/     HTTP fetcher interface for URL downloads (pluggable for Firecrawl/Browse.ai)
+internal/slug/      URL-safe slug generation with random suffixes
+internal/llm/       LLM provider interface for worker pipelines
 migrations/         SQL migrations (golang-migrate)
 proto/              protobuf definitions
 deploy/docker/      Dockerfile (production) and Dockerfile.dev (live-reload)
@@ -199,6 +202,6 @@ dashboard/          Laravel admin dashboard
 
 ## Useful references
 
-- [Architecture](ARCHITECTURE.md): full design document and phase roadmap, covering document processing, memory, and server-side workers
+- [Architecture](ARCHITECTURE.md): full design document and phase roadmap (phases 2-5 are now implemented), covering document processing, memory, and server-side workers
 - [API Reference](API_REFERENCE.md): all 28 RPCs
 - [Concepts](CONCEPTS.md): data model and design for integrators

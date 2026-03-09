@@ -1016,7 +1016,7 @@ services:
 - Laravel admin dashboard
 - Dev workflow (Air live-reload, pre-configured dev key)
 
-### Phase 2: Document Metadata & Citations
+### Phase 2: Document Metadata & Citations (complete)
 
 Small scope, high impact. Make RAG results citable.
 
@@ -1028,7 +1028,7 @@ Small scope, high impact. Make RAG results citable.
 - Update CLI `search` output to show citation info
 - Update dashboard document views to show/edit citation metadata
 
-### Phase 3: Server-Side Document Processing
+### Phase 3: Server-Side Document Processing (complete)
 
 The big infrastructure phase. Prerequisite to the memory system.
 
@@ -1044,7 +1044,7 @@ The big infrastructure phase. Prerequisite to the memory system.
 - Dashboard: document processing status, job monitoring
 - Direct ingestion path preserved (IngestChunks still works; skips pipeline)
 
-### Phase 4: Memory System
+### Phase 4: Memory System (complete)
 
 Depends on Phase 3's worker infrastructure and LLM/embedding configs.
 
@@ -1060,7 +1060,7 @@ Depends on Phase 3's worker infrastructure and LLM/embedding configs.
 - CLI: `creel-cli memory list`, `creel-cli memory search`, `creel-cli memory add`, `creel-cli memory delete`
 - Dashboard: memory browser per principal/scope
 
-### Phase 5: creel-chat Enhancements
+### Phase 5: creel-chat Enhancements (complete)
 
 Update the demo agent to showcase all new capabilities.
 
@@ -1266,62 +1266,62 @@ creel/
 - [x] Air-based live-reload dev workflow
 - [x] Pre-configured dev API key
 
-### Phase 2: Document Metadata & Citations
+### Phase 2: Document Metadata & Citations (complete)
 
-- [ ] Migration: add `url`, `author`, `published_at` columns to documents table
-- [ ] Update Document proto with citation fields
-- [ ] Update `CreateDocument` / `UpdateDocument` to accept citation fields
-- [ ] Add `DocumentCitation` message to proto
-- [ ] Update `SearchResponse` to include `DocumentCitation` per result
-- [ ] Update retrieval engine to join document metadata in search results
-- [ ] Update creel-chat to display citations in responses
-- [ ] Update CLI `search` output to show citation info
-- [ ] Update dashboard document views to show/edit citation metadata
+- [x] Migration: add `url`, `author`, `published_at` columns to documents table
+- [x] Update Document proto with citation fields
+- [x] Update `CreateDocument` / `UpdateDocument` to accept citation fields
+- [x] Add `DocumentCitation` message to proto
+- [x] Update `SearchResponse` to include `DocumentCitation` per result
+- [x] Update retrieval engine to join document metadata in search results
+- [x] Update creel-chat to display citations in responses
+- [x] Update CLI `search` output to show citation info
+- [x] Update dashboard document views to show/edit citation metadata
 
 ### Phase 3: Server-Side Document Processing
 
-- [ ] Worker pool infrastructure (goroutine pool, job polling, graceful shutdown)
-- [ ] `ProcessingJob` table migration
-- [ ] Job store (CRUD for processing jobs)
-- [ ] `UploadDocument` RPC (file bytes or URL; returns document + job ID)
+- [x] Worker pool infrastructure (goroutine pool, job polling, graceful shutdown)
+- [x] `ProcessingJob` table migration
+- [x] Job store (CRUD for processing jobs)
+- [x] `UploadDocument` RPC (file bytes or URL; returns document + job ID)
 - [ ] PDF text extraction worker
-- [ ] HTML-to-text extraction worker
-- [ ] Plain text passthrough worker
-- [ ] URL fetch worker (download from source_url)
-- [ ] Chunking worker: fixed-size with overlap
+- [x] HTML-to-text extraction worker
+- [x] Plain text passthrough worker
+- [x] URL fetch worker (download from source_url)
+- [x] Chunking worker: fixed-size with overlap
 - [ ] Chunking worker: semantic boundaries via LLM (optional)
-- [ ] Embedding worker (compute via topic's embedding config)
-- [ ] Document status lifecycle (pending -> processing -> ready | failed)
-- [ ] `JobService` RPCs (GetJob, ListJobs)
-- [ ] CLI: `creel-cli upload`
-- [ ] CLI: `creel-cli jobs list` / `creel-cli jobs status`
-- [ ] Dashboard: document processing status view
-- [ ] Dashboard: job monitoring view
-- [ ] Worker configuration (concurrency, poll interval) in creel.yaml
+- [x] Embedding worker (compute via topic's embedding config)
+- [x] Document status lifecycle (pending -> processing -> ready | failed)
+- [x] `JobService` RPCs (GetJob, ListJobs)
+- [x] CLI: `creel-cli upload`
+- [x] CLI: `creel-cli jobs list` / `creel-cli jobs status`
+- [x] Dashboard: document processing status view
+- [x] Dashboard: job monitoring view
+- [x] Worker configuration (concurrency, poll interval) in creel.yaml
 
 ### Phase 4: Memory System
 
-- [ ] `Memory` table migration
-- [ ] Memory store (CRUD, search, scope listing)
-- [ ] Memory embedding storage in vector backend
-- [ ] Memory extraction worker (LLM extracts candidate facts from conversation chunks)
-- [ ] Memory extraction prompt (few-shot examples, category guidance)
-- [ ] Memory maintenance worker (ADD/UPDATE/DELETE/NOOP conflict resolution via LLM)
-- [ ] Soft-delete with invalidated status and timestamp
-- [ ] Per-principal scoping with named scopes
-- [ ] Topic `memory_enabled` flag (migration + topic update)
-- [ ] `MemoryService` RPCs (GetMemory, SearchMemories, AddMemory, UpdateMemory, DeleteMemory, ListMemories, ListScopes)
-- [ ] Configurable memory extraction/maintenance prompts via ExtractionPromptConfig
-- [ ] CLI: `creel-cli memory list / search / add / delete`
+- [x] `Memory` table migration
+- [x] Memory store (CRUD, search, scope listing)
+- [x] Memory embedding storage in vector backend
+- [x] Memory extraction worker (LLM extracts candidate facts from conversation chunks)
+- [x] Memory extraction prompt (few-shot examples, category guidance)
+- [x] Memory maintenance worker (ADD/UPDATE/DELETE/NOOP conflict resolution via LLM)
+- [x] Soft-delete with invalidated status and timestamp
+- [x] Per-principal scoping with named scopes
+- [x] Topic `memory_enabled` flag (migration + topic update)
+- [x] `MemoryService` RPCs (GetMemory, SearchMemories, AddMemory, UpdateMemory, DeleteMemory, ListMemories, ListScopes)
+- [x] Configurable memory extraction/maintenance prompts via ExtractionPromptConfig
+- [x] CLI: `creel-cli memory list / search / add / delete`
 - [ ] Dashboard: memory browser per principal/scope
 
-### Phase 5: creel-chat Enhancements
+### Phase 5: creel-chat Enhancements (complete)
 
-- [ ] Streaming LLM responses
-- [ ] Document upload flow (managed path via `UploadDocument` RPC)
-- [ ] Memory integration (fetch memory at session start, include in system prompt)
-- [ ] Cross-topic RAG retrieval
-- [ ] Explicit memory commands (`/remember`, `/forget`)
+- [x] Streaming LLM responses
+- [x] Document upload flow (managed path via `UploadDocument` RPC)
+- [x] Memory integration (fetch memory at session start, include in system prompt)
+- [x] Cross-topic RAG retrieval
+- [x] Explicit memory commands (`/remember`, `/forget`)
 
 ### Phase 6: Integration Layers
 

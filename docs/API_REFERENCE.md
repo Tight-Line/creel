@@ -1,6 +1,6 @@
 # Creel API Reference
 
-40+ RPC methods across 9 gRPC services (plus ConfigService). All methods are also available via REST (grpc-gateway).
+63 RPC methods across 9 gRPC services (plus ConfigService). All methods are also available via REST (grpc-gateway).
 
 Every request carries an `Authorization: Bearer <token>` header (OIDC JWT or API key). The server resolves the caller's principal, then checks permissions via the `Authorizer` interface before touching data.
 
@@ -270,7 +270,8 @@ rpc Search(SearchRequest) returns (SearchResponse)
 {
   results: [{
     chunk: Chunk,
-    document: DocumentCitation {
+    document_id: string,
+    document_citation: DocumentCitation {
       id: uuid,
       slug: string,
       name: string,
@@ -279,9 +280,9 @@ rpc Search(SearchRequest) returns (SearchResponse)
       published_at: timestamp,
       metadata: jsonb
     },
-    topic: TopicRef,
+    topic_id: string,
     score: float64,
-    via_link: LinkRef            // nullable; set if reached via traversal
+    via_link: Link               // nullable; set if reached via traversal
   }]
 }
 ```
