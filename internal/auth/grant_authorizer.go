@@ -19,6 +19,9 @@ type GrantStore interface {
 
 	// TopicOwner returns the owner of a topic.
 	TopicOwner(ctx context.Context, topicID string) (string, error)
+
+	// TopicIDsByOwner returns the IDs of all topics owned by the given principal.
+	TopicIDsByOwner(ctx context.Context, ownerID string) ([]string, error)
 }
 
 // GrantAuthorizer implements Authorizer using topic_grants and topic ownership.
@@ -59,16 +62,27 @@ func (a *GrantAuthorizer) Check(ctx context.Context, principal *Principal, topic
 }
 
 // AccessibleTopics returns topic IDs the principal can access at the given level.
+// Owned topics are always included (ownership implies admin).
 func (a *GrantAuthorizer) AccessibleTopics(ctx context.Context, principal *Principal, minAction Action) ([]string, error) {
 	grants, err := a.store.GrantsForPrincipal(ctx, a.allIdentities(principal))
 	if err != nil {
 		return nil, fmt.Errorf("fetching grants: %w", err)
 	}
 
-	minLevel := PermissionLevel(minAction)
 	seen := make(map[string]bool)
 	var result []string
 
+	// Owned topics have implicit admin access.
+	owned, err := a.store.TopicIDsByOwner(ctx, principal.ID)
+	if err != nil {
+		return nil, fmt.Errorf("fetching owned topics: %w", err)
+	}
+	for _, id := range owned {
+		seen[id] = true
+		result = append(result, id)
+	}
+
+	minLevel := PermissionLevel(minAction)
 	for _, g := range grants {
 		if PermissionLevel(g.Permission) >= minLevel && !seen[g.TopicID] {
 			seen[g.TopicID] = true

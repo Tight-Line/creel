@@ -8,10 +8,12 @@ import (
 )
 
 type mockGrantStore struct {
-	grants   []Grant
-	owners   map[string]string // topicID -> owner
-	grantErr error
-	ownerErr error
+	grants       []Grant
+	owners       map[string]string // topicID -> owner
+	ownedTopics  map[string][]string // ownerID -> topicIDs
+	grantErr     error
+	ownerErr     error
+	ownedErr     error
 }
 
 func (m *mockGrantStore) GrantsForPrincipal(_ context.Context, principals []string) ([]Grant, error) {
@@ -36,6 +38,13 @@ func (m *mockGrantStore) TopicOwner(_ context.Context, topicID string) (string, 
 		return "", m.ownerErr
 	}
 	return m.owners[topicID], nil
+}
+
+func (m *mockGrantStore) TopicIDsByOwner(_ context.Context, ownerID string) ([]string, error) {
+	if m.ownedErr != nil {
+		return nil, m.ownedErr
+	}
+	return m.ownedTopics[ownerID], nil
 }
 
 func TestGrantAuthorizer_OwnerImplicitAdmin(t *testing.T) {
@@ -208,6 +217,73 @@ func TestGrantAuthorizer_AccessibleTopics_Error(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "fetching grants") {
 		t.Errorf("expected 'fetching grants' in error, got: %v", err)
+	}
+}
+
+func TestGrantAuthorizer_AccessibleTopics_IncludesOwnedTopics(t *testing.T) {
+	store := &mockGrantStore{
+		ownedTopics: map[string][]string{
+			"user:alice": {"topic-owned"},
+		},
+		grants: []Grant{
+			{TopicID: "topic-granted", Principal: "user:alice", Permission: ActionRead},
+		},
+	}
+	authz := NewGrantAuthorizer(store)
+
+	alice := &Principal{ID: "user:alice"}
+	topics, err := authz.AccessibleTopics(context.Background(), alice, ActionRead)
+	if err != nil {
+		t.Fatalf("AccessibleTopics: %v", err)
+	}
+	if len(topics) != 2 {
+		t.Fatalf("expected 2 topics, got %d: %v", len(topics), topics)
+	}
+	// Owned topic should appear even with no explicit grant.
+	found := false
+	for _, id := range topics {
+		if id == "topic-owned" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected owned topic in results, got %v", topics)
+	}
+}
+
+func TestGrantAuthorizer_AccessibleTopics_OwnedDeduped(t *testing.T) {
+	// If a topic is both owned and granted, it should appear only once.
+	store := &mockGrantStore{
+		ownedTopics: map[string][]string{
+			"user:alice": {"topic-1"},
+		},
+		grants: []Grant{
+			{TopicID: "topic-1", Principal: "user:alice", Permission: ActionRead},
+		},
+	}
+	authz := NewGrantAuthorizer(store)
+
+	topics, err := authz.AccessibleTopics(context.Background(), &Principal{ID: "user:alice"}, ActionRead)
+	if err != nil {
+		t.Fatalf("AccessibleTopics: %v", err)
+	}
+	if len(topics) != 1 {
+		t.Errorf("expected 1 topic (deduped), got %d: %v", len(topics), topics)
+	}
+}
+
+func TestGrantAuthorizer_AccessibleTopics_OwnedError(t *testing.T) {
+	store := &mockGrantStore{
+		ownedErr: errors.New("db unavailable"),
+	}
+	authz := NewGrantAuthorizer(store)
+
+	_, err := authz.AccessibleTopics(context.Background(), &Principal{ID: "user:bob"}, ActionRead)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "fetching owned topics") {
+		t.Errorf("expected 'fetching owned topics' in error, got: %v", err)
 	}
 }
 
