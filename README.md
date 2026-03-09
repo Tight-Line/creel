@@ -24,7 +24,7 @@ source .env
 
 # Create a topic and upload a document
 bin/creel-cli topic create --slug my-notes --name "My Notes"
-bin/creel-cli upload --topic my-notes --file notes.pdf --name "Meeting Notes"
+bin/creel-cli upload --topic my-notes --file notes.txt --name "Meeting Notes"
 
 # Check processing status
 bin/creel-cli jobs list --topic my-notes

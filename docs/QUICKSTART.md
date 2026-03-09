@@ -63,7 +63,7 @@ bin/creel-cli topic create my-notes "My Notes"
 Upload a document to your topic:
 
 ```bash
-bin/creel-cli upload --topic my-notes --file notes.pdf --name "Meeting Notes" --author "Nick"
+bin/creel-cli upload --topic my-notes --file notes.txt --name "Meeting Notes" --author "Nick" --content-type text/plain
 ```
 
 Creel processes the document asynchronously. Check the job status:
