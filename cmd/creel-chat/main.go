@@ -25,6 +25,8 @@ var (
 	topicSlug     string
 	topK          int32
 	resumeDocID   string
+	memoryScope   string
+	crossTopic    bool
 )
 
 func main() {
@@ -45,6 +47,8 @@ func main() {
 	root.Flags().StringVar(&topicSlug, "topic", "creel-chat", "topic slug for conversation storage")
 	root.Flags().Int32Var(&topK, "top-k", 5, "number of context chunks to retrieve")
 	root.Flags().StringVar(&resumeDocID, "resume", "", "resume a previous session by document ID")
+	root.Flags().StringVar(&memoryScope, "memory-scope", "default", "memory scope for per-principal memories")
+	root.Flags().BoolVar(&crossTopic, "cross-topic", false, "search across all accessible topics instead of just the current one")
 
 	if err := root.Execute(); err != nil {
 		os.Exit(1)

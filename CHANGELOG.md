@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Streaming LLM responses in creel-chat. Tokens display as they arrive instead of waiting for the full response. Both OpenAI and Anthropic providers use SSE streaming.
+- Memory integration in creel-chat. Per-principal memories are loaded at session start and included in the system prompt. Use `--memory-scope` to select the scope (default: "default").
+- `/upload <filepath>` command in creel-chat for uploading documents to Creel via the managed processing pipeline.
+- `/remember <text>` and `/forget <text>` commands in creel-chat for explicit memory management.
+- Cross-topic RAG in creel-chat. Use `--cross-topic` to search across all accessible topics instead of just the current one.
+- Citation display in creel-chat. RAG context now includes document citation metadata (name, author, URL) so the LLM can reference sources.
 - Automatic memory extraction from conversations. When a topic has `memory_enabled = true`, new chunks trigger an LLM-based pipeline that extracts facts, compares them against existing memories, and executes ADD, UPDATE, DELETE, or NOOP actions. Memories are automatically embedded for semantic search.
 - Topics now support a `memory_enabled` flag. Set it via `CreateTopic` or `UpdateTopic` to enable automatic memory extraction for that topic.
 - `memory_extraction` and `memory_maintenance` background workers. The extraction worker calls an LLM to identify candidate facts from conversation chunks. The maintenance worker evaluates each fact against existing memories and decides whether to add, update, delete, or skip.

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -114,6 +115,110 @@ func createSessionDoc(ctx context.Context, conn *grpc.ClientConn, topicID string
 	return doc.GetId(), nil
 }
 
+// loadMemories fetches memories for the current principal's scope.
+func loadMemories(ctx context.Context, conn *grpc.ClientConn, scope string) []*pb.Memory {
+	client := pb.NewMemoryServiceClient(conn)
+	resp, err := client.GetMemory(ctx, &pb.GetMemoryRequest{
+		Scope: scope,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not load memories: %v\n", err)
+		return nil
+	}
+	return resp.GetMemories()
+}
+
+// handleUpload processes the /upload command.
+func handleUpload(ctx context.Context, conn *grpc.ClientConn, topicID, filePath string) { // coverage:ignore - interactive REPL command that requires real gRPC server and filesystem
+	if filePath == "" {
+		fmt.Fprintln(os.Stderr, "usage: /upload <filepath>")
+		return
+	}
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error reading file: %v\n", err)
+		return
+	}
+
+	name := filepath.Base(filePath)
+	client := pb.NewDocumentServiceClient(conn)
+	resp, err := client.UploadDocument(ctx, &pb.UploadDocumentRequest{
+		TopicId: topicID,
+		Name:    name,
+		File:    data,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error uploading document: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Document uploaded. ID: %s, Job ID: %s\n", resp.GetDocument().GetId(), resp.GetJobId())
+	fmt.Println("Processing will complete in the background.")
+}
+
+// handleRemember processes the /remember command.
+func handleRemember(ctx context.Context, conn *grpc.ClientConn, scope, text string) { // coverage:ignore - interactive REPL command that requires real gRPC server
+	if text == "" {
+		fmt.Fprintln(os.Stderr, "usage: /remember <text>")
+		return
+	}
+
+	client := pb.NewMemoryServiceClient(conn)
+	mem, err := client.AddMemory(ctx, &pb.AddMemoryRequest{
+		Scope:   scope,
+		Content: text,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error adding memory: %v\n", err)
+		return
+	}
+	fmt.Printf("Remembered: %s (id: %s)\n", mem.GetContent(), mem.GetId())
+}
+
+// handleForget processes the /forget command.
+func handleForget(ctx context.Context, conn *grpc.ClientConn, embedder Embedder, scope, text string) { // coverage:ignore - interactive REPL command that requires real gRPC server
+	if text == "" {
+		fmt.Fprintln(os.Stderr, "usage: /forget <text>")
+		return
+	}
+
+	client := pb.NewMemoryServiceClient(conn)
+
+	// Embed the query to find the best matching memory.
+	embedding, err := embedder.Embed(ctx, text)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error embedding query: %v\n", err)
+		return
+	}
+
+	searchResp, err := client.SearchMemories(ctx, &pb.SearchMemoriesRequest{
+		Scope:          scope,
+		QueryEmbedding: embedding,
+		QueryText:      text,
+		TopK:           1,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error searching memories: %v\n", err)
+		return
+	}
+
+	if len(searchResp.GetResults()) == 0 {
+		fmt.Println("No matching memory found.")
+		return
+	}
+
+	best := searchResp.GetResults()[0].GetMemory()
+	_, err = client.DeleteMemory(ctx, &pb.DeleteMemoryRequest{
+		Id: best.GetId(),
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error deleting memory: %v\n", err)
+		return
+	}
+	fmt.Printf("Forgot: %s\n", best.GetContent())
+}
+
 // runLoop is the main REPL cycle: read, embed, search, prompt, call LLM, store.
 // seqOffset is added to sequence numbers to avoid collisions when resuming a session.
 // priorMessages contains any messages loaded from a resumed session.
@@ -125,6 +230,9 @@ func runLoop(ctx context.Context, conn *grpc.ClientConn, llm LLM, embedder Embed
 	chunkClient := pb.NewChunkServiceClient(conn)
 	retrievalClient := pb.NewRetrievalServiceClient(conn)
 
+	// Load memories at session start.
+	memories := loadMemories(ctx, conn, memoryScope)
+
 	for {
 		fmt.Print("you> ")
 		if !scanner.Scan() {
@@ -132,6 +240,24 @@ func runLoop(ctx context.Context, conn *grpc.ClientConn, llm LLM, embedder Embed
 		}
 		userInput := strings.TrimSpace(scanner.Text())
 		if userInput == "" {
+			continue
+		}
+
+		// Check for slash commands.
+		cmd := ParseCommand(userInput)
+		switch cmd.Type {
+		case CmdUpload:
+			handleUpload(ctx, conn, topicID, cmd.Arg)
+			continue
+		case CmdRemember:
+			handleRemember(ctx, conn, memoryScope, cmd.Arg)
+			// Reload memories after adding.
+			memories = loadMemories(ctx, conn, memoryScope)
+			continue
+		case CmdForget:
+			handleForget(ctx, conn, embedder, memoryScope, cmd.Arg)
+			// Reload memories after deleting.
+			memories = loadMemories(ctx, conn, memoryScope)
 			continue
 		}
 
@@ -146,28 +272,43 @@ func runLoop(ctx context.Context, conn *grpc.ClientConn, llm LLM, embedder Embed
 
 		// Search Creel for relevant past chunks, excluding the current session
 		// document so RAG results come from other sessions only.
-		searchResp, err := retrievalClient.Search(ctx, &pb.SearchRequest{
-			TopicIds:           []string{topicID},
+		searchReq := &pb.SearchRequest{
 			QueryEmbedding:     userEmbedding,
 			TopK:               topK,
 			ExcludeDocumentIds: []string{docID},
-		})
+		}
+		if crossTopic {
+			// Omit topic_ids to search across all accessible topics.
+		} else {
+			searchReq.TopicIds = []string{topicID}
+		}
+
+		searchResp, err := retrievalClient.Search(ctx, searchReq)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error searching context: %v\n", err)
 			continue
 		}
 
 		// Build LLM messages.
-		messages := buildMessages(searchResp.GetResults(), sessionMessages, userInput)
+		messages := buildMessages(searchResp.GetResults(), sessionMessages, userInput, memories)
 
-		// Call LLM.
-		assistantReply, err := llm.Chat(ctx, messages)
+		// Call LLM with streaming.
+		fmt.Print("assistant> ")
+		tokens, err := llm.ChatStream(ctx, messages)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error calling LLM: %v\n", err)
+			fmt.Fprintf(os.Stderr, "\nerror calling LLM: %v\n", err)
 			continue
 		}
 
-		fmt.Printf("assistant> %s\n", assistantReply)
+		assistantReply, err := CollectStream(tokens, func(text string) {
+			fmt.Print(text)
+		})
+		fmt.Println()
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error streaming LLM response: %v\n", err)
+			continue
+		}
 
 		// Track in session buffer.
 		sessionMessages = append(sessionMessages,
@@ -224,8 +365,9 @@ func runLoop(ctx context.Context, conn *grpc.ClientConn, llm LLM, embedder Embed
 	return nil
 }
 
-// buildMessages constructs the LLM prompt from retrieved context, session history, and current input.
-func buildMessages(retrieved []*pb.SearchResult, session []ChatMessage, currentInput string) []ChatMessage {
+// buildMessages constructs the LLM prompt from retrieved context, session history,
+// current input, and per-principal memories.
+func buildMessages(retrieved []*pb.SearchResult, session []ChatMessage, currentInput string, memories []*pb.Memory) []ChatMessage {
 	var messages []ChatMessage
 
 	// Build the system prompt with explicit structure explanation.
@@ -235,7 +377,13 @@ func buildMessages(retrieved []*pb.SearchResult, session []ChatMessage, currentI
 	sb.WriteString("1. SESSION HISTORY: The user/assistant message sequence that follows this system message is the complete, verbatim record of this conversation session. It is authoritative. If asked to recall or replay the conversation, use it exactly.\n")
 	sb.WriteString("2. RAG CONTEXT: Semantically retrieved snippets from OTHER conversation sessions (not the current one). These may provide useful background but are not part of the current conversation.\n")
 
-	// Add retrieved context if any.
+	// Add memory section if available.
+	memorySection := FormatMemoryPrompt(memories)
+	if memorySection != "" {
+		sb.WriteString(memorySection)
+	}
+
+	// Add retrieved context if any, with citation information.
 	if len(retrieved) > 0 {
 		sort.Slice(retrieved, func(i, j int) bool {
 			return extractTurn(retrieved[i]) < extractTurn(retrieved[j])
@@ -247,8 +395,7 @@ func buildMessages(retrieved []*pb.SearchResult, session []ChatMessage, currentI
 			if chunk == nil {
 				continue
 			}
-			role := extractRole(r)
-			contextParts = append(contextParts, fmt.Sprintf("[%s]: %s", role, chunk.GetContent()))
+			contextParts = append(contextParts, FormatCitedResult(r))
 		}
 		if len(contextParts) > 0 {
 			sb.WriteString("\n--- RAG CONTEXT (from other sessions) ---\n")
