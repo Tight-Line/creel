@@ -352,7 +352,7 @@ Ask a question that the uploaded documents can answer:
 you> What flies should I use for evening fishing in June?
 ```
 
-The assistant's answer draws on the hatch chart and fishing report you uploaded in step 4. The RAG layer retrieves relevant chunks and the response references Sulphurs, Green Drakes, and Isonychia.
+The assistant's answer draws on the hatch chart and fishing report you uploaded in step 4. The RAG layer retrieves relevant chunks and the response references Sulphurs, Green Drakes, and caddis.
 
 Now tell the assistant something about yourself:
 
