@@ -103,7 +103,7 @@ Creel runs in your infrastructure. The primary distribution is a Helm chart. It 
 ```
 topic {
   id:                        uuid
-  slug:                      string (unique, URL-safe)
+  slug:                      string (unique, URL-safe; auto-generated from name if omitted)
   name:                      string
   description:               string
   owner:                     principal_ref
@@ -146,7 +146,7 @@ Topic owners implicitly have `admin`.
 document {
   id:          uuid
   topic_id:    uuid -> topic
-  slug:        string (unique within topic)
+  slug:        string (unique within topic; auto-generated from name if omitted)
   name:        string
   doc_type:    enum(reference, session, import, memory, ...)
   url:         string (nullable; source URL for citations)
