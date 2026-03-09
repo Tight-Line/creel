@@ -75,13 +75,13 @@ spec:
             httpGet:
               path: /login
               port: http
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /login
               port: http
-            initialDelaySeconds: 5
+            initialDelaySeconds: 15
             periodSeconds: 10
           resources:
             {{- toYaml .Values.dashboard.resources | nindent 12 }}
