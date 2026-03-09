@@ -108,11 +108,25 @@ creel-chat calls OpenAI directly for embeddings and chat (separate from the serv
 
 ```bash
 # --topic my-notes scopes RAG search to that topic.
-# --cross-topic would search all your topics instead.
+# --cross-topic searches all your topics instead.
 bin/creel-chat --topic my-notes
 ```
 
 Ask it about your uploaded document:
+
+```
+you> What are the blockers from the standup?
+assistant> The blockers from the standup are:
+
+- Staging database needs a `pgvector` extension upgrade before load tests
+- The OIDC provider sandbox is down; Sarah is waiting on IT
+```
+
+`--cross-topic` also works here since you own the `my-notes` topic:
+
+```bash
+bin/creel-chat --cross-topic
+```
 
 ```
 you> What are the blockers from the standup?
