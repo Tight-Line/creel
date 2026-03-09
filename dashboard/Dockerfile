@@ -38,7 +38,8 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/php-fpm.conf /usr/local/etc/php-fpm-custom.conf
 COPY docker/start.sh /usr/local/bin/start.sh
 
-RUN chown -R www-data:www-data storage bootstrap/cache \
+RUN touch .env \
+    && chown -R www-data:www-data storage bootstrap/cache .env \
     && chown -R www-data:www-data /var/lib/nginx /var/log/nginx /run \
     && chown -R www-data:www-data /var/log/supervisor \
     && php artisan route:cache \
