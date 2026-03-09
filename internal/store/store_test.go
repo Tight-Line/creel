@@ -834,6 +834,15 @@ func TestGrantStore_TopicOwner_Error(t *testing.T) {
 	expectErr(t, err, "querying topic owner")
 }
 
+func TestGrantStore_TopicIDsByOwner_Error(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewGrantStore(db)
+	_, err := s.TopicIDsByOwner(ctx(), "user:alice")
+	expectErr(t, err, "querying owned topics")
+}
+
 // ---------------------------------------------------------------------------
 // SystemAccountStore tests
 // ---------------------------------------------------------------------------

@@ -52,3 +52,24 @@ func (s *GrantStore) TopicOwner(ctx context.Context, topicID string) (string, er
 	}
 	return owner, nil
 }
+
+// TopicIDsByOwner returns the IDs of all topics owned by the given principal.
+func (s *GrantStore) TopicIDsByOwner(ctx context.Context, ownerID string) ([]string, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id FROM topics WHERE owner = $1`, ownerID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("querying owned topics: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scanning owned topic: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
