@@ -75,14 +75,7 @@ bin/creel-cli topic create fly-fishing "Fly Fishing Knowledge Base"
 bin/creel-cli topic create ski-conditions "Ski Conditions Reports"
 ```
 
-The CLI accepts slugs anywhere a topic ID is expected, so you can use `fly-fishing` and `ski-conditions` directly. For REST calls later, save the UUIDs:
-
-```bash
-FISH_TOPIC=$(bin/creel-cli topic list | jq -r '.topics[] | select(.slug=="fly-fishing") | .id')
-SKI_TOPIC=$(bin/creel-cli topic list | jq -r '.topics[] | select(.slug=="ski-conditions") | .id')
-echo "Fish topic: $FISH_TOPIC"
-echo "Ski topic:  $SKI_TOPIC"
-```
+The CLI accepts slugs anywhere a topic ID is expected, so you can use `fly-fishing` and `ski-conditions` directly throughout this guide.
 
 ## 4. Upload documents (managed pipeline)
 
@@ -198,8 +191,7 @@ bin/creel-cli jobs list --topic ski-conditions --status completed
 Verify documents are ready:
 
 ```bash
-curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  "http://localhost:8080/v1/topics/$FISH_TOPIC/documents" | jq '.documents[] | {name, status}'
+bin/creel-cli document list --topic fly-fishing
 ```
 
 You should see `"status": "ready"` for both fishing documents.
@@ -213,9 +205,12 @@ Now that documents are indexed with real embeddings, search returns semantically
 bin/creel-cli search --topic fly-fishing --query "best flies for evening fishing" --top-k 5
 ```
 
-Or via REST with full citation details:
+Or via REST with full citation details. The REST API requires UUIDs, so resolve the slugs first:
 
 ```bash
+FISH_TOPIC=$(bin/creel-cli topic list | jq -r '.topics[] | select(.slug=="fly-fishing") | .id')
+SKI_TOPIC=$(bin/creel-cli topic list | jq -r '.topics[] | select(.slug=="ski-conditions") | .id')
+
 curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   -d "{\"topic_ids\": [\"$FISH_TOPIC\"], \"query_text\": \"best flies for evening fishing\", \"top_k\": 5}" \
   "http://localhost:8080/v1/search" | jq '.results[] | {
