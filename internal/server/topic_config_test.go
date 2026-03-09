@@ -42,7 +42,8 @@ type topicRow struct {
 
 func (r *topicRow) Scan(dest ...any) error {
 	// Matches TopicStore.Get scan order: id, slug, name, description, owner,
-	// created_at, updated_at, llm_config_id, embedding_config_id, extraction_prompt_config_id
+	// created_at, updated_at, llm_config_id, embedding_config_id, extraction_prompt_config_id,
+	// chunking_strategy, memory_enabled
 	*dest[0].(*string) = "topic-1"   // id
 	*dest[1].(*string) = "test-slug" // slug
 	*dest[2].(*string) = "Test"      // name
@@ -52,6 +53,8 @@ func (r *topicRow) Scan(dest ...any) error {
 	*dest[7].(**string) = r.llmID
 	*dest[8].(**string) = r.embID
 	*dest[9].(**string) = r.promptID
+	*dest[10].(*[]byte) = nil // chunking_strategy
+	*dest[11].(*bool) = false // memory_enabled
 	return nil
 }
 
@@ -147,6 +150,22 @@ func TestTopicServer_UpdateTopic_WithLlmConfigId(t *testing.T) {
 	_, err := s.UpdateTopic(ctx, &pb.UpdateTopicRequest{
 		Id:          "topic-1",
 		LlmConfigId: &llmID,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTopicServer_UpdateTopic_WithMemoryEnabled(t *testing.T) {
+	// Setting MemoryEnabled on update should pass through to the store.
+	db := topicDBWithExisting(nil, nil, nil)
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
+	ctx := systemCtx()
+
+	enabled := true
+	_, err := s.UpdateTopic(ctx, &pb.UpdateTopicRequest{
+		Id:            "topic-1",
+		MemoryEnabled: &enabled,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

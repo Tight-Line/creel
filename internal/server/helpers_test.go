@@ -907,7 +907,7 @@ func TestDocumentServer_DeleteDocument_StoreError(t *testing.T) {
 
 func TestChunkServer_IngestChunks_DocumentTopicIDError(t *testing.T) {
 	db := failDBTX()
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), &mockBackend{}, &mockAuthorizer{})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, &mockBackend{}, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.IngestChunks(ctx, &pb.IngestChunksRequest{
@@ -924,7 +924,7 @@ func TestChunkServer_IngestChunks_AuthorizerError(t *testing.T) {
 			return &mockRow{err: nil}
 		},
 	}
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), &mockBackend{}, &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, &mockBackend{}, &mockAuthorizer{checkErr: errors.New("denied")})
 	ctx := systemCtx()
 
 	_, err := s.IngestChunks(ctx, &pb.IngestChunksRequest{
@@ -946,7 +946,7 @@ func TestChunkServer_IngestChunks_CreateError(t *testing.T) {
 			return &mockRow{err: errors.New("db error")} // Create
 		},
 	}
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), &mockBackend{}, &mockAuthorizer{})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, &mockBackend{}, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.IngestChunks(ctx, &pb.IngestChunksRequest{
@@ -969,7 +969,7 @@ func TestChunkServer_IngestChunks_BackendStoreError(t *testing.T) {
 		},
 	}
 	backend := &mockBackend{storeErr: errors.New("vector error")}
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), backend, &mockAuthorizer{})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, backend, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.IngestChunks(ctx, &pb.IngestChunksRequest{
@@ -992,7 +992,7 @@ func TestChunkServer_IngestChunks_SetEmbeddingIDError(t *testing.T) {
 			return pgconn.CommandTag{}, errors.New("db error")
 		},
 	}
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), &mockBackend{}, &mockAuthorizer{})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, &mockBackend{}, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.IngestChunks(ctx, &pb.IngestChunksRequest{
@@ -1004,7 +1004,7 @@ func TestChunkServer_IngestChunks_SetEmbeddingIDError(t *testing.T) {
 
 func TestChunkServer_GetChunk_StoreGetError(t *testing.T) {
 	db := failDBTX()
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), &mockBackend{}, &mockAuthorizer{})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, &mockBackend{}, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.GetChunk(ctx, &pb.GetChunkRequest{Id: "chunk-1"})
@@ -1023,7 +1023,7 @@ func TestChunkServer_GetChunk_DocumentTopicIDError(t *testing.T) {
 			return &mockRow{err: errors.New("db error")} // DocumentTopicID
 		},
 	}
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), &mockBackend{}, &mockAuthorizer{})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, &mockBackend{}, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.GetChunk(ctx, &pb.GetChunkRequest{Id: "chunk-1"})
@@ -1037,7 +1037,7 @@ func TestChunkServer_GetChunk_AuthorizerError(t *testing.T) {
 			return &mockRow{err: nil}
 		},
 	}
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), &mockBackend{}, &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, &mockBackend{}, &mockAuthorizer{checkErr: errors.New("denied")})
 	ctx := systemCtx()
 
 	_, err := s.GetChunk(ctx, &pb.GetChunkRequest{Id: "chunk-1"})
@@ -1046,7 +1046,7 @@ func TestChunkServer_GetChunk_AuthorizerError(t *testing.T) {
 
 func TestChunkServer_DeleteChunk_StoreGetError(t *testing.T) {
 	db := failDBTX()
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), &mockBackend{}, &mockAuthorizer{})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, &mockBackend{}, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.DeleteChunk(ctx, &pb.DeleteChunkRequest{Id: "chunk-1"})
@@ -1064,7 +1064,7 @@ func TestChunkServer_DeleteChunk_DocumentTopicIDError(t *testing.T) {
 			return &mockRow{err: errors.New("db error")}
 		},
 	}
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), &mockBackend{}, &mockAuthorizer{})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, &mockBackend{}, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.DeleteChunk(ctx, &pb.DeleteChunkRequest{Id: "chunk-1"})
@@ -1077,7 +1077,7 @@ func TestChunkServer_DeleteChunk_AuthorizerError(t *testing.T) {
 			return &mockRow{err: nil}
 		},
 	}
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), &mockBackend{}, &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, &mockBackend{}, &mockAuthorizer{checkErr: errors.New("denied")})
 	ctx := systemCtx()
 
 	_, err := s.DeleteChunk(ctx, &pb.DeleteChunkRequest{Id: "chunk-1"})
@@ -1091,7 +1091,7 @@ func TestChunkServer_DeleteChunk_BackendDeleteError(t *testing.T) {
 		},
 	}
 	backend := &mockBackend{deleteErr: errors.New("vector error")}
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), backend, &mockAuthorizer{})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, backend, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.DeleteChunk(ctx, &pb.DeleteChunkRequest{Id: "chunk-1"})
@@ -1107,7 +1107,7 @@ func TestChunkServer_DeleteChunk_StoreDeleteError(t *testing.T) {
 			return pgconn.CommandTag{}, errors.New("db error")
 		},
 	}
-	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), &mockBackend{}, &mockAuthorizer{})
+	s := NewChunkServer(store.NewChunkStore(db), store.NewDocumentStore(db), nil, nil, &mockBackend{}, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.DeleteChunk(ctx, &pb.DeleteChunkRequest{Id: "chunk-1"})
@@ -1338,7 +1338,7 @@ func TestNilPrincipal_ChunkServer(t *testing.T) {
 	ds := store.NewDocumentStore(db)
 	authz := &mockAuthorizer{}
 	backend := &mockBackend{}
-	s := NewChunkServer(cs, ds, backend, authz)
+	s := NewChunkServer(cs, ds, nil, nil, backend, authz)
 	ctx := context.Background()
 
 	_, err := s.IngestChunks(ctx, &pb.IngestChunksRequest{DocumentId: "d", Chunks: []*pb.ChunkInput{{Content: "c"}}})

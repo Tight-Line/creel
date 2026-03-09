@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Automatic memory extraction from conversations. When a topic has `memory_enabled = true`, new chunks trigger an LLM-based pipeline that extracts facts, compares them against existing memories, and executes ADD, UPDATE, DELETE, or NOOP actions. Memories are automatically embedded for semantic search.
+- Topics now support a `memory_enabled` flag. Set it via `CreateTopic` or `UpdateTopic` to enable automatic memory extraction for that topic.
+- `memory_extraction` and `memory_maintenance` background workers. The extraction worker calls an LLM to identify candidate facts from conversation chunks. The maintenance worker evaluates each fact against existing memories and decides whether to add, update, delete, or skip.
+- LLM provider interface (`internal/llm`) with a configurable stub provider for testing. Real LLM providers (OpenAI, Anthropic) can be plugged in later.
+- `CreateWithProgress` method on `JobStore` for creating jobs with initial progress data (used to pass candidate facts between extraction and maintenance workers).
 - Memory store for per-principal, scoped knowledge. Agents can store, update, search, and soft-delete memories organized by scope. Memories support optional subject/predicate/object triples and metadata.
 - `MemoryService` gRPC API with 7 RPCs: `GetMemory`, `SearchMemories`, `AddMemory`, `UpdateMemory`, `DeleteMemory`, `ListMemories`, and `ListScopes`. All RPCs are automatically scoped to the calling principal.
 - Semantic search over memories via vector embeddings. When an embedding provider is configured, new memories are automatically embedded; `SearchMemories` uses cosine similarity. Falls back to returning all active memories when no embeddings are available.

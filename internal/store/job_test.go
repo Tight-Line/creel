@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -45,7 +47,7 @@ func setupJobTestDB(t *testing.T) (*pgxpool.Pool, string) {
 
 	// Create a topic and document for FK references.
 	topicStore := NewTopicStore(pool)
-	topic, err := topicStore.Create(ctx, "job-test-topic", "Job Test Topic", "", "", nil, nil, nil)
+	topic, err := topicStore.Create(ctx, "job-test-topic", "Job Test Topic", "", "", nil, nil, nil, false)
 	if err != nil {
 		// Topic may already exist; find it by listing all topics.
 		topics, listErr := topicStore.ListForPrincipals(ctx, nil)
@@ -463,6 +465,33 @@ func TestJobStore_Create_Error(t *testing.T) {
 	_, err := s.Create(context.Background(), "doc-id", "extraction")
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestJobStore_CreateWithProgress_MarshalError(t *testing.T) {
+	s := NewJobStore(nil) // DB not needed; error happens before query.
+	_, err := s.CreateWithProgress(context.Background(), "doc-id", "memory_maintenance", map[string]any{"bad": math.Inf(1)})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "marshaling progress") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestJobStore_CreateWithProgress_Error(t *testing.T) {
+	db := &mockDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockRow{err: errMock}
+		},
+	}
+	s := NewJobStore(db)
+	_, err := s.CreateWithProgress(context.Background(), "doc-id", "memory_maintenance", map[string]any{"fact": "test"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "inserting processing job with progress") {
+		t.Errorf("unexpected error message: %v", err)
 	}
 }
 

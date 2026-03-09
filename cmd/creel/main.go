@@ -19,6 +19,7 @@ import (
 	"github.com/Tight-Line/creel/internal/config"
 	"github.com/Tight-Line/creel/internal/crypto"
 	"github.com/Tight-Line/creel/internal/fetch"
+	"github.com/Tight-Line/creel/internal/llm"
 	"github.com/Tight-Line/creel/internal/retrieval"
 	"github.com/Tight-Line/creel/internal/server"
 	"github.com/Tight-Line/creel/internal/store"
@@ -131,18 +132,26 @@ func run() error {
 	embeddingWorker := worker.NewEmbeddingWorker(docStore, chunkStore, topicStore, jobStore, vectorBackend, embeddingProvider)
 	workerPool.Register(embeddingWorker)
 
+	// Create and register memory workers.
+	// TODO: replace stub LLM provider with a real one when available.
+	llmProvider := llm.NewStubProvider(`{"facts": []}`)
+	memoryStore := store.NewMemoryStore(pool)
+	memExtractionWorker := worker.NewMemoryExtractionWorker(docStore, chunkStore, topicStore, jobStore, llmProvider)
+	workerPool.Register(memExtractionWorker)
+	memMaintenanceWorker := worker.NewMemoryMaintenanceWorker(memoryStore, jobStore, vectorBackend, embeddingProvider, llmProvider)
+	workerPool.Register(memMaintenanceWorker)
+
 	// Create and wire server.
 	srv := server.New(cfg.Server.GRPCPort, apiKeyValidator, oidcValidator)
 	adminServer := server.NewAdminServer(pool, accountStore, version)
 	topicServer := server.NewTopicServer(topicStore, authorizer, embeddingConfigStore)
 	docServer := server.NewDocumentServer(docStore, jobStore, httpFetcher, authorizer)
-	chunkServer := server.NewChunkServer(chunkStore, docStore, vectorBackend, authorizer)
+	chunkServer := server.NewChunkServer(chunkStore, docStore, topicStore, jobStore, vectorBackend, authorizer)
 	searcher := retrieval.NewSearcher(chunkStore, docStore, authorizer, vectorBackend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authorizer)
 	retrievalServer := server.NewRetrievalServer(searcher, contextFetcher)
 	configServer := server.NewConfigServer(apiKeyConfigStore, llmConfigStore, embeddingConfigStore, extractionPromptConfigStore)
 	jobServer := server.NewJobServer(jobStore, docStore, authorizer)
-	memoryStore := store.NewMemoryStore(pool)
 	memoryServer := server.NewMemoryServer(memoryStore, vectorBackend, nil)
 	pb.RegisterAdminServiceServer(srv.GRPCServer(), adminServer)
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), topicServer)

@@ -65,7 +65,7 @@ func setupWorkerTestDB(t *testing.T) (*pgxpool.Pool, string) {
 
 	// Create a topic and document.
 	topicStore := store.NewTopicStore(pool)
-	topic, err := topicStore.Create(ctx, "worker-test-topic", "Worker Test Topic", "", "", nil, nil, nil)
+	topic, err := topicStore.Create(ctx, "worker-test-topic", "Worker Test Topic", "", "", nil, nil, nil, false)
 	if err != nil {
 		// Topic may already exist; find it by listing all topics.
 		topics, listErr := topicStore.ListForPrincipals(ctx, nil)

@@ -91,6 +91,23 @@ func (s *JobStore) Create(ctx context.Context, documentID, jobType string) (*Pro
 	return j, nil
 }
 
+// CreateWithProgress inserts a new queued processing job with initial progress data.
+func (s *JobStore) CreateWithProgress(ctx context.Context, documentID, jobType string, progress map[string]any) (*ProcessingJob, error) {
+	progressJSON, err := json.Marshal(progress)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling progress: %w", err)
+	}
+	row := s.pool.QueryRow(ctx,
+		`INSERT INTO processing_jobs (document_id, job_type, progress) VALUES ($1, $2, $3) RETURNING `+jobColumns,
+		documentID, jobType, progressJSON,
+	)
+	j, err := scanJob(row)
+	if err != nil {
+		return nil, fmt.Errorf("inserting processing job with progress: %w", err)
+	}
+	return j, nil
+}
+
 // Get retrieves a processing job by ID.
 func (s *JobStore) Get(ctx context.Context, id string) (*ProcessingJob, error) {
 	row := s.pool.QueryRow(ctx,
