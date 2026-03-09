@@ -91,7 +91,8 @@ func setupTestEnv(t *testing.T) *testEnv {
 	srv := server.New(0, apiKeyValidator, nil)
 	pb.RegisterAdminServiceServer(srv.GRPCServer(), server.NewAdminServer(pool, accountStore, "test"))
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), server.NewTopicServer(topicStore, authorizer, nil))
-	pb.RegisterDocumentServiceServer(srv.GRPCServer(), server.NewDocumentServer(docStore, authorizer))
+	jobStore := store.NewJobStore(pool)
+	pb.RegisterDocumentServiceServer(srv.GRPCServer(), server.NewDocumentServer(docStore, jobStore, nil, authorizer))
 	pb.RegisterChunkServiceServer(srv.GRPCServer(), server.NewChunkServer(chunkStore, docStore, backend, authorizer))
 	pb.RegisterRetrievalServiceServer(srv.GRPCServer(), server.NewRetrievalServer(searcher, contextFetcher))
 
@@ -352,12 +353,8 @@ func TestTopicRPCs_ValidationErrors(t *testing.T) {
 	env := setupTestEnv(t)
 	ctx := env.authCtx()
 
-	_, err := env.topics.CreateTopic(ctx, &pb.CreateTopicRequest{Slug: "", Name: "test"})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Errorf("expected InvalidArgument for empty slug, got %v", err)
-	}
-
-	_, err = env.topics.CreateTopic(ctx, &pb.CreateTopicRequest{Slug: "test", Name: ""})
+	// Slug is now auto-generated when empty, so only empty name is an error.
+	_, err := env.topics.CreateTopic(ctx, &pb.CreateTopicRequest{Name: ""})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Errorf("expected InvalidArgument for empty name, got %v", err)
 	}
@@ -502,10 +499,17 @@ func TestDocumentRPCs_ValidationErrors(t *testing.T) {
 	ctx := env.authCtx()
 
 	_, err := env.documents.CreateDocument(ctx, &pb.CreateDocumentRequest{
-		TopicId: "", Slug: "s", Name: "n",
+		TopicId: "", Name: "n",
 	})
 	if status.Code(err) != codes.InvalidArgument {
-		t.Errorf("expected InvalidArgument, got %v", err)
+		t.Errorf("expected InvalidArgument for empty topic_id, got %v", err)
+	}
+
+	_, err = env.documents.CreateDocument(ctx, &pb.CreateDocumentRequest{
+		TopicId: "some-id", Name: "",
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Errorf("expected InvalidArgument for empty name, got %v", err)
 	}
 
 	_, err = env.documents.GetDocument(ctx, &pb.GetDocumentRequest{Id: ""})
@@ -900,5 +904,119 @@ func TestListTopics_NonSystemPrincipal(t *testing.T) {
 	_, err := env.topics.ListTopics(ctx, &pb.ListTopicsRequest{})
 	if err != nil {
 		t.Fatalf("ListTopics: %v", err)
+	}
+}
+
+func TestUploadDocumentRPC(t *testing.T) {
+	env := setupTestEnv(t)
+	ctx := env.authCtx()
+
+	slug := fmt.Sprintf("upload-test-topic-%d", time.Now().UnixNano())
+	topic, err := env.topics.CreateTopic(ctx, &pb.CreateTopicRequest{
+		Slug: slug, Name: "Upload Test Topic",
+	})
+	if err != nil {
+		t.Fatalf("CreateTopic: %v", err)
+	}
+	t.Cleanup(func() { _, _ = env.topics.DeleteTopic(ctx, &pb.DeleteTopicRequest{Id: topic.Id}) })
+
+	// Upload with file content.
+	resp, err := env.documents.UploadDocument(ctx, &pb.UploadDocumentRequest{
+		TopicId:     topic.Id,
+		Name:        "Test Upload",
+		File:        []byte("Hello, world!"),
+		ContentType: "text/plain",
+	})
+	if err != nil {
+		t.Fatalf("UploadDocument: %v", err)
+	}
+	if resp.Document == nil {
+		t.Fatal("expected document in response")
+	}
+	if resp.Document.Status != "pending" {
+		t.Errorf("Status = %q, want pending", resp.Document.Status)
+	}
+	if resp.JobId == "" {
+		t.Error("expected non-empty job_id")
+	}
+	if resp.Document.Slug == "" {
+		t.Error("expected auto-generated slug")
+	}
+
+	// Verify document exists.
+	doc, err := env.documents.GetDocument(ctx, &pb.GetDocumentRequest{Id: resp.Document.Id})
+	if err != nil {
+		t.Fatalf("GetDocument: %v", err)
+	}
+	if doc.Status != "pending" {
+		t.Errorf("Status = %q, want pending", doc.Status)
+	}
+}
+
+func TestUploadDocumentRPC_ValidationErrors(t *testing.T) {
+	env := setupTestEnv(t)
+	ctx := env.authCtx()
+
+	// Neither file nor source_url.
+	_, err := env.documents.UploadDocument(ctx, &pb.UploadDocumentRequest{
+		TopicId: "some-id", Name: "n",
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Errorf("expected InvalidArgument for no file/url, got %v", err)
+	}
+
+	// Both file and source_url.
+	_, err = env.documents.UploadDocument(ctx, &pb.UploadDocumentRequest{
+		TopicId: "some-id", Name: "n", File: []byte("x"), SourceUrl: "http://example.com",
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Errorf("expected InvalidArgument for both file+url, got %v", err)
+	}
+}
+
+func TestCreateTopicRPC_AutoSlug(t *testing.T) {
+	env := setupTestEnv(t)
+	ctx := env.authCtx()
+
+	// Create topic without slug; should auto-generate.
+	topic, err := env.topics.CreateTopic(ctx, &pb.CreateTopicRequest{
+		Name: "Auto Slug Topic",
+	})
+	if err != nil {
+		t.Fatalf("CreateTopic: %v", err)
+	}
+	t.Cleanup(func() { _, _ = env.topics.DeleteTopic(ctx, &pb.DeleteTopicRequest{Id: topic.Id}) })
+
+	if topic.Slug == "" {
+		t.Error("expected auto-generated slug")
+	}
+}
+
+func TestCreateDocumentRPC_AutoSlug(t *testing.T) {
+	env := setupTestEnv(t)
+	ctx := env.authCtx()
+
+	slug := fmt.Sprintf("auto-slug-test-%d", time.Now().UnixNano())
+	topic, err := env.topics.CreateTopic(ctx, &pb.CreateTopicRequest{
+		Slug: slug, Name: "Auto Slug Doc Topic",
+	})
+	if err != nil {
+		t.Fatalf("CreateTopic: %v", err)
+	}
+	t.Cleanup(func() { _, _ = env.topics.DeleteTopic(ctx, &pb.DeleteTopicRequest{Id: topic.Id}) })
+
+	// Create document without slug.
+	doc, err := env.documents.CreateDocument(ctx, &pb.CreateDocumentRequest{
+		TopicId: topic.Id,
+		Name:    "My Document Name",
+	})
+	if err != nil {
+		t.Fatalf("CreateDocument: %v", err)
+	}
+	if doc.Slug == "" {
+		t.Error("expected auto-generated slug")
+	}
+	if doc.Status != "ready" {
+		t.Errorf("Status = %q, want ready", doc.Status)
 	}
 }

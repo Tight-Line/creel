@@ -38,6 +38,7 @@ func main() {
 	root.AddCommand(configCmd())
 	root.AddCommand(searchCmd())
 	root.AddCommand(jobsCmd())
+	root.AddCommand(uploadCmd())
 
 	if err := root.Execute(); err != nil {
 		os.Exit(1)

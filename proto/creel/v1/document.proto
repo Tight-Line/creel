@@ -34,6 +34,12 @@ service DocumentService {
       delete: "/v1/documents/{id}"
     };
   }
+  rpc UploadDocument(UploadDocumentRequest) returns (UploadDocumentResponse) {
+    option (google.api.http) = {
+      post: "/v1/documents:upload"
+      body: "*"
+    };
+  }
 }
 
 message Document {
@@ -48,6 +54,7 @@ message Document {
   string url = 9;
   string author = 10;
   google.protobuf.Timestamp published_at = 11;
+  string status = 12;
 }
 
 message CreateDocumentRequest {
@@ -91,3 +98,22 @@ message DeleteDocumentRequest {
 }
 
 message DeleteDocumentResponse {}
+
+message UploadDocumentRequest {
+  string topic_id = 1;
+  string slug = 2;
+  string name = 3;
+  string url = 4;
+  string author = 5;
+  google.protobuf.Timestamp published_at = 6;
+  google.protobuf.Struct metadata = 7;
+  bytes file = 8;
+  string source_url = 9;
+  string doc_type = 10;
+  string content_type = 11;
+}
+
+message UploadDocumentResponse {
+  Document document = 1;
+  string job_id = 2;
+}

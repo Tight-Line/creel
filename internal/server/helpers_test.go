@@ -702,7 +702,7 @@ func TestTopicServer_ListGrants_StoreError(t *testing.T) {
 
 func TestDocumentServer_CreateDocument_AuthorizerError(t *testing.T) {
 	db := failDBTX()
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{checkErr: errors.New("denied")})
 	ctx := systemCtx()
 
 	_, err := s.CreateDocument(ctx, &pb.CreateDocumentRequest{
@@ -713,7 +713,7 @@ func TestDocumentServer_CreateDocument_AuthorizerError(t *testing.T) {
 
 func TestDocumentServer_CreateDocument_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.CreateDocument(ctx, &pb.CreateDocumentRequest{
@@ -724,7 +724,7 @@ func TestDocumentServer_CreateDocument_StoreError(t *testing.T) {
 
 func TestDocumentServer_CreateDocument_WithCitationFields(t *testing.T) {
 	db := failDBTX()
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.CreateDocument(ctx, &pb.CreateDocumentRequest{
@@ -741,7 +741,7 @@ func TestDocumentServer_CreateDocument_WithCitationFields(t *testing.T) {
 
 func TestDocumentServer_GetDocument_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.GetDocument(ctx, &pb.GetDocumentRequest{Id: "doc-1"})
@@ -768,7 +768,7 @@ func TestDocumentServer_GetDocument_AuthorizerError(t *testing.T) {
 			return &mockRow{err: nil} // Scan succeeds with zero values
 		},
 	}
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{checkErr: errors.New("denied")})
 	ctx := systemCtx()
 
 	_, err := s.GetDocument(ctx, &pb.GetDocumentRequest{Id: "doc-1"})
@@ -777,7 +777,7 @@ func TestDocumentServer_GetDocument_AuthorizerError(t *testing.T) {
 
 func TestDocumentServer_ListDocuments_AuthorizerError(t *testing.T) {
 	db := failDBTX()
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{checkErr: errors.New("denied")})
 	ctx := systemCtx()
 
 	_, err := s.ListDocuments(ctx, &pb.ListDocumentsRequest{TopicId: "topic-1"})
@@ -786,7 +786,7 @@ func TestDocumentServer_ListDocuments_AuthorizerError(t *testing.T) {
 
 func TestDocumentServer_ListDocuments_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.ListDocuments(ctx, &pb.ListDocumentsRequest{TopicId: "topic-1"})
@@ -795,7 +795,7 @@ func TestDocumentServer_ListDocuments_StoreError(t *testing.T) {
 
 func TestDocumentServer_UpdateDocument_TopicIDError(t *testing.T) {
 	db := failDBTX()
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.UpdateDocument(ctx, &pb.UpdateDocumentRequest{Id: "doc-1"})
@@ -809,7 +809,7 @@ func TestDocumentServer_UpdateDocument_AuthorizerError(t *testing.T) {
 			return &mockRow{err: nil}
 		},
 	}
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{checkErr: errors.New("denied")})
 	ctx := systemCtx()
 
 	_, err := s.UpdateDocument(ctx, &pb.UpdateDocumentRequest{Id: "doc-1"})
@@ -831,7 +831,7 @@ func TestDocumentServer_UpdateDocument_StoreError(t *testing.T) {
 			return &mockRow{err: errors.New("db error")} // Update fails
 		},
 	}
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.UpdateDocument(ctx, &pb.UpdateDocumentRequest{Id: "doc-1"})
@@ -849,7 +849,7 @@ func TestDocumentServer_UpdateDocument_WithCitationFields(t *testing.T) {
 			return &mockRow{err: errors.New("db error")} // Update fails
 		},
 	}
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.UpdateDocument(ctx, &pb.UpdateDocumentRequest{
@@ -864,7 +864,7 @@ func TestDocumentServer_UpdateDocument_WithCitationFields(t *testing.T) {
 
 func TestDocumentServer_DeleteDocument_TopicIDError(t *testing.T) {
 	db := failDBTX()
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.DeleteDocument(ctx, &pb.DeleteDocumentRequest{Id: "doc-1"})
@@ -877,7 +877,7 @@ func TestDocumentServer_DeleteDocument_AuthorizerError(t *testing.T) {
 			return &mockRow{err: nil}
 		},
 	}
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{checkErr: errors.New("denied")})
 	ctx := systemCtx()
 
 	_, err := s.DeleteDocument(ctx, &pb.DeleteDocumentRequest{Id: "doc-1"})
@@ -894,7 +894,7 @@ func TestDocumentServer_DeleteDocument_StoreError(t *testing.T) {
 			return pgconn.CommandTag{}, errors.New("db error")
 		},
 	}
-	s := NewDocumentServer(store.NewDocumentStore(db), &mockAuthorizer{})
+	s := NewDocumentServer(store.NewDocumentStore(db), nil, nil, &mockAuthorizer{})
 	ctx := systemCtx()
 
 	_, err := s.DeleteDocument(ctx, &pb.DeleteDocumentRequest{Id: "doc-1"})
@@ -1313,7 +1313,7 @@ func TestNilPrincipal_DocumentServer(t *testing.T) {
 	db := &mockDBTX{}
 	ds := store.NewDocumentStore(db)
 	authz := &mockAuthorizer{}
-	s := NewDocumentServer(ds, authz)
+	s := NewDocumentServer(ds, nil, nil, authz)
 	ctx := context.Background()
 
 	_, err := s.CreateDocument(ctx, &pb.CreateDocumentRequest{TopicId: "t", Slug: "s", Name: "n"})

@@ -26,6 +26,7 @@ type Document struct {
 	Slug        string
 	Name        string
 	DocType     string
+	Status      string
 	Metadata    map[string]any
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -34,8 +35,23 @@ type Document struct {
 	PublishedAt *time.Time
 }
 
+// DocumentContent holds raw uploaded content and extracted text for a document.
+type DocumentContent struct {
+	DocumentID    string
+	RawContent    []byte
+	ContentType   string
+	ExtractedText string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
 // Create inserts a new document.
 func (s *DocumentStore) Create(ctx context.Context, topicID, slug, name, docType string, metadata map[string]any, url, author *string, publishedAt *time.Time) (*Document, error) {
+	return s.CreateWithStatus(ctx, topicID, slug, name, docType, "ready", metadata, url, author, publishedAt)
+}
+
+// CreateWithStatus inserts a new document with an explicit status.
+func (s *DocumentStore) CreateWithStatus(ctx context.Context, topicID, slug, name, docType, docStatus string, metadata map[string]any, url, author *string, publishedAt *time.Time) (*Document, error) {
 	if metadata == nil {
 		metadata = map[string]any{}
 	}
@@ -47,11 +63,11 @@ func (s *DocumentStore) Create(ctx context.Context, topicID, slug, name, docType
 	var d Document
 	var metaBytes []byte
 	err = s.pool.QueryRow(ctx,
-		`INSERT INTO documents (topic_id, slug, name, doc_type, metadata, url, author, published_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		 RETURNING id, topic_id, slug, name, doc_type, metadata, created_at, updated_at, url, author, published_at`,
-		topicID, slug, name, docType, metaJSON, url, author, publishedAt,
-	).Scan(&d.ID, &d.TopicID, &d.Slug, &d.Name, &d.DocType, &metaBytes, &d.CreatedAt, &d.UpdatedAt, &d.URL, &d.Author, &d.PublishedAt)
+		`INSERT INTO documents (topic_id, slug, name, doc_type, status, metadata, url, author, published_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 RETURNING id, topic_id, slug, name, doc_type, status, metadata, created_at, updated_at, url, author, published_at`,
+		topicID, slug, name, docType, docStatus, metaJSON, url, author, publishedAt,
+	).Scan(&d.ID, &d.TopicID, &d.Slug, &d.Name, &d.DocType, &d.Status, &metaBytes, &d.CreatedAt, &d.UpdatedAt, &d.URL, &d.Author, &d.PublishedAt)
 	if err != nil {
 		return nil, fmt.Errorf("inserting document: %w", err)
 	}
@@ -64,9 +80,9 @@ func (s *DocumentStore) Get(ctx context.Context, id string) (*Document, error) {
 	var d Document
 	var metaBytes []byte
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, topic_id, slug, name, doc_type, metadata, created_at, updated_at, url, author, published_at
+		`SELECT id, topic_id, slug, name, doc_type, status, metadata, created_at, updated_at, url, author, published_at
 		 FROM documents WHERE id = $1`, id,
-	).Scan(&d.ID, &d.TopicID, &d.Slug, &d.Name, &d.DocType, &metaBytes, &d.CreatedAt, &d.UpdatedAt, &d.URL, &d.Author, &d.PublishedAt)
+	).Scan(&d.ID, &d.TopicID, &d.Slug, &d.Name, &d.DocType, &d.Status, &metaBytes, &d.CreatedAt, &d.UpdatedAt, &d.URL, &d.Author, &d.PublishedAt)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("document not found")
 	}
@@ -80,7 +96,7 @@ func (s *DocumentStore) Get(ctx context.Context, id string) (*Document, error) {
 // ListByTopic returns documents in a topic.
 func (s *DocumentStore) ListByTopic(ctx context.Context, topicID string) ([]Document, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, topic_id, slug, name, doc_type, metadata, created_at, updated_at, url, author, published_at
+		`SELECT id, topic_id, slug, name, doc_type, status, metadata, created_at, updated_at, url, author, published_at
 		 FROM documents WHERE topic_id = $1 ORDER BY created_at`, topicID,
 	)
 	if err != nil {
@@ -92,7 +108,7 @@ func (s *DocumentStore) ListByTopic(ctx context.Context, topicID string) ([]Docu
 	for rows.Next() {
 		var d Document
 		var metaBytes []byte
-		if err := rows.Scan(&d.ID, &d.TopicID, &d.Slug, &d.Name, &d.DocType, &metaBytes, &d.CreatedAt, &d.UpdatedAt, &d.URL, &d.Author, &d.PublishedAt); err != nil {
+		if err := rows.Scan(&d.ID, &d.TopicID, &d.Slug, &d.Name, &d.DocType, &d.Status, &metaBytes, &d.CreatedAt, &d.UpdatedAt, &d.URL, &d.Author, &d.PublishedAt); err != nil {
 			return nil, fmt.Errorf("scanning document: %w", err)
 		}
 		_ = json.Unmarshal(metaBytes, &d.Metadata)
@@ -116,9 +132,9 @@ func (s *DocumentStore) Update(ctx context.Context, id, name, docType string, me
 	err = s.pool.QueryRow(ctx,
 		`UPDATE documents SET name = $2, doc_type = $3, metadata = $4, url = $5, author = $6, published_at = $7, updated_at = now()
 		 WHERE id = $1
-		 RETURNING id, topic_id, slug, name, doc_type, metadata, created_at, updated_at, url, author, published_at`,
+		 RETURNING id, topic_id, slug, name, doc_type, status, metadata, created_at, updated_at, url, author, published_at`,
 		id, name, docType, metaJSON, url, author, publishedAt,
-	).Scan(&d.ID, &d.TopicID, &d.Slug, &d.Name, &d.DocType, &metaBytes, &d.CreatedAt, &d.UpdatedAt, &d.URL, &d.Author, &d.PublishedAt)
+	).Scan(&d.ID, &d.TopicID, &d.Slug, &d.Name, &d.DocType, &d.Status, &metaBytes, &d.CreatedAt, &d.UpdatedAt, &d.URL, &d.Author, &d.PublishedAt)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("document not found")
 	}
@@ -135,7 +151,7 @@ func (s *DocumentStore) GetMultiple(ctx context.Context, ids []string) (map[stri
 		return nil, nil
 	}
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, topic_id, slug, name, doc_type, metadata, created_at, updated_at, url, author, published_at
+		`SELECT id, topic_id, slug, name, doc_type, status, metadata, created_at, updated_at, url, author, published_at
 		 FROM documents WHERE id = ANY($1)`, ids,
 	)
 	if err != nil {
@@ -147,7 +163,7 @@ func (s *DocumentStore) GetMultiple(ctx context.Context, ids []string) (map[stri
 	for rows.Next() {
 		var d Document
 		var metaBytes []byte
-		if err := rows.Scan(&d.ID, &d.TopicID, &d.Slug, &d.Name, &d.DocType, &metaBytes, &d.CreatedAt, &d.UpdatedAt, &d.URL, &d.Author, &d.PublishedAt); err != nil {
+		if err := rows.Scan(&d.ID, &d.TopicID, &d.Slug, &d.Name, &d.DocType, &d.Status, &metaBytes, &d.CreatedAt, &d.UpdatedAt, &d.URL, &d.Author, &d.PublishedAt); err != nil {
 			return nil, fmt.Errorf("scanning document: %w", err)
 		}
 		_ = json.Unmarshal(metaBytes, &d.Metadata)
@@ -179,4 +195,61 @@ func (s *DocumentStore) TopicIDForDocument(ctx context.Context, docID string) (s
 		return "", fmt.Errorf("querying document topic: %w", err)
 	}
 	return topicID, nil
+}
+
+// UpdateStatus sets the status of a document.
+func (s *DocumentStore) UpdateStatus(ctx context.Context, id, status string) error {
+	tag, err := s.pool.Exec(ctx, `UPDATE documents SET status = $2, updated_at = now() WHERE id = $1`, id, status)
+	if err != nil {
+		return fmt.Errorf("updating document status: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("document not found")
+	}
+	return nil
+}
+
+// SaveContent stores raw content and content type for a document.
+func (s *DocumentStore) SaveContent(ctx context.Context, docID string, rawContent []byte, contentType string) error {
+	_, err := s.pool.Exec(ctx,
+		`INSERT INTO document_content (document_id, raw_content, content_type)
+		 VALUES ($1, $2, $3)
+		 ON CONFLICT (document_id) DO UPDATE SET raw_content = $2, content_type = $3, updated_at = now()`,
+		docID, rawContent, contentType,
+	)
+	if err != nil {
+		return fmt.Errorf("saving document content: %w", err)
+	}
+	return nil
+}
+
+// GetContent retrieves raw content for a document.
+func (s *DocumentStore) GetContent(ctx context.Context, docID string) (*DocumentContent, error) {
+	var dc DocumentContent
+	err := s.pool.QueryRow(ctx,
+		`SELECT document_id, raw_content, content_type, extracted_text, created_at, updated_at
+		 FROM document_content WHERE document_id = $1`, docID,
+	).Scan(&dc.DocumentID, &dc.RawContent, &dc.ContentType, &dc.ExtractedText, &dc.CreatedAt, &dc.UpdatedAt)
+	if err == pgx.ErrNoRows {
+		return nil, fmt.Errorf("document content not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("querying document content: %w", err)
+	}
+	return &dc, nil
+}
+
+// SaveExtractedText stores extracted text for a document.
+func (s *DocumentStore) SaveExtractedText(ctx context.Context, docID, text string) error {
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE document_content SET extracted_text = $2, updated_at = now() WHERE document_id = $1`,
+		docID, text,
+	)
+	if err != nil {
+		return fmt.Errorf("saving extracted text: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("document content not found")
+	}
+	return nil
 }
