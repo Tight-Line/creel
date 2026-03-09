@@ -122,21 +122,31 @@ assistant> The blockers from the standup are:
 - The OIDC provider sandbox is down; Sarah is waiting on IT
 ```
 
-`--cross-topic` also works here since you own the `my-notes` topic:
+Conversation context persists across sessions. Have a conversation that mentions something specific, then exit and start a new session:
+
+```
+you> I need to get the pgvector upgrade done right away. I'm leaving early for my son's game.
+assistant> Makes sense — the pgvector upgrade on staging is your top priority before you
+head out. ...
+```
+
+Exit with Ctrl-D, then start a fresh session:
 
 ```bash
 bin/creel-chat --cross-topic
 ```
 
 ```
-you> What are the blockers from the standup?
-assistant> The blockers from the standup are:
+you> What's on my docket?
+assistant> The main thing I have from prior context is:
 
-- Staging database needs a `pgvector` extension upgrade before load tests
-- The OIDC provider sandbox is down; Sarah is waiting on IT
+- Get pgvector installed/upgraded on staging before load tests
+- You'd said that was your top priority because you were leaving early for your son's game
 ```
 
-See [CREEL_CHAT.md](CREEL_CHAT.md) for Anthropic, Ollama, and other provider options. The [Fullstart](FULLSTART.md) guide walks through RAG, memory persistence across sessions, and cross-topic search with creel-chat.
+The new session recalled context from the previous one via RAG over stored conversation chunks.
+
+See [CREEL_CHAT.md](CREEL_CHAT.md) for Anthropic, Ollama, and other provider options. The [Fullstart](FULLSTART.md) guide walks through memory, cross-topic search, and more.
 
 ## Next steps
 
