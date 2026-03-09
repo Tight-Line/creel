@@ -398,53 +398,95 @@ From the dashboard you can:
 
 ## 12. Interactive chat with creel-chat
 
-creel-chat is a terminal REPL that uses Creel for RAG and memory, with streaming LLM responses.
+creel-chat is a terminal REPL that uses Creel for RAG and memory, with streaming LLM responses. It calls OpenAI directly for both embeddings and chat completion, so you need `OPENAI_API_KEY` in your shell environment (separate from the server-side config you set in step 2).
 
 ```bash
 export OPENAI_API_KEY="your-key-here"
+```
 
-# Start a chat session in the fishing topic
+### Session 1: RAG search and building memory
+
+Start a chat session scoped to the fishing topic:
+
+```bash
 bin/creel-chat --topic fly-fishing --memory-scope fishing
 ```
 
-Try these interactions:
+Ask a question that the uploaded documents can answer:
 
 ```
-> What flies should I use in June?
+you> What flies should I use for evening fishing in June?
 ```
 
-The RAG layer pulls in hatch chart chunks with citations. The memory layer knows you prefer dry flies.
+The assistant's answer draws on the hatch chart and fishing report you uploaded in step 4. The RAG layer retrieves relevant chunks and the response references Sulphurs, Green Drakes, and Isonychia.
+
+Now tell the assistant something about yourself:
 
 ```
-> /remember I caught a 20-inch brook trout on a Green Drake last June
+you> I'm a fly fishing guide based in Rangeley, Maine. I mostly guide clients on the Kennebago River and Rangeley Lake. I need to keep up with hatch charts and conditions reports so I can plan trips.
 ```
 
-This adds a memory directly. Future sessions will know about this.
+The assistant acknowledges this. Behind the scenes, the memory extraction worker may pick up facts from the conversation (depending on your LLM config). You can also add memories explicitly:
 
 ```
-> What about the ski conditions at Saddleback?
+you> /remember I prefer dry fly fishing over nymphing whenever possible
+you> /remember My best day last season was 20 brook trout on Green Drakes in June on the Kennebago
 ```
 
-This probably returns nothing; you are only searching the fly-fishing topic. Exit and restart with cross-topic search:
+Exit the session with Ctrl-D. Note the resume command printed on exit.
+
+### Session 2: memory persists across sessions
+
+Start a new session (do NOT use `--resume`; this is a fresh session that should recall memories from session 1):
+
+```bash
+bin/creel-chat --topic fly-fishing --memory-scope fishing
+```
+
+Ask a question that relies on what you told session 1:
 
 ```
-> quit
+you> What should I be preparing for this month on the river?
 ```
+
+The assistant knows you are a guide on the Kennebago, that you prefer dry flies, and that you had a great Green Drake season. It combines RAG results (hatch chart, conditions report) with your stored memories to give a personalized answer.
+
+Try something more specific:
+
+```
+you> Any tips for my clients who are beginners? What's the easiest hatch to fish right now?
+```
+
+The response should reference your guiding context and recommend appropriate hatches from the indexed documents.
+
+Exit with Ctrl-D.
+
+### Cross-topic search
+
+Start a session with `--cross-topic` to search across all accessible topics:
 
 ```bash
 bin/creel-chat --topic fly-fishing --memory-scope fishing --cross-topic
 ```
 
-Now ask about ski conditions again; the RAG layer will pull chunks from the ski-conditions topic.
+```
+you> What are the conditions at Saddleback today?
+```
 
-When you exit, creel-chat prints a resume command:
+Without `--cross-topic`, this returns nothing because you are scoped to the fly-fishing topic. With it, the RAG layer pulls chunks from the ski-conditions topic and the assistant can tell you about the 48-inch base and fresh powder.
+
+Exit with Ctrl-D.
+
+### Resuming a session
+
+When creel-chat exits, it prints a resume command:
 
 ```
 To resume this session:
   creel-chat --resume <document-id> --topic fly-fishing
 ```
 
-Use it to continue the conversation later with full session history.
+Use it to continue the conversation with full session history intact. The assistant remembers everything from the original session verbatim.
 
 ## Cleanup
 
