@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -71,12 +72,22 @@ func (w *ExtractionWorker) Process(ctx context.Context, job *store.ProcessingJob
 
 // ExtractText extracts text content from raw bytes based on the content type.
 // Supported types: text/plain (passthrough), text/html (tag stripping).
-// Unsupported types return an error.
+// If contentType is empty, the type is detected from the data using
+// http.DetectContentType.
 func ExtractText(data []byte, contentType string) (string, error) {
 	// Normalize content type by taking only the media type portion.
 	ct := strings.ToLower(strings.TrimSpace(contentType))
 	if idx := strings.Index(ct, ";"); idx >= 0 {
 		ct = strings.TrimSpace(ct[:idx])
+	}
+
+	// Auto-detect when no content type is provided.
+	if ct == "" {
+		detected := http.DetectContentType(data)
+		ct = strings.ToLower(detected)
+		if idx := strings.Index(ct, ";"); idx >= 0 {
+			ct = strings.TrimSpace(ct[:idx])
+		}
 	}
 
 	switch ct {
