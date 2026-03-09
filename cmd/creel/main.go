@@ -18,6 +18,7 @@ import (
 	"github.com/Tight-Line/creel/internal/auth"
 	"github.com/Tight-Line/creel/internal/config"
 	"github.com/Tight-Line/creel/internal/crypto"
+	"github.com/Tight-Line/creel/internal/fetch"
 	"github.com/Tight-Line/creel/internal/retrieval"
 	"github.com/Tight-Line/creel/internal/server"
 	"github.com/Tight-Line/creel/internal/store"
@@ -117,11 +118,16 @@ func run() error {
 	jobStore := store.NewJobStore(pool)
 	workerPool := worker.NewPool(jobStore, cfg.Workers.Concurrency, cfg.Workers.PollInterval, slog.Default())
 
+	// Create fetcher and register extraction worker.
+	httpFetcher := fetch.NewHTTPFetcher()
+	extractionWorker := worker.NewExtractionWorker(docStore)
+	workerPool.Register(extractionWorker)
+
 	// Create and wire server.
 	srv := server.New(cfg.Server.GRPCPort, apiKeyValidator, oidcValidator)
 	adminServer := server.NewAdminServer(pool, accountStore, version)
 	topicServer := server.NewTopicServer(topicStore, authorizer, embeddingConfigStore)
-	docServer := server.NewDocumentServer(docStore, authorizer)
+	docServer := server.NewDocumentServer(docStore, jobStore, httpFetcher, authorizer)
 	chunkServer := server.NewChunkServer(chunkStore, docStore, vectorBackend, authorizer)
 	searcher := retrieval.NewSearcher(chunkStore, docStore, authorizer, vectorBackend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authorizer)

@@ -11,6 +11,8 @@ import (
 
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
 	"github.com/Tight-Line/creel/internal/auth"
+	"github.com/Tight-Line/creel/internal/fetch"
+	"github.com/Tight-Line/creel/internal/slug"
 	"github.com/Tight-Line/creel/internal/store"
 )
 
@@ -18,13 +20,17 @@ import (
 type DocumentServer struct {
 	pb.UnimplementedDocumentServiceServer
 	docStore   *store.DocumentStore
+	jobStore   *store.JobStore
+	fetcher    fetch.Fetcher
 	authorizer auth.Authorizer
 }
 
 // NewDocumentServer creates a new document service.
-func NewDocumentServer(docStore *store.DocumentStore, authorizer auth.Authorizer) *DocumentServer {
+func NewDocumentServer(docStore *store.DocumentStore, jobStore *store.JobStore, fetcher fetch.Fetcher, authorizer auth.Authorizer) *DocumentServer {
 	return &DocumentServer{
 		docStore:   docStore,
+		jobStore:   jobStore,
+		fetcher:    fetcher,
 		authorizer: authorizer,
 	}
 }
@@ -35,12 +41,17 @@ func (s *DocumentServer) CreateDocument(ctx context.Context, req *pb.CreateDocum
 	if p == nil {
 		return nil, status.Error(codes.Unauthenticated, "not authenticated")
 	}
-	if req.GetTopicId() == "" || req.GetSlug() == "" || req.GetName() == "" {
-		return nil, status.Error(codes.InvalidArgument, "topic_id, slug, and name are required")
+	if req.GetTopicId() == "" || req.GetName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "topic_id and name are required")
 	}
 
 	if err := s.authorizer.Check(ctx, p, req.GetTopicId(), auth.ActionWrite); err != nil {
 		return nil, status.Error(codes.PermissionDenied, err.Error())
+	}
+
+	docSlug := req.GetSlug()
+	if docSlug == "" {
+		docSlug = slug.Generate(req.GetName())
 	}
 
 	meta := structToMap(req.GetMetadata())
@@ -64,7 +75,7 @@ func (s *DocumentServer) CreateDocument(ctx context.Context, req *pb.CreateDocum
 		publishedAt = &t
 	}
 
-	d, err := s.docStore.Create(ctx, req.GetTopicId(), req.GetSlug(), req.GetName(), docType, meta, url, author, publishedAt)
+	d, err := s.docStore.Create(ctx, req.GetTopicId(), docSlug, req.GetName(), docType, meta, url, author, publishedAt)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "creating document: %v", err)
 	}
@@ -187,6 +198,96 @@ func (s *DocumentServer) DeleteDocument(ctx context.Context, req *pb.DeleteDocum
 	return &pb.DeleteDocumentResponse{}, nil
 }
 
+// UploadDocument creates a document from uploaded content or a source URL,
+// then enqueues an extraction job. Requires write permission on the topic.
+func (s *DocumentServer) UploadDocument(ctx context.Context, req *pb.UploadDocumentRequest) (*pb.UploadDocumentResponse, error) {
+	p := auth.PrincipalFromContext(ctx)
+	if p == nil {
+		return nil, status.Error(codes.Unauthenticated, "not authenticated")
+	}
+	if req.GetTopicId() == "" || req.GetName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "topic_id and name are required")
+	}
+
+	hasFile := len(req.GetFile()) > 0
+	hasSourceURL := req.GetSourceUrl() != ""
+	if hasFile == hasSourceURL {
+		return nil, status.Error(codes.InvalidArgument, "exactly one of file or source_url must be provided")
+	}
+
+	if err := s.authorizer.Check(ctx, p, req.GetTopicId(), auth.ActionWrite); err != nil {
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	}
+
+	// Determine content.
+	var rawContent []byte
+	var contentType string
+	if hasSourceURL {
+		if s.fetcher == nil {
+			return nil, status.Error(codes.Internal, "fetcher not configured")
+		}
+		result, err := s.fetcher.Fetch(ctx, req.GetSourceUrl())
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "fetching source URL: %v", err)
+		}
+		rawContent = result.Data
+		contentType = result.ContentType
+	} else {
+		rawContent = req.GetFile()
+		contentType = req.GetContentType()
+	}
+
+	// Override content type if provided in request.
+	if req.GetContentType() != "" {
+		contentType = req.GetContentType()
+	}
+
+	docSlug := req.GetSlug()
+	if docSlug == "" {
+		docSlug = slug.Generate(req.GetName())
+	}
+
+	meta := structToMap(req.GetMetadata())
+	docType := req.GetDocType()
+	if docType == "" {
+		docType = "reference"
+	}
+
+	var url, author *string
+	if req.GetUrl() != "" {
+		u := req.GetUrl()
+		url = &u
+	}
+	if req.GetAuthor() != "" {
+		a := req.GetAuthor()
+		author = &a
+	}
+	var publishedAt *time.Time
+	if req.GetPublishedAt() != nil {
+		t := req.GetPublishedAt().AsTime()
+		publishedAt = &t
+	}
+
+	d, err := s.docStore.CreateWithStatus(ctx, req.GetTopicId(), docSlug, req.GetName(), docType, "pending", meta, url, author, publishedAt)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "creating document: %v", err)
+	}
+
+	if err := s.docStore.SaveContent(ctx, d.ID, rawContent, contentType); err != nil {
+		return nil, status.Errorf(codes.Internal, "saving content: %v", err)
+	}
+
+	job, err := s.jobStore.Create(ctx, d.ID, "extraction")
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "creating extraction job: %v", err)
+	}
+
+	return &pb.UploadDocumentResponse{
+		Document: storeDocToProto(d),
+		JobId:    job.ID,
+	}, nil
+}
+
 func storeDocToProto(d *store.Document) *pb.Document {
 	doc := &pb.Document{
 		Id:        d.ID,
@@ -194,6 +295,7 @@ func storeDocToProto(d *store.Document) *pb.Document {
 		Slug:      d.Slug,
 		Name:      d.Name,
 		DocType:   d.DocType,
+		Status:    d.Status,
 		Metadata:  mapToStruct(d.Metadata),
 		CreatedAt: timestamppb.New(d.CreatedAt),
 		UpdatedAt: timestamppb.New(d.UpdatedAt),

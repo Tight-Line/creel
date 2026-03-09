@@ -9,6 +9,7 @@ import (
 
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
 	"github.com/Tight-Line/creel/internal/auth"
+	"github.com/Tight-Line/creel/internal/slug"
 	"github.com/Tight-Line/creel/internal/store"
 )
 
@@ -35,11 +36,12 @@ func (s *TopicServer) CreateTopic(ctx context.Context, req *pb.CreateTopicReques
 	if p == nil {
 		return nil, status.Error(codes.Unauthenticated, "not authenticated")
 	}
-	if req.GetSlug() == "" {
-		return nil, status.Error(codes.InvalidArgument, "slug is required")
-	}
 	if req.GetName() == "" {
 		return nil, status.Error(codes.InvalidArgument, "name is required")
+	}
+	topicSlug := req.GetSlug()
+	if topicSlug == "" {
+		topicSlug = slug.Generate(req.GetName())
 	}
 
 	// Enforce: if extraction prompt is set, LLM config must also be set.
@@ -63,7 +65,7 @@ func (s *TopicServer) CreateTopic(ctx context.Context, req *pb.CreateTopicReques
 		promptCfgID = &v
 	}
 
-	t, err := s.topicStore.Create(ctx, req.GetSlug(), req.GetName(), req.GetDescription(), p.ID, llmCfgID, embCfgID, promptCfgID)
+	t, err := s.topicStore.Create(ctx, topicSlug, req.GetName(), req.GetDescription(), p.ID, llmCfgID, embCfgID, promptCfgID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "creating topic: %v", err)
 	}

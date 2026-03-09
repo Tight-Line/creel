@@ -470,6 +470,88 @@ func TestDocumentStore_GetMultiple_RowsErr(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// DocumentStore: new methods (status, content)
+// ---------------------------------------------------------------------------
+
+func TestDocumentStore_CreateWithStatus_Error(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewDocumentStore(db)
+	_, err := s.CreateWithStatus(ctx(), "topic-1", "slug", "name", "reference", "pending", nil, nil, nil, nil)
+	expectErr(t, err, "inserting document")
+}
+
+func TestDocumentStore_CreateWithStatus_BadMetadata(t *testing.T) {
+	s := NewDocumentStore(&mockDBTX{})
+	_, err := s.CreateWithStatus(ctx(), "tid", "s", "n", "t", "ready", map[string]any{"bad": math.Inf(1)}, nil, nil, nil)
+	expectErr(t, err, "marshaling metadata")
+}
+
+func TestDocumentStore_UpdateStatus_ExecError(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.CommandTag{}, errMock
+	}}
+	s := NewDocumentStore(db)
+	err := s.UpdateStatus(ctx(), "doc-1", "ready")
+	expectErr(t, err, "updating document status")
+}
+
+func TestDocumentStore_UpdateStatus_NotFound(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag("UPDATE 0"), nil
+	}}
+	s := NewDocumentStore(db)
+	err := s.UpdateStatus(ctx(), "doc-1", "ready")
+	expectErr(t, err, "document not found")
+}
+
+func TestDocumentStore_SaveContent_ExecError(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.CommandTag{}, errMock
+	}}
+	s := NewDocumentStore(db)
+	err := s.SaveContent(ctx(), "doc-1", []byte("data"), "text/plain")
+	expectErr(t, err, "saving document content")
+}
+
+func TestDocumentStore_GetContent_NotFound(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: pgx.ErrNoRows}
+	}}
+	s := NewDocumentStore(db)
+	_, err := s.GetContent(ctx(), "doc-1")
+	expectErr(t, err, "document content not found")
+}
+
+func TestDocumentStore_GetContent_OtherError(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewDocumentStore(db)
+	_, err := s.GetContent(ctx(), "doc-1")
+	expectErr(t, err, "querying document content")
+}
+
+func TestDocumentStore_SaveExtractedText_ExecError(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.CommandTag{}, errMock
+	}}
+	s := NewDocumentStore(db)
+	err := s.SaveExtractedText(ctx(), "doc-1", "extracted")
+	expectErr(t, err, "saving extracted text")
+}
+
+func TestDocumentStore_SaveExtractedText_NotFound(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag("UPDATE 0"), nil
+	}}
+	s := NewDocumentStore(db)
+	err := s.SaveExtractedText(ctx(), "doc-1", "extracted")
+	expectErr(t, err, "document content not found")
+}
+
+// ---------------------------------------------------------------------------
 // ChunkStore tests
 // ---------------------------------------------------------------------------
 

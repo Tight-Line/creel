@@ -566,7 +566,7 @@ func (m *mockRowsDocTopics) Scan(dest ...any) error {
 }
 
 // mockRowsDocGetMultiple provides rows for DocumentStore.GetMultiple
-// (id, topic_id, slug, name, doc_type, metadata, created_at, updated_at, url, author, published_at).
+// (id, topic_id, slug, name, doc_type, status, metadata, created_at, updated_at, url, author, published_at).
 type docGetMultipleRow struct {
 	id      string
 	topicID string
@@ -598,21 +598,22 @@ func (m *mockRowsDocGetMultiple) Next() bool {
 
 func (m *mockRowsDocGetMultiple) Scan(dest ...any) error {
 	row := m.docs[m.idx-1]
-	// Scans: id, topic_id, slug, name, doc_type, metadata, created_at, updated_at, url, author, published_at
-	if len(dest) != 11 {
-		return errors.New("expected 11 scan destinations for document GetMultiple")
+	// Scans: id, topic_id, slug, name, doc_type, status, metadata, created_at, updated_at, url, author, published_at
+	if len(dest) != 12 {
+		return errors.New("expected 12 scan destinations for document GetMultiple")
 	}
 	*dest[0].(*string) = row.id
 	*dest[1].(*string) = row.topicID
 	*dest[2].(*string) = row.slug
 	*dest[3].(*string) = row.name
 	*dest[4].(*string) = "text"
-	*dest[5].(*[]byte) = []byte("{}")
+	*dest[5].(*string) = "ready"
+	*dest[6].(*[]byte) = []byte("{}")
 	// created_at, updated_at are time.Time; zero values are fine.
 	// url, author are **string; nil is fine.
-	*dest[8].(**string) = nil
 	*dest[9].(**string) = nil
+	*dest[10].(**string) = nil
 	// published_at is **time.Time; nil is fine.
-	*dest[10].(**time.Time) = nil
+	*dest[11].(**time.Time) = nil
 	return nil
 }

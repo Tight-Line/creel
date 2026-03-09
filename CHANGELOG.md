@@ -9,7 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Background job infrastructure for document processing pipelines. Jobs track status (queued, running, completed, failed) with progress and error details. No worker types are registered yet; this lays the groundwork for future extraction, chunking, and embedding workers.
+- `UploadDocument` RPC for managed document ingestion. Upload a file directly or provide a `source_url` to fetch from. Creates the document with status `pending` and enqueues an extraction job automatically.
+- Document status tracking. Documents now have a `status` field (`pending`, `processing`, `ready`, `failed`) that reflects their processing state. Documents created via `CreateDocument` default to `ready`; uploads start as `pending`.
+- Extraction worker that processes uploaded documents. Supports `text/plain` (passthrough) and `text/html` (tag stripping with script/style removal). Unsupported content types fail gracefully and mark the document as `failed`.
+- Auto-generated slugs for topics and documents. When `slug` is omitted from `CreateTopic`, `CreateDocument`, or `UploadDocument`, a URL-friendly slug is generated from the name with a random 4-character suffix.
+- HTTP fetcher for downloading documents from a `source_url` with a 30-second timeout and 100MB size limit.
+- CLI `upload` command for uploading documents from local files or remote URLs.
+- Separate `document_content` table for storing raw uploaded bytes and extracted text, keeping the main documents table lean.
+- Background job infrastructure for document processing pipelines. Jobs track status (queued, running, completed, failed) with progress and error details. The extraction worker is registered; chunking and embedding workers are planned.
 - New `JobService` API with `GetJob` and `ListJobs` RPCs. Jobs can be filtered by topic, document, or status. Permission checks ensure you can only see jobs for topics you have read access to.
 - CLI commands `creel-cli jobs list` and `creel-cli jobs status <id>` for monitoring processing jobs.
 - Worker pool configuration via `workers.concurrency` and `workers.poll_interval` settings (defaults: 4 workers, 5s poll interval).
