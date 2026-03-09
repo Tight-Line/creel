@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Dashboard startup in Docker/Kubernetes: Laravel's `env()` reads from `.env` via phpdotenv, not from system environment variables. The startup script now generates `.env` from the container environment before running `config:cache`.
+
 ## [0.1.7] - 2026-03-09
 
 ### Added
