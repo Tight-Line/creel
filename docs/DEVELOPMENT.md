@@ -167,6 +167,14 @@ Never loop over a collection making one database call per iteration. Use batch q
 6. **Update API_REFERENCE.md**: document the new RPC.
 7. **Update CHANGELOG.md**: add an entry under `[Unreleased]`.
 
+## Adding a new worker type
+
+1. **Define the job type**: add the new value to the `processing_job` enum.
+2. **Implement the worker**: create the worker in `internal/worker/`.
+3. **Register the worker type**: wire it into the worker pool so it picks up jobs of the new type.
+4. **Write integration tests**: use mock LLM/embedding providers to exercise the worker without real external calls.
+5. **Update the dashboard**: if the worker has user-visible status, add or update the relevant dashboard views.
+
 ## Project structure
 
 ```
@@ -179,14 +187,18 @@ internal/retrieval/ RAG search logic
 internal/server/    gRPC service implementations
 internal/store/     PostgreSQL persistence (chunks, documents, topics, grants)
 internal/vector/    vector backend interface + implementations
+internal/worker/    background job processing (extraction, chunking, embedding, memory)
+internal/memory/    memory extraction and maintenance logic
+internal/crypto/    AES-256-GCM encryption for API key configs
 migrations/         SQL migrations (golang-migrate)
 proto/              protobuf definitions
 deploy/docker/      Dockerfile (production) and Dockerfile.dev (live-reload)
 deploy/helm/creel/  Helm chart
+dashboard/          Laravel admin dashboard
 ```
 
 ## Useful references
 
-- [Architecture](ARCHITECTURE.md): full design document and roadmap
+- [Architecture](ARCHITECTURE.md): full design document and phase roadmap, covering document processing, memory, and server-side workers
 - [API Reference](API_REFERENCE.md): all 28 RPCs
 - [Concepts](CONCEPTS.md): data model and design for integrators

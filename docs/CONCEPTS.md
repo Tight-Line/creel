@@ -27,9 +27,16 @@ Every API request carries a bearer token (OIDC JWT or API key). The server resol
 
 The topic creator automatically gets admin. There are no document-level or chunk-level grants; access is always at the topic level.
 
+## Document processing
+
+Creel offers two ingestion paths:
+
+- **Managed path** (default): Upload a document (PDF, HTML, plain text, or URL). Creel extracts text, chunks it, and computes embeddings in the background using the topic's configured providers and strategies. The client does not need to know about chunking, embedding, or extraction.
+- **Direct path** (power users): Push pre-chunked, pre-embedded content via `IngestChunks`. This skips the worker pipeline entirely. Useful for users who have their own processing stack.
+
 ## Embeddings
 
-Creel stores embedding vectors alongside chunks for semantic search. Currently, embeddings are **client-side**: the caller computes embeddings before ingesting chunks via `IngestChunks`.
+Creel stores embedding vectors alongside chunks for semantic search. The default path is now server-side: when a document is uploaded via the managed path, the server computes embeddings using the topic's configured embedding provider. The direct ingestion path (`IngestChunks` with pre-computed embeddings) is still available for power users.
 
 Key constraints:
 
@@ -37,12 +44,9 @@ Key constraints:
 - The search query embedding must match the topic's dimension.
 - Dimension is set by the first chunk ingested into a topic.
 
-Supported embedding providers (in creel-chat):
+## Document metadata & citations
 
-- OpenAI (text-embedding-3-small, 1536 dimensions)
-- Ollama (local models, dimension varies by model)
-
-Server-side embedding is planned for Phase 5.
+Documents carry structured citation metadata: name, URL, author, publication date, and custom JSONB fields. All RAG search results include the parent document's citation metadata alongside each chunk, enabling LLMs to generate properly cited responses without additional lookups.
 
 ## Search modes
 
@@ -50,7 +54,7 @@ Creel supports two retrieval modes:
 
 ### RAG (semantic search)
 
-`Search` performs vector similarity search across one or more topics. Results are ranked by cosine similarity and filtered by the caller's ACL. Supports metadata filtering.
+`Search` performs vector similarity search across one or more topics. Results are ranked by cosine similarity and filtered by the caller's ACL. Supports metadata filtering. Search results include the parent document's citation metadata for proper attribution.
 
 Use RAG for: finding relevant context across all stored memory.
 
@@ -72,16 +76,21 @@ Chunks can be linked to other chunks, even across topic boundaries. Links enable
 
 Link traversal respects ACLs: if the caller lacks read access to the target topic, the link is not followed.
 
+## Memory
+
+Creel provides a per-principal memory system for maintaining long-term facts about users and agents.
+
+- Memory belongs to a principal, not a topic. Each principal can have multiple named scopes (default, work, home, etc.).
+- Memories are natural language fact statements (e.g., "User specializes in thrombosis research") maintained automatically by background workers.
+- When new conversation chunks are ingested in a topic with `memory_enabled = true`, workers extract candidate facts and resolve conflicts with existing memories (ADD new facts, UPDATE existing, DELETE contradictions, or NOOP).
+- Clients fetch memory by scope and include it in system prompts.
+- Clients can also explicitly add, update, or delete memories.
+
 ## Compaction
 
-Over time, conversation documents accumulate many chunks. Compaction lets the client summarize older chunks into fewer, denser ones:
+Over time, conversation documents accumulate many chunks. Compaction summarizes older chunks into fewer, denser ones. Workers handle compaction automatically in the background based on topic policies, using the topic's LLM configuration to generate summaries. Manual compaction via the API is preserved for the direct ingestion path.
 
-1. The client reads the chunks to compact.
-2. The client generates a summary (typically via LLM).
-3. The client calls `Compact` with the original chunk IDs and the new summary chunks.
-4. Creel replaces the originals with the summaries, transferring all links.
-
-Compaction is client-driven: Creel manages the bookkeeping, but the client decides when and how to summarize. The `retain_compacted_chunks` config option controls whether originals are preserved or deleted.
+Creel manages the bookkeeping: replacing originals with summaries and transferring all links. The `retain_compacted_chunks` config option controls whether originals are preserved or deleted.
 
 ## Addressing scheme
 

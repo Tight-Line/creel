@@ -121,7 +121,7 @@ When `type` is `pgvector`, the backend uses the same PostgreSQL connection as th
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `provider` | | Embedding provider (for server-side embedding; future) |
+| `provider` | | Embedding provider used by document processing workers to compute embeddings for uploaded content |
 | `model` | | Model name |
 | `api_key` | | Provider API key |
 
@@ -132,6 +132,19 @@ When `type` is `pgvector`, the backend uses the same PostgreSQL connection as th
 | `auto_link_on_ingest` | | Enable automatic linking on chunk ingestion |
 | `auto_link_threshold` | | Similarity threshold for auto-linking |
 | `max_traversal_depth` | | Maximum link traversal depth for search |
+
+### workers
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `concurrency` | 4 | Number of concurrent worker goroutines |
+| `poll_interval` | 5s | How often workers poll for new jobs |
+
+### encryption_key
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `encryption_key` | | AES-256-GCM key for encrypting API key configs at rest |
 
 ### compaction
 
@@ -178,6 +191,8 @@ Services:
 
 - **postgres**: pgvector/pgvector:pg17 on port 5432
 - **creel**: server on ports 8443 (gRPC), 8080 (REST), 9090 (metrics)
+
+The server now includes background workers in the same process by default. Workers process document uploads, compute embeddings, extract memories, and run compaction. No separate worker deployment is required.
 
 The server runs with `--migrate` to apply schema migrations on startup.
 

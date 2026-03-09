@@ -1,6 +1,6 @@
 # Creel API Reference
 
-28 RPC methods across 7 gRPC services. All methods are also available via REST (grpc-gateway).
+40+ RPC methods across 9 gRPC services (plus ConfigService). All methods are also available via REST (grpc-gateway).
 
 Every request carries an `Authorization: Bearer <token>` header (OIDC JWT or API key). The server resolves the caller's principal, then checks permissions via the `Authorizer` interface before touching data.
 
@@ -102,9 +102,20 @@ rpc ListGrants(ListGrantsRequest) returns (ListGrantsResponse)
 rpc CreateDocument(CreateDocumentRequest) returns (Document)
 ```
 
-**Request**: `{topic_id, slug, name, doc_type, metadata}`
+**Request**: `{topic_id, slug, name, doc_type, metadata, url, author, published_at}`
 **Permission**: write
-**Behavior**: Creates a document in the topic. Slug must be unique within the topic. `doc_type` is informational only (Creel does not change behavior based on it).
+**Behavior**: Creates a document in the topic. Slug must be unique within the topic. `doc_type` is informational only (Creel does not change behavior based on it). The `url`, `author`, and `published_at` fields are optional citation metadata; they are stored on the document and surfaced in search results via `DocumentCitation`.
+
+### UploadDocument
+
+```
+rpc UploadDocument(UploadDocumentRequest) returns (UploadDocumentResponse)
+```
+
+**Request**: `{topic_id, slug, name, url, author, published_at, metadata, file, source_url, doc_type}`
+**Response**: `{document, job_id}`
+**Permission**: write
+**Behavior**: Accepts a raw file (as bytes) or a `source_url` for the server to fetch. Creates a document record with citation metadata and sets its status to `pending`. Enqueues extraction, chunking, and embedding jobs for asynchronous processing. Returns immediately with the document and a job ID for tracking progress. The document transitions through `processing` to `ready` (or `failed`) as workers complete each stage.
 
 ### GetDocument
 
@@ -133,9 +144,9 @@ rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse)
 rpc UpdateDocument(UpdateDocumentRequest) returns (Document)
 ```
 
-**Request**: `{id, name, doc_type, metadata}`
+**Request**: `{id, name, doc_type, metadata, url, author, published_at}`
 **Permission**: write
-**Behavior**: Updates mutable fields. Slug is immutable.
+**Behavior**: Updates mutable fields including citation metadata. Slug is immutable.
 
 ### DeleteDocument
 
@@ -256,7 +267,15 @@ rpc Search(SearchRequest) returns (SearchResponse)
 {
   results: [{
     chunk: Chunk,
-    document: DocumentRef,
+    document: DocumentCitation {
+      id: uuid,
+      slug: string,
+      name: string,
+      url: string,
+      author: string,
+      published_at: timestamp,
+      metadata: jsonb
+    },
     topic: TopicRef,
     score: float64,
     via_link: LinkRef            // nullable; set if reached via traversal
@@ -348,6 +367,117 @@ rpc Uncompact(UncompactRequest) returns (UncompactResponse)
 2. Transfers `compaction_transfer` links back to their original source chunks.
 3. Deletes the summary chunk and its embedding from the vector backend.
 4. Returns the restored chunks.
+
+---
+
+## MemoryService
+
+Memories are per-principal, scoped key-value observations that persist across sessions. Each memory belongs to the calling principal and a named scope. Only the owning principal can access their own memories.
+
+### GetMemory
+
+```
+rpc GetMemory(GetMemoryRequest) returns (GetMemoryResponse)
+```
+
+**Request**: `{scope}`
+**Response**: `{memories[]}`
+**Permission**: authenticated
+**Behavior**: Returns all active memories for the calling principal in the given scope.
+
+### SearchMemories
+
+```
+rpc SearchMemories(SearchMemoriesRequest) returns (SearchMemoriesResponse)
+```
+
+**Request**: `{scope, query_text, query_embedding, top_k}`
+**Response**: `{memories[]}`
+**Permission**: authenticated
+**Behavior**: Semantic search within the calling principal's memories in the given scope. Either `query_text` or `query_embedding` must be provided (not both). If `query_text` is provided, the server computes the embedding via the configured provider.
+
+### AddMemory
+
+```
+rpc AddMemory(AddMemoryRequest) returns (Memory)
+```
+
+**Request**: `{scope, content, metadata}`
+**Response**: `{memory}`
+**Permission**: authenticated
+**Behavior**: Explicitly adds a memory for the calling principal in the given scope.
+
+### UpdateMemory
+
+```
+rpc UpdateMemory(UpdateMemoryRequest) returns (Memory)
+```
+
+**Request**: `{id, content, metadata}`
+**Response**: `{memory}`
+**Permission**: authenticated
+**Behavior**: Updates a specific memory. Only the owning principal can update their memories.
+
+### DeleteMemory
+
+```
+rpc DeleteMemory(DeleteMemoryRequest) returns (DeleteMemoryResponse)
+```
+
+**Request**: `{id}`
+**Response**: `{}`
+**Permission**: authenticated
+**Behavior**: Soft-deletes the memory by setting its status to `invalidated`. Only the owning principal can delete their memories.
+
+### ListMemories
+
+```
+rpc ListMemories(ListMemoriesRequest) returns (ListMemoriesResponse)
+```
+
+**Request**: `{scope, include_invalidated}`
+**Response**: `{memories[]}`
+**Permission**: authenticated
+**Behavior**: Lists all memories for the calling principal in the given scope. If `include_invalidated` is true, also returns memories with status `invalidated` for audit purposes.
+
+### ListScopes
+
+```
+rpc ListScopes(ListScopesRequest) returns (ListScopesResponse)
+```
+
+**Request**: `{}`
+**Response**: `{scopes[]}`
+**Permission**: authenticated
+**Behavior**: Lists all memory scopes that the calling principal has stored memories in.
+
+---
+
+## JobService
+
+Jobs track asynchronous work such as document extraction, chunking, and embedding. Jobs are created automatically by operations like `UploadDocument`.
+
+### GetJob
+
+```
+rpc GetJob(GetJobRequest) returns (Job)
+```
+
+**Request**: `{id}`
+**Response**: `{job}`
+**Permission**: authenticated
+**Behavior**: Returns job details. Any authenticated user can view jobs for documents they have read access to.
+
+### ListJobs
+
+```
+rpc ListJobs(ListJobsRequest) returns (ListJobsResponse)
+```
+
+**Request**: `{topic_id, document_id, status, page_size, page_token}`
+**Response**: `{jobs[], next_page_token}`
+**Permission**: read on topic
+**Behavior**: Lists jobs, filterable by topic, document, or status. Pagination via `page_token`.
 
 ---
 

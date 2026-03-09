@@ -87,7 +87,19 @@ The system prompt explicitly tells the LLM about both layers: session history is
 
 ## Known limitations
 
-- Embeddings are computed client-side; both user messages and assistant responses are embedded individually.
-- No streaming: the full LLM response is generated before display.
+- Embeddings are computed client-side; both user messages and assistant responses are embedded individually. Server-side embedding via the managed document processing path is available for non-chat document ingestion.
+- No streaming yet; streaming responses are planned for Phase 5.
+- No document upload support yet; files must be ingested via the server API or CLI. Upload support is planned for Phase 5.
+- No memory integration yet; the per-principal memory system will be integrated in Phase 5.
 - No tool use or function calling; creel-chat is a simple conversational demo.
 - `GetContext` loads the entire session history on resume. Very long sessions may eventually need `last_n` filtering or compaction (not yet implemented).
+
+## Planned enhancements
+
+All of the following are planned for Phase 5 of the architecture roadmap:
+
+- Streaming LLM responses (display tokens as they arrive)
+- Document upload via the managed processing path
+- Memory integration (fetch per-principal memory at session start, include in system prompt)
+- Cross-topic RAG retrieval (search across all accessible topics)
+- Explicit memory commands (`/remember ...`, `/forget ...`)
