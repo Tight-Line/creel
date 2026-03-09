@@ -59,6 +59,28 @@ func TestExtractText_XHTML(t *testing.T) {
 	}
 }
 
+func TestExtractText_AutoDetectPlainText(t *testing.T) {
+	data := []byte("Just some plain text content, nothing fancy here.")
+	got, err := ExtractText(data, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != string(data) {
+		t.Errorf("got %q, want %q", got, string(data))
+	}
+}
+
+func TestExtractText_AutoDetectHTML(t *testing.T) {
+	data := []byte(`<!DOCTYPE html><html><body><p>Detected HTML</p></body></html>`)
+	got, err := ExtractText(data, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "Detected HTML") {
+		t.Errorf("expected to contain 'Detected HTML', got %q", got)
+	}
+}
+
 func TestExtractText_Unsupported(t *testing.T) {
 	_, err := ExtractText([]byte("data"), "application/pdf")
 	if err == nil {
