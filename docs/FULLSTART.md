@@ -75,7 +75,7 @@ bin/creel-cli topic create fly-fishing "Fly Fishing Knowledge Base"
 bin/creel-cli topic create ski-conditions "Ski Conditions Reports"
 ```
 
-Save the topic IDs:
+The CLI accepts slugs anywhere a topic ID is expected, so you can use `fly-fishing` and `ski-conditions` directly. For REST calls later, save the UUIDs:
 
 ```bash
 FISH_TOPIC=$(bin/creel-cli topic list | jq -r '.topics[] | select(.slug=="fly-fishing") | .id')
@@ -114,7 +114,7 @@ All season: Caddis in various sizes. Elk Hair Caddis is always in the box.
 EOF
 
 bin/creel-cli upload \
-  --topic "$FISH_TOPIC" \
+  --topic fly-fishing \
   --file /tmp/hatch-chart.txt \
   --name "Western Maine Hatch Chart 2026" \
   --author "Rangeley Guides Association" \
@@ -139,7 +139,7 @@ fishing once flows stabilize. Gray Ghosts and Black-Nosed Dace in sizes 4-6.</p>
 EOF
 
 bin/creel-cli upload \
-  --topic "$FISH_TOPIC" \
+  --topic fly-fishing \
   --file /tmp/rangeley-report.html \
   --name "Rangeley Lake Report March 2026" \
   --author "Maine IF&W" \
@@ -169,7 +169,7 @@ Season pass holders: spring skiing hours start March 15 (9am-4pm).
 EOF
 
 bin/creel-cli upload \
-  --topic "$SKI_TOPIC" \
+  --topic ski-conditions \
   --file /tmp/ski-report.txt \
   --name "Saddleback Conditions March 2026" \
   --author "Saddleback Mountain" \
@@ -182,7 +182,7 @@ Watch the pipeline process your documents:
 
 ```bash
 # List all jobs for the fishing topic
-bin/creel-cli jobs list --topic "$FISH_TOPIC"
+bin/creel-cli jobs list --topic fly-fishing
 
 # Check a specific job
 bin/creel-cli jobs status <JOB_ID>
@@ -191,8 +191,8 @@ bin/creel-cli jobs status <JOB_ID>
 The pipeline runs extraction, then chunking, then embedding. Each stage creates a follow-on job. Wait until all jobs show `completed`:
 
 ```bash
-bin/creel-cli jobs list --topic "$FISH_TOPIC" --status completed
-bin/creel-cli jobs list --topic "$SKI_TOPIC" --status completed
+bin/creel-cli jobs list --topic fly-fishing --status completed
+bin/creel-cli jobs list --topic ski-conditions --status completed
 ```
 
 Verify documents are ready:
@@ -210,7 +210,7 @@ Now that documents are indexed with real embeddings, search returns semantically
 
 ```bash
 # Search the fishing topic using the CLI
-bin/creel-cli search --topic-ids "$FISH_TOPIC" --query "best flies for evening fishing" --top-k 5
+bin/creel-cli search --topic-ids fly-fishing --query "best flies for evening fishing" --top-k 5
 ```
 
 Or via REST with full citation details:
