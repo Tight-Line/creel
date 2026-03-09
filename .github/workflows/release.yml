@@ -4,9 +4,17 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      enable_arm64:
+        description: 'Build arm64 images in addition to amd64'
+        required: false
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
+  ENABLE_ARM64: ${{ inputs.enable_arm64 || false }}
 
 permissions:
   contents: read
@@ -62,6 +70,7 @@ jobs:
 
       # Then build multi-arch (updates tags in-place with manifest)
       - name: Build and push ${{ matrix.image.name }} (multi-arch)
+        if: env.ENABLE_ARM64 == 'true'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ matrix.image.context }}
