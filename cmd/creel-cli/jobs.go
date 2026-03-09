@@ -26,8 +26,17 @@ func jobsCmd() *cobra.Command {
 			}
 			defer func() { _ = conn.Close() }()
 
+			resolvedTopicID := topicID
+			if topicID != "" {
+				var err error
+				resolvedTopicID, err = resolveTopicID(conn, topicID)
+				if err != nil {
+					return err
+				}
+			}
+
 			req := &pb.ListJobsRequest{
-				TopicId: topicID,
+				TopicId: resolvedTopicID,
 				Status:  statusFilter,
 			}
 
@@ -39,7 +48,7 @@ func jobsCmd() *cobra.Command {
 			return nil
 		},
 	}
-	listCmd.Flags().StringVar(&topicID, "topic", "", "filter by topic ID")
+	listCmd.Flags().StringVar(&topicID, "topic", "", "filter by topic ID or slug")
 	listCmd.Flags().StringVar(&statusFilter, "status", "", "filter by status (queued, running, completed, failed)")
 
 	statusCmd := &cobra.Command{

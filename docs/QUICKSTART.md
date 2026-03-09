@@ -63,7 +63,7 @@ bin/creel-cli topic create my-notes "My Notes"
 Upload a document to your topic:
 
 ```bash
-bin/creel-cli upload --topic my-notes --file notes.txt --name "Meeting Notes" --author "Nick" --content-type text/plain
+bin/creel-cli upload --topic my-notes --file notes.txt --name "Meeting Notes" --author "Nick"
 ```
 
 Creel processes the document asynchronously. Check the job status:
@@ -75,7 +75,7 @@ bin/creel-cli jobs list --topic my-notes
 Once processing completes, search for content:
 
 ```bash
-bin/creel-cli search --topic my-notes --query "action items from meeting" --top-k 5
+bin/creel-cli search --topic-ids my-notes --query "action items from meeting" --top-k 5
 ```
 
 ## 7. Try creel-chat (optional)

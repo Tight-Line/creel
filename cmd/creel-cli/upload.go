@@ -23,8 +23,13 @@ func uploadCmd() *cobra.Command {
 			}
 			defer func() { _ = conn.Close() }()
 
+			resolvedTopicID, err := resolveTopicID(conn, topicID)
+			if err != nil {
+				return err
+			}
+
 			req := &pb.UploadDocumentRequest{
-				TopicId:     topicID,
+				TopicId:     resolvedTopicID,
 				Name:        name,
 				Author:      author,
 				Url:         url,
@@ -56,7 +61,7 @@ func uploadCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&topicID, "topic", "", "topic ID (required)")
+	cmd.Flags().StringVar(&topicID, "topic", "", "topic ID or slug (required)")
 	cmd.Flags().StringVar(&filePath, "file", "", "path to file to upload")
 	cmd.Flags().StringVar(&name, "name", "", "document name")
 	cmd.Flags().StringVar(&author, "author", "", "document author")

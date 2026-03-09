@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -15,6 +16,8 @@ import (
 
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
 )
+
+var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 var (
 	endpoint string
@@ -74,6 +77,45 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// resolveTopicID resolves a topic slug to its UUID. If the input already
+// looks like a UUID, it is returned as-is.
+func resolveTopicID(conn *grpc.ClientConn, slugOrID string) (string, error) {
+	if uuidPattern.MatchString(slugOrID) {
+		return slugOrID, nil
+	}
+	resp, err := pb.NewTopicServiceClient(conn).ListTopics(authCtx(), &pb.ListTopicsRequest{})
+	if err != nil {
+		return "", fmt.Errorf("listing topics to resolve slug %q: %w", slugOrID, err)
+	}
+	for _, t := range resp.GetTopics() {
+		if t.GetSlug() == slugOrID {
+			return t.GetId(), nil
+		}
+	}
+	return "", fmt.Errorf("topic with slug %q not found", slugOrID)
+}
+
+// resolveDocumentID resolves a document slug to its UUID within a topic.
+// If the input already looks like a UUID, it is returned as-is.
+// The topicID must already be resolved to a UUID.
+func resolveDocumentID(conn *grpc.ClientConn, topicID, slugOrID string) (string, error) {
+	if uuidPattern.MatchString(slugOrID) {
+		return slugOrID, nil
+	}
+	resp, err := pb.NewDocumentServiceClient(conn).ListDocuments(authCtx(), &pb.ListDocumentsRequest{
+		TopicId: topicID,
+	})
+	if err != nil {
+		return "", fmt.Errorf("listing documents to resolve slug %q: %w", slugOrID, err)
+	}
+	for _, d := range resp.GetDocuments() {
+		if d.GetSlug() == slugOrID {
+			return d.GetId(), nil
+		}
+	}
+	return "", fmt.Errorf("document with slug %q not found in topic %s", slugOrID, topicID)
 }
 
 // healthCmd returns the health check command.
@@ -244,7 +286,7 @@ func topicCmd() *cobra.Command {
 
 	var updateName, updateDescription, updateLLMConfig, updateEmbConfig, updatePromptConfig string
 	updateCmd := &cobra.Command{
-		Use:   "update [id]",
+		Use:   "update [id-or-slug]",
 		Short: "Update a topic",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -254,8 +296,13 @@ func topicCmd() *cobra.Command {
 			}
 			defer func() { _ = conn.Close() }()
 
+			topicID, err := resolveTopicID(conn, args[0])
+			if err != nil {
+				return err
+			}
+
 			req := &pb.UpdateTopicRequest{
-				Id:          args[0],
+				Id:          topicID,
 				Name:        updateName,
 				Description: updateDescription,
 			}
@@ -304,7 +351,7 @@ func topicCmd() *cobra.Command {
 
 	var permission string
 	grantCmd := &cobra.Command{
-		Use:   "grant [topic-id] [principal]",
+		Use:   "grant [topic-id-or-slug] [principal]",
 		Short: "Grant access to a topic",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -313,6 +360,11 @@ func topicCmd() *cobra.Command {
 				return err
 			}
 			defer func() { _ = conn.Close() }()
+
+			topicID, err := resolveTopicID(conn, args[0])
+			if err != nil {
+				return err
+			}
 
 			var perm pb.Permission
 			switch permission {
@@ -327,7 +379,7 @@ func topicCmd() *cobra.Command {
 			}
 
 			resp, err := pb.NewTopicServiceClient(conn).GrantAccess(authCtx(), &pb.GrantAccessRequest{
-				TopicId:    args[0],
+				TopicId:    topicID,
 				Principal:  args[1],
 				Permission: perm,
 			})
@@ -341,7 +393,7 @@ func topicCmd() *cobra.Command {
 	grantCmd.Flags().StringVar(&permission, "permission", "read", "permission level (read, write, admin)")
 
 	grantsCmd := &cobra.Command{
-		Use:   "grants [topic-id]",
+		Use:   "grants [topic-id-or-slug]",
 		Short: "List grants for a topic",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -351,8 +403,13 @@ func topicCmd() *cobra.Command {
 			}
 			defer func() { _ = conn.Close() }()
 
+			topicID, err := resolveTopicID(conn, args[0])
+			if err != nil {
+				return err
+			}
+
 			resp, err := pb.NewTopicServiceClient(conn).ListGrants(authCtx(), &pb.ListGrantsRequest{
-				TopicId: args[0],
+				TopicId: topicID,
 			})
 			if err != nil {
 				return err
@@ -382,8 +439,17 @@ func searchCmd() *cobra.Command {
 			}
 			defer func() { _ = conn.Close() }()
 
+			resolvedIDs := make([]string, 0, len(topicIDs))
+			for _, id := range topicIDs {
+				resolved, err := resolveTopicID(conn, id)
+				if err != nil {
+					return err
+				}
+				resolvedIDs = append(resolvedIDs, resolved)
+			}
+
 			req := &pb.SearchRequest{
-				TopicIds: topicIDs,
+				TopicIds: resolvedIDs,
 				TopK:     topK,
 			}
 
@@ -448,7 +514,7 @@ func searchCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringSliceVar(&topicIDs, "topic-ids", nil, "topic IDs to search (empty = all accessible)")
+	cmd.Flags().StringSliceVar(&topicIDs, "topic-ids", nil, "topic IDs or slugs to search (empty = all accessible)")
 	cmd.Flags().Int32Var(&topK, "top-k", 10, "number of results")
 	cmd.Flags().StringVar(&queryText, "query", "", "text query (requires embedding provider on server)")
 	return cmd
