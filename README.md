@@ -30,7 +30,7 @@ bin/creel-cli upload --topic my-notes --file notes.txt --name "Meeting Notes"
 bin/creel-cli jobs list --topic my-notes
 
 # Search (once processing completes)
-bin/creel-cli search --topic-ids my-notes --query "action items" --top-k 5
+bin/creel-cli search --topic my-notes --query "action items" --top-k 5
 ```
 
 See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.

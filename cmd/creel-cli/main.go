@@ -514,7 +514,7 @@ func searchCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringSliceVar(&topicIDs, "topic-ids", nil, "topic IDs or slugs to search (empty = all accessible)")
+	cmd.Flags().StringSliceVar(&topicIDs, "topic", nil, "topic IDs or slugs to search (repeatable; empty = all accessible)")
 	cmd.Flags().Int32Var(&topK, "top-k", 10, "number of results")
 	cmd.Flags().StringVar(&queryText, "query", "", "text query (requires embedding provider on server)")
 	return cmd

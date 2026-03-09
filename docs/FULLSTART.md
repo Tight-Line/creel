@@ -210,7 +210,7 @@ Now that documents are indexed with real embeddings, search returns semantically
 
 ```bash
 # Search the fishing topic using the CLI
-bin/creel-cli search --topic-ids fly-fishing --query "best flies for evening fishing" --top-k 5
+bin/creel-cli search --topic fly-fishing --query "best flies for evening fishing" --top-k 5
 ```
 
 Or via REST with full citation details:
