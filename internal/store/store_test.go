@@ -2244,3 +2244,228 @@ func TestScanTopicChunkingStrategy_InvalidJSON(t *testing.T) {
 		t.Error("expected ChunkingStrategy to be nil for invalid JSON")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// MemoryStore tests
+// ---------------------------------------------------------------------------
+
+func TestMemoryStore_Create_Error(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.Create(ctx(), &Memory{Principal: "p", Scope: "s", Content: "c"})
+	expectErr(t, err, "inserting memory")
+}
+
+func TestMemoryStore_Create_MetadataMarshalError(t *testing.T) {
+	db := &mockDBTX{}
+	s := NewMemoryStore(db)
+	_, err := s.Create(ctx(), &Memory{
+		Principal: "p",
+		Scope:     "s",
+		Content:   "c",
+		Metadata:  map[string]any{"bad": math.Inf(1)},
+	})
+	expectErr(t, err, "marshaling metadata")
+}
+
+func TestMemoryStore_Get_ErrNoRows(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: pgx.ErrNoRows}
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.Get(ctx(), "id")
+	expectErr(t, err, "memory not found")
+}
+
+func TestMemoryStore_Get_OtherError(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.Get(ctx(), "id")
+	expectErr(t, err, "querying memory")
+}
+
+func TestMemoryStore_GetByScope_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.GetByScope(ctx(), "p", "s")
+	expectErr(t, err, "querying memories by scope")
+}
+
+func TestMemoryStore_GetByScope_ScanError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{nextOnce: true, scanErr: errMock}, nil
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.GetByScope(ctx(), "p", "s")
+	expectErr(t, err, "scanning memory")
+}
+
+func TestMemoryStore_Update_ErrNoRows(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: pgx.ErrNoRows}
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.Update(ctx(), "id", "content", nil)
+	expectErr(t, err, "memory not found")
+}
+
+func TestMemoryStore_Update_OtherError(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.Update(ctx(), "id", "content", nil)
+	expectErr(t, err, "updating memory")
+}
+
+func TestMemoryStore_Update_MetadataMarshalError(t *testing.T) {
+	db := &mockDBTX{}
+	s := NewMemoryStore(db)
+	_, err := s.Update(ctx(), "id", "content", map[string]any{"bad": math.Inf(1)})
+	expectErr(t, err, "marshaling metadata")
+}
+
+func TestMemoryStore_Invalidate_ExecError(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag(""), errMock
+	}}
+	s := NewMemoryStore(db)
+	err := s.Invalidate(ctx(), "id")
+	expectErr(t, err, "invalidating memory")
+}
+
+func TestMemoryStore_Invalidate_NotFound(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag("UPDATE 0"), nil
+	}}
+	s := NewMemoryStore(db)
+	err := s.Invalidate(ctx(), "id")
+	expectErr(t, err, "memory not found")
+}
+
+func TestMemoryStore_ListByScope_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.ListByScope(ctx(), "p", "s", false)
+	expectErr(t, err, "listing memories")
+}
+
+func TestMemoryStore_ListByScope_IncludeInvalidated_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.ListByScope(ctx(), "p", "s", true)
+	expectErr(t, err, "listing memories")
+}
+
+func TestMemoryStore_ListScopes_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.ListScopes(ctx(), "p")
+	expectErr(t, err, "listing scopes")
+}
+
+func TestMemoryStore_ListScopes_ScanError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{nextOnce: true, scanErr: errMock}, nil
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.ListScopes(ctx(), "p")
+	expectErr(t, err, "scanning scope")
+}
+
+func TestMemoryStore_GetWithEmbedding_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.GetWithEmbedding(ctx(), "p", "s")
+	expectErr(t, err, "querying memories with embeddings")
+}
+
+func TestMemoryStore_EmbeddingIDsByPrincipalScope_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.EmbeddingIDsByPrincipalScope(ctx(), "p", "s")
+	expectErr(t, err, "querying embedding IDs")
+}
+
+func TestMemoryStore_EmbeddingIDsByPrincipalScope_ScanError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{nextOnce: true, scanErr: errMock}, nil
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.EmbeddingIDsByPrincipalScope(ctx(), "p", "s")
+	expectErr(t, err, "scanning embedding ID")
+}
+
+func TestMemoryStore_GetMultiple_Empty(t *testing.T) {
+	s := NewMemoryStore(&mockDBTX{})
+	result, err := s.GetMultiple(ctx(), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != nil {
+		t.Fatalf("expected nil, got %v", result)
+	}
+}
+
+func TestMemoryStore_GetMultiple_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.GetMultiple(ctx(), []string{"id1"})
+	expectErr(t, err, "querying memories")
+}
+
+func TestMemoryStore_GetMultiple_ScanError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{nextOnce: true, scanErr: errMock}, nil
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.GetMultiple(ctx(), []string{"id1"})
+	expectErr(t, err, "scanning memory")
+}
+
+func TestMemoryStore_GetByEmbeddingIDs_Empty(t *testing.T) {
+	s := NewMemoryStore(&mockDBTX{})
+	result, err := s.GetByEmbeddingIDs(ctx(), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != nil {
+		t.Fatalf("expected nil, got %v", result)
+	}
+}
+
+func TestMemoryStore_GetByEmbeddingIDs_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.GetByEmbeddingIDs(ctx(), []string{"emb1"})
+	expectErr(t, err, "querying memories by embedding IDs")
+}
+
+func TestMemoryStore_GetByEmbeddingIDs_ScanError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{nextOnce: true, scanErr: errMock}, nil
+	}}
+	s := NewMemoryStore(db)
+	_, err := s.GetByEmbeddingIDs(ctx(), []string{"emb1"})
+	expectErr(t, err, "scanning memory")
+}

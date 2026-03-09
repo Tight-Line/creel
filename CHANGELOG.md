@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Memory store for per-principal, scoped knowledge. Agents can store, update, search, and soft-delete memories organized by scope. Memories support optional subject/predicate/object triples and metadata.
+- `MemoryService` gRPC API with 7 RPCs: `GetMemory`, `SearchMemories`, `AddMemory`, `UpdateMemory`, `DeleteMemory`, `ListMemories`, and `ListScopes`. All RPCs are automatically scoped to the calling principal.
+- Semantic search over memories via vector embeddings. When an embedding provider is configured, new memories are automatically embedded; `SearchMemories` uses cosine similarity. Falls back to returning all active memories when no embeddings are available.
+- CLI commands for memory management: `creel-cli memory list`, `memory add`, `memory delete`, `memory scopes`, and `memory search`.
+- REST endpoints for all memory RPCs via grpc-gateway.
 - Document processing pipeline now runs end-to-end: extraction, chunking, embedding. Uploaded documents are automatically split into chunks and embedded, becoming searchable without manual intervention.
 - Chunking worker splits extracted text into fixed-size chunks with configurable overlap (default: 2048 characters, 200 character overlap).
 - Embedding worker computes vector embeddings for document chunks and stores them in the vector backend. Documents are marked "ready" once all chunks are embedded.

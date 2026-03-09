@@ -142,6 +142,8 @@ func run() error {
 	retrievalServer := server.NewRetrievalServer(searcher, contextFetcher)
 	configServer := server.NewConfigServer(apiKeyConfigStore, llmConfigStore, embeddingConfigStore, extractionPromptConfigStore)
 	jobServer := server.NewJobServer(jobStore, docStore, authorizer)
+	memoryStore := store.NewMemoryStore(pool)
+	memoryServer := server.NewMemoryServer(memoryStore, vectorBackend, nil)
 	pb.RegisterAdminServiceServer(srv.GRPCServer(), adminServer)
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), topicServer)
 	pb.RegisterDocumentServiceServer(srv.GRPCServer(), docServer)
@@ -149,6 +151,7 @@ func run() error {
 	pb.RegisterRetrievalServiceServer(srv.GRPCServer(), retrievalServer)
 	pb.RegisterConfigServiceServer(srv.GRPCServer(), configServer)
 	pb.RegisterJobServiceServer(srv.GRPCServer(), jobServer)
+	pb.RegisterMemoryServiceServer(srv.GRPCServer(), memoryServer)
 
 	// Handle shutdown signals.
 	sigCh := make(chan os.Signal, 1)
@@ -198,6 +201,7 @@ func runRESTGateway(ctx context.Context, grpcPort, restPort int) error {
 		pb.RegisterCompactionServiceHandlerFromEndpoint,
 		pb.RegisterConfigServiceHandlerFromEndpoint,
 		pb.RegisterJobServiceHandlerFromEndpoint,
+		pb.RegisterMemoryServiceHandlerFromEndpoint,
 	}
 	for _, h := range handlers {
 		if err := h(ctx, mux, endpoint, opts); err != nil {

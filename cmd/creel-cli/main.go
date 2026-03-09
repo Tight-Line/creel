@@ -39,6 +39,7 @@ func main() {
 	root.AddCommand(searchCmd())
 	root.AddCommand(jobsCmd())
 	root.AddCommand(uploadCmd())
+	root.AddCommand(memoryCmd())
 
 	if err := root.Execute(); err != nil {
 		os.Exit(1)
