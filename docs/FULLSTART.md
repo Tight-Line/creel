@@ -311,8 +311,8 @@ WULFF_ID=$(bin/creel-cli memory list --scope fishing | jq -r '.memories[] | sele
 
 # Oops, it's actually a size 14
 curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  -X PUT \
-  -d "{\"id\": \"$WULFF_ID\", \"content\": \"Favorite fly is the Ausable Wulff in size 14\"}" \
+  -X PATCH \
+  -d "{\"content\": \"Favorite fly is the Ausable Wulff in size 14\"}" \
   "http://localhost:8080/v1/memories/$WULFF_ID" | jq '{id, content, updatedAt}'
 ```
 
