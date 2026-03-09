@@ -18,7 +18,7 @@ rpc CreateTopic(CreateTopicRequest) returns (Topic)
 
 **Request**: `{slug, name, description}`
 **Permission**: authenticated (any valid principal)
-**Behavior**: Creates a topic. The caller becomes the owner (implicit admin). Slug must be unique and URL-safe. Returns the created topic.
+**Behavior**: Creates a topic. The caller becomes the owner (implicit admin). If `slug` is omitted, the server auto-generates one from `name` (slugified + short random suffix, e.g., `ml-research-a7x3`). If provided, the slug must be unique and URL-safe. Returns the created topic.
 
 ### GetTopic
 
@@ -104,7 +104,7 @@ rpc CreateDocument(CreateDocumentRequest) returns (Document)
 
 **Request**: `{topic_id, slug, name, doc_type, metadata, url, author, published_at}`
 **Permission**: write
-**Behavior**: Creates a document in the topic. Slug must be unique within the topic. `doc_type` is informational only (Creel does not change behavior based on it). The `url`, `author`, and `published_at` fields are optional citation metadata; they are stored on the document and surfaced in search results via `DocumentCitation`.
+**Behavior**: Creates a document in the topic. If `slug` is omitted, the server auto-generates one from `name` (slugified + short random suffix). If provided, the slug must be unique within the topic. `doc_type` is informational only (Creel does not change behavior based on it). The `url`, `author`, and `published_at` fields are optional citation metadata; they are stored on the document and surfaced in search results via `DocumentCitation`.
 
 ### UploadDocument
 
@@ -115,7 +115,7 @@ rpc UploadDocument(UploadDocumentRequest) returns (UploadDocumentResponse)
 **Request**: `{topic_id, slug, name, url, author, published_at, metadata, file, source_url, doc_type}`
 **Response**: `{document, job_id}`
 **Permission**: write
-**Behavior**: Accepts a raw file (as bytes) or a `source_url` for the server to fetch. Creates a document record with citation metadata and sets its status to `pending`. Enqueues extraction, chunking, and embedding jobs for asynchronous processing. Returns immediately with the document and a job ID for tracking progress. The document transitions through `processing` to `ready` (or `failed`) as workers complete each stage.
+**Behavior**: Accepts a raw file (as bytes) or a `source_url` for the server to fetch. Slug is optional; auto-generated from `name` if omitted. Creates a document record with citation metadata and sets its status to `pending`. Enqueues extraction, chunking, and embedding jobs for asynchronous processing. Returns immediately with the document and a job ID for tracking progress. The document transitions through `processing` to `ready` (or `failed`) as workers complete each stage.
 
 ### GetDocument
 
