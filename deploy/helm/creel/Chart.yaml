@@ -2,8 +2,8 @@ apiVersion: v2
 name: creel
 description: Self-hosted memory-as-a-service for AI agents
 type: application
-version: 0.2.0
-appVersion: "0.2.0"
+version: 0.2.1
+appVersion: "0.2.1"
 maintainers:
   - name: Tight Line Software
     url: https://www.tightlinesoftware.com
