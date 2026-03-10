@@ -18,19 +18,6 @@
         </a>
     </div>
 
-    {{-- Legend --}}
-    <div class="flex items-center gap-4 mb-4 text-xs text-slate-500">
-        <span class="flex items-center gap-1.5">
-            <span class="inline-block w-2.5 h-2.5 rounded-full bg-green-400"></span> Active
-        </span>
-        <span class="flex items-center gap-1.5">
-            <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-400"></span> Summary
-        </span>
-        <span class="flex items-center gap-1.5">
-            <span class="inline-block w-2.5 h-2.5 rounded-full bg-slate-300"></span> Compacted
-        </span>
-    </div>
-
     {{-- Compaction History --}}
     @if (count($compactionRecords) > 0)
         <div class="bg-white rounded shadow mb-6">
@@ -60,102 +47,128 @@
         </div>
     @endif
 
-    {{-- Chunk List --}}
-    <div class="bg-white rounded shadow overflow-hidden">
-        <table class="w-full text-sm text-left">
-            <thead class="bg-slate-50 text-slate-600 uppercase text-xs tracking-wider">
-                <tr>
-                    <th class="px-4 py-3 w-10">#</th>
-                    <th class="px-4 py-3 w-16">Status</th>
-                    <th class="px-4 py-3">Content</th>
-                    <th class="px-4 py-3 w-28">Embedding</th>
-                    <th class="px-4 py-3 w-28">Metadata</th>
-                    <th class="px-4 py-3 w-36">ID</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-                @forelse ($chunks as $chunk)
-                    @php
-                        $role = $chunk['_role'] ?? 'active';
-                        $statusColor = match($role) {
-                            'active' => 'bg-green-400',
-                            'summary' => 'bg-blue-400',
-                            'compacted' => 'bg-slate-300',
-                            default => 'bg-slate-300',
-                        };
-                        $statusLabel = match($role) {
-                            'active' => 'Active',
-                            'summary' => 'Summary',
-                            'compacted' => 'Compacted',
-                            default => $role,
-                        };
-                        $rowClass = $role === 'compacted' ? 'bg-slate-50 text-slate-400' : '';
-                    @endphp
-                    <tr class="{{ $rowClass }} hover:bg-slate-50" id="chunk-{{ $chunk['id'] ?? '' }}">
-                        <td class="px-4 py-3 text-xs text-slate-500 align-top">
-                            {{ $chunk['sequence'] ?? '' }}
-                        </td>
-                        <td class="px-4 py-3 align-top">
-                            <span class="inline-flex items-center gap-1.5 text-xs">
-                                <span class="inline-block w-2 h-2 rounded-full {{ $statusColor }}"></span>
-                                {{ $statusLabel }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 align-top">
-                            <div class="max-w-xl">
-                                @if ($role === 'summary')
-                                    @php
-                                        $compaction = $chunk['_compaction'] ?? null;
-                                        $sourceCount = $compaction ? count($compaction['source_chunk_ids'] ?? []) : 0;
-                                    @endphp
-                                    @if ($sourceCount > 0)
-                                        <div class="text-xs text-blue-600 mb-1">
-                                            Summarizes {{ $sourceCount }} chunk{{ $sourceCount > 1 ? 's' : '' }}
+    {{-- Chunk List with Filters --}}
+    <div x-data="{ show: { active: true, summary: true, compacted: true } }">
+
+        {{-- Filter toggles --}}
+        <div class="flex items-center gap-4 mb-4 text-xs text-slate-500">
+            <button type="button" @click="show.active = !show.active"
+                    :class="show.active ? 'opacity-100' : 'opacity-40 line-through'"
+                    class="flex items-center gap-1.5 cursor-pointer select-none transition-opacity">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-green-400"></span> Active
+            </button>
+            <button type="button" @click="show.summary = !show.summary"
+                    :class="show.summary ? 'opacity-100' : 'opacity-40 line-through'"
+                    class="flex items-center gap-1.5 cursor-pointer select-none transition-opacity">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-400"></span> Summary
+            </button>
+            <button type="button" @click="show.compacted = !show.compacted"
+                    :class="show.compacted ? 'opacity-100' : 'opacity-40 line-through'"
+                    class="flex items-center gap-1.5 cursor-pointer select-none transition-opacity">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-slate-300"></span> Compacted
+            </button>
+        </div>
+
+        {{-- Table --}}
+        <div class="bg-white rounded shadow overflow-hidden">
+            <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 text-slate-600 uppercase text-xs tracking-wider">
+                    <tr>
+                        <th class="px-4 py-3 w-10">#</th>
+                        <th class="px-4 py-3 w-16">Status</th>
+                        <th class="px-4 py-3">Content</th>
+                        <th class="px-4 py-3 w-28">Embedding</th>
+                        <th class="px-4 py-3 w-28">Metadata</th>
+                        <th class="px-4 py-3 w-36">ID</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    @forelse ($chunks as $chunk)
+                        @php
+                            $role = $chunk['_role'] ?? 'active';
+                            $statusColor = match($role) {
+                                'active' => 'bg-green-400',
+                                'summary' => 'bg-blue-400',
+                                'compacted' => 'bg-slate-300',
+                                default => 'bg-slate-300',
+                            };
+                            $statusLabel = match($role) {
+                                'active' => 'Active',
+                                'summary' => 'Summary',
+                                'compacted' => 'Compacted',
+                                default => $role,
+                            };
+                            $rowClass = $role === 'compacted' ? 'bg-slate-50 text-slate-400' : '';
+                        @endphp
+                        <tr class="{{ $rowClass }} hover:bg-slate-50"
+                            id="chunk-{{ $chunk['id'] ?? '' }}"
+                            x-show="show.{{ $role }}"
+                            x-transition.opacity>
+                            <td class="px-4 py-3 text-xs text-slate-500 align-top">
+                                {{ $chunk['sequence'] ?? '' }}
+                            </td>
+                            <td class="px-4 py-3 align-top">
+                                <span class="inline-flex items-center gap-1.5 text-xs">
+                                    <span class="inline-block w-2 h-2 rounded-full {{ $statusColor }}"></span>
+                                    {{ $statusLabel }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 align-top">
+                                <div class="max-w-xl">
+                                    @if ($role === 'summary')
+                                        @php
+                                            $compaction = $chunk['_compaction'] ?? null;
+                                            $sourceCount = $compaction ? count($compaction['source_chunk_ids'] ?? []) : 0;
+                                        @endphp
+                                        @if ($sourceCount > 0)
+                                            <div class="text-xs text-blue-600 mb-1">
+                                                Summarizes {{ $sourceCount }} chunk{{ $sourceCount > 1 ? 's' : '' }}
+                                            </div>
+                                        @endif
+                                    @endif
+
+                                    @if ($role === 'compacted' && !empty($chunk['_compacted_by']))
+                                        <div class="text-xs text-slate-400 mb-1">
+                                            Replaced by
+                                            <a href="#chunk-{{ $chunk['_compacted_by'] }}" class="text-blue-500 hover:text-blue-700 font-mono">
+                                                {{ Str::limit($chunk['_compacted_by'], 12) }}
+                                            </a>
                                         </div>
                                     @endif
-                                @endif
 
-                                @if ($role === 'compacted' && !empty($chunk['_compacted_by']))
-                                    <div class="text-xs text-slate-400 mb-1">
-                                        Replaced by
-                                        <a href="#chunk-{{ $chunk['_compacted_by'] }}" class="text-blue-500 hover:text-blue-700 font-mono">
-                                            {{ Str::limit($chunk['_compacted_by'], 12) }}
-                                        </a>
-                                    </div>
+                                    <div class="whitespace-pre-wrap text-sm {{ $role === 'compacted' ? 'text-slate-400 line-through decoration-slate-300' : 'text-slate-800' }}">{{ Str::limit($chunk['content'] ?? '', 500) }}</div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-xs align-top">
+                                @if (!empty($chunk['embedding_id']))
+                                    <span class="text-green-600" title="{{ $chunk['embedding_id'] }}">Yes</span>
+                                @else
+                                    <span class="text-slate-300">None</span>
                                 @endif
-
-                                <div class="whitespace-pre-wrap text-sm {{ $role === 'compacted' ? 'text-slate-400 line-through decoration-slate-300' : 'text-slate-800' }}">{{ Str::limit($chunk['content'] ?? '', 500) }}</div>
-                            </div>
-                        </td>
-                        <td class="px-4 py-3 text-xs align-top">
-                            @if (!empty($chunk['embedding_id']))
-                                <span class="text-green-600" title="{{ $chunk['embedding_id'] }}">Yes</span>
-                            @else
-                                <span class="text-slate-300">None</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-xs align-top">
-                            @if (!empty($chunk['metadata']))
-                                <details class="cursor-pointer">
-                                    <summary class="text-blue-600 hover:text-blue-800">View</summary>
-                                    <pre class="mt-1 text-xs text-slate-600 bg-slate-50 p-2 rounded max-w-xs overflow-auto">{{ json_encode($chunk['metadata'], JSON_PRETTY_PRINT) }}</pre>
-                                </details>
-                            @else
-                                <span class="text-slate-300">&mdash;</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 font-mono text-xs text-slate-400 align-top" title="{{ $chunk['id'] ?? '' }}">
-                            {{ Str::limit($chunk['id'] ?? '', 12) }}
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6" class="px-6 py-8 text-center text-slate-400">
-                            No chunks found.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                            </td>
+                            <td class="px-4 py-3 text-xs align-top">
+                                @if (!empty($chunk['metadata']))
+                                    <details class="cursor-pointer">
+                                        <summary class="text-blue-600 hover:text-blue-800">View</summary>
+                                        <pre class="mt-1 text-xs text-slate-600 bg-slate-50 p-2 rounded max-w-xs overflow-auto">{{ json_encode($chunk['metadata'], JSON_PRETTY_PRINT) }}</pre>
+                                    </details>
+                                @else
+                                    <span class="text-slate-300">&mdash;</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 font-mono text-xs text-slate-400 align-top" title="{{ $chunk['id'] ?? '' }}">
+                                {{ Str::limit($chunk['id'] ?? '', 12) }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-slate-400">
+                                No chunks found.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 @endsection
