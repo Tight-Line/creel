@@ -2593,6 +2593,20 @@ func TestLinkStore_ListByChunks_Empty(t *testing.T) {
 	}
 }
 
+func TestLinkStore_ListByChunks_Success(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{}, nil // empty but successful
+	}}
+	s := NewLinkStore(db)
+	links, err := s.ListByChunks(ctx(), []string{"c1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(links) != 0 {
+		t.Errorf("expected 0 links, got %d", len(links))
+	}
+}
+
 func TestLinkStore_ListByChunks_QueryError(t *testing.T) {
 	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 		return nil, errMock
@@ -2632,4 +2646,34 @@ func TestLinkStore_DeleteByChunk_Error(t *testing.T) {
 	s := NewLinkStore(db)
 	err := s.DeleteByChunk(ctx(), "c1")
 	expectErr(t, err, "deleting links by chunk")
+}
+
+func TestLinkStore_TransferLinks_Success(t *testing.T) {
+	callCount := 0
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		callCount++
+		if callCount == 1 {
+			return pgconn.NewCommandTag("UPDATE 2"), nil
+		}
+		return pgconn.NewCommandTag("UPDATE 3"), nil
+	}}
+	s := NewLinkStore(db)
+	total, err := s.TransferLinks(ctx(), "old", "new")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if total != 5 {
+		t.Errorf("expected 5 transferred, got %d", total)
+	}
+}
+
+func TestLinkStore_DeleteByChunk_Success(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag("DELETE 3"), nil
+	}}
+	s := NewLinkStore(db)
+	err := s.DeleteByChunk(ctx(), "c1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }
