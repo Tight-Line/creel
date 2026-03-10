@@ -215,6 +215,18 @@ class CreelApiClient
         $this->request('POST', "/v1/admin/accounts/{$accountId}/revoke");
     }
 
+    // Memories
+
+    public function listMemoryScopes(): array
+    {
+        return $this->request('GET', '/v1/memories:scopes')['scopes'] ?? [];
+    }
+
+    public function listMemories(string $scope): array
+    {
+        return $this->request('GET', "/v1/memories/{$scope}/list")['memories'] ?? [];
+    }
+
     // Internal
 
     private function request(string $method, string $path, array $data = []): array

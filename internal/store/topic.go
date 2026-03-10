@@ -20,9 +20,12 @@ func NewTopicStore(pool DBTX) *TopicStore {
 }
 
 // ChunkingStrategy configures how documents in a topic are chunked.
+// Type can be "fixed" (default) or "semantic". When "semantic", the chunking
+// worker uses an LLM to identify natural split points in the text.
 type ChunkingStrategy struct {
-	ChunkSize    int `json:"chunk_size"`
-	ChunkOverlap int `json:"chunk_overlap"`
+	Type         string `json:"type,omitempty"`
+	ChunkSize    int    `json:"chunk_size"`
+	ChunkOverlap int    `json:"chunk_overlap"`
 }
 
 // Topic represents a stored topic.

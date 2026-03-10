@@ -152,7 +152,7 @@ func TestExtractionWorker_Process_ExtractTextError(t *testing.T) {
 			return pgconn.NewCommandTag("UPDATE 1"), nil
 		},
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
-			return &mockContentRow{contentType: "application/pdf"}
+			return &mockContentRow{contentType: "application/octet-stream"}
 		},
 	}
 	w := newTestExtractionWorker(db)
@@ -174,7 +174,7 @@ func TestExtractionWorker_Process_ExtractTextError_FailedStatusAlsoFails(t *test
 			return pgconn.CommandTag{}, errors.New("status update failed")
 		},
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
-			return &mockContentRow{contentType: "application/pdf"}
+			return &mockContentRow{contentType: "application/octet-stream"}
 		},
 	}
 	w := newTestExtractionWorker(db)

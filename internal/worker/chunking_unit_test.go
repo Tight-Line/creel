@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/Tight-Line/creel/internal/llm"
 	"github.com/Tight-Line/creel/internal/store"
 )
 
@@ -183,7 +184,7 @@ func TestChunkingWorker_Process_GetContentError(t *testing.T) {
 	docDB := &mockDocForChunking{contentErr: pgx.ErrNoRows}
 	w := NewChunkingWorker(
 		store.NewDocumentStore(docDB),
-		nil, nil, nil,
+		nil, nil, nil, nil,
 	)
 	job := &store.ProcessingJob{DocumentID: "doc-1"}
 	err := w.Process(context.Background(), job)
@@ -199,7 +200,7 @@ func TestChunkingWorker_Process_EmptyExtractedText(t *testing.T) {
 	docDB := &mockDocForChunking{contentText: ""}
 	w := NewChunkingWorker(
 		store.NewDocumentStore(docDB),
-		nil, nil, nil,
+		nil, nil, nil, nil,
 	)
 	job := &store.ProcessingJob{DocumentID: "doc-1"}
 	err := w.Process(context.Background(), job)
@@ -215,7 +216,7 @@ func TestChunkingWorker_Process_TopicIDLookupError(t *testing.T) {
 	docDB := &mockDocForChunking{contentText: "some text", topicIDErr: errors.New("not found")}
 	w := NewChunkingWorker(
 		store.NewDocumentStore(docDB),
-		nil, nil, nil,
+		nil, nil, nil, nil,
 	)
 	job := &store.ProcessingJob{DocumentID: "doc-1"}
 	err := w.Process(context.Background(), job)
@@ -238,6 +239,7 @@ func TestChunkingWorker_Process_TopicGetError(t *testing.T) {
 		store.NewDocumentStore(docDB),
 		nil, nil,
 		store.NewTopicStore(topicDB),
+		nil,
 	)
 	job := &store.ProcessingJob{DocumentID: "doc-1"}
 	err := w.Process(context.Background(), job)
@@ -262,6 +264,7 @@ func TestChunkingWorker_Process_ChunkCreateError(t *testing.T) {
 		store.NewChunkStore(chunkDB),
 		nil,
 		store.NewTopicStore(topicDB),
+		nil,
 	)
 	job := &store.ProcessingJob{DocumentID: "doc-1"}
 	err := w.Process(context.Background(), job)
@@ -291,6 +294,7 @@ func TestChunkingWorker_Process_CreateEmbeddingJobError(t *testing.T) {
 		store.NewChunkStore(chunkDB),
 		store.NewJobStore(failingJobDB),
 		store.NewTopicStore(topicDB),
+		nil,
 	)
 	job := &store.ProcessingJob{DocumentID: "doc-1"}
 	err := w.Process(context.Background(), job)
@@ -316,6 +320,7 @@ func TestChunkingWorker_Process_WithChunkingStrategy(t *testing.T) {
 		store.NewChunkStore(chunkDB),
 		store.NewJobStore(jobDB),
 		store.NewTopicStore(topicDB),
+		nil,
 	)
 	job := &store.ProcessingJob{DocumentID: "doc-1"}
 	err := w.Process(context.Background(), job)
@@ -342,6 +347,7 @@ func TestChunkingWorker_Process_Success(t *testing.T) {
 		store.NewChunkStore(chunkDB),
 		store.NewJobStore(jobDB),
 		store.NewTopicStore(topicDB),
+		nil,
 	)
 	job := &store.ProcessingJob{DocumentID: "doc-1"}
 	err := w.Process(context.Background(), job)
@@ -350,5 +356,176 @@ func TestChunkingWorker_Process_Success(t *testing.T) {
 	}
 	if chunkDB.createCount != 1 {
 		t.Errorf("expected 1 chunk creation, got %d", chunkDB.createCount)
+	}
+}
+
+func TestChunkingWorker_Process_SemanticNoLLMProvider(t *testing.T) {
+	docDB := &mockDocForChunking{contentText: "some text"}
+	topicDB := &mockTopicDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockTopicRow{chunkingStrategy: []byte(`{"type":"semantic"}`)}
+		},
+	}
+	w := NewChunkingWorker(
+		store.NewDocumentStore(docDB),
+		nil, nil,
+		store.NewTopicStore(topicDB),
+		nil,
+	)
+	job := &store.ProcessingJob{DocumentID: "doc-1"}
+	err := w.Process(context.Background(), job)
+	if err == nil {
+		t.Fatal("expected error for missing LLM provider")
+	}
+	if !strings.Contains(err.Error(), "LLM provider") {
+		t.Errorf("error should mention LLM provider: %v", err)
+	}
+}
+
+func TestChunkingWorker_Process_SemanticLLMError(t *testing.T) {
+	docDB := &mockDocForChunking{contentText: "some text"}
+	topicDB := &mockTopicDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockTopicRow{chunkingStrategy: []byte(`{"type":"semantic"}`)}
+		},
+	}
+	w := NewChunkingWorker(
+		store.NewDocumentStore(docDB),
+		nil, nil,
+		store.NewTopicStore(topicDB),
+		&failingLLMProvider{},
+	)
+	job := &store.ProcessingJob{DocumentID: "doc-1"}
+	err := w.Process(context.Background(), job)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "semantic chunking") {
+		t.Errorf("error should mention semantic chunking: %v", err)
+	}
+}
+
+func TestChunkingWorker_Process_SemanticBadJSON(t *testing.T) {
+	docDB := &mockDocForChunking{contentText: "some text"}
+	topicDB := &mockTopicDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockTopicRow{chunkingStrategy: []byte(`{"type":"semantic"}`)}
+		},
+	}
+	w := NewChunkingWorker(
+		store.NewDocumentStore(docDB),
+		nil, nil,
+		store.NewTopicStore(topicDB),
+		llm.NewStubProvider("not json"),
+	)
+	job := &store.ProcessingJob{DocumentID: "doc-1"}
+	err := w.Process(context.Background(), job)
+	if err == nil {
+		t.Fatal("expected error for bad JSON")
+	}
+	if !strings.Contains(err.Error(), "semantic chunking") {
+		t.Errorf("error should mention semantic chunking: %v", err)
+	}
+}
+
+func TestChunkingWorker_Process_SemanticEmptyChunks(t *testing.T) {
+	docDB := &mockDocForChunking{contentText: "some text"}
+	topicDB := &mockTopicDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockTopicRow{chunkingStrategy: []byte(`{"type":"semantic"}`)}
+		},
+	}
+	w := NewChunkingWorker(
+		store.NewDocumentStore(docDB),
+		nil, nil,
+		store.NewTopicStore(topicDB),
+		llm.NewStubProvider(`[]`),
+	)
+	job := &store.ProcessingJob{DocumentID: "doc-1"}
+	err := w.Process(context.Background(), job)
+	if err == nil {
+		t.Fatal("expected error for empty chunks")
+	}
+	if !strings.Contains(err.Error(), "no chunks") {
+		t.Errorf("error should mention no chunks: %v", err)
+	}
+}
+
+func TestChunkingWorker_Process_SemanticSuccess(t *testing.T) {
+	docDB := &mockDocForChunking{contentText: "some text"}
+	topicDB := &mockTopicDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockTopicRow{chunkingStrategy: []byte(`{"type":"semantic"}`)}
+		},
+	}
+	chunkDB := &mockChunkCreateDBTX{}
+	jobDB := &mockJobDBTX{}
+	w := NewChunkingWorker(
+		store.NewDocumentStore(docDB),
+		store.NewChunkStore(chunkDB),
+		store.NewJobStore(jobDB),
+		store.NewTopicStore(topicDB),
+		llm.NewStubProvider(`["first section", "second section"]`),
+	)
+	job := &store.ProcessingJob{DocumentID: "doc-1"}
+	err := w.Process(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if chunkDB.createCount != 2 {
+		t.Errorf("expected 2 chunk creations, got %d", chunkDB.createCount)
+	}
+}
+
+func TestChunkingWorker_Process_SemanticStripsCodeFences(t *testing.T) {
+	docDB := &mockDocForChunking{contentText: "some text"}
+	topicDB := &mockTopicDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockTopicRow{chunkingStrategy: []byte(`{"type":"semantic"}`)}
+		},
+	}
+	chunkDB := &mockChunkCreateDBTX{}
+	jobDB := &mockJobDBTX{}
+	// LLM wraps response in markdown code fences.
+	w := NewChunkingWorker(
+		store.NewDocumentStore(docDB),
+		store.NewChunkStore(chunkDB),
+		store.NewJobStore(jobDB),
+		store.NewTopicStore(topicDB),
+		llm.NewStubProvider("```json\n[\"chunk one\"]\n```"),
+	)
+	job := &store.ProcessingJob{DocumentID: "doc-1"}
+	err := w.Process(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if chunkDB.createCount != 1 {
+		t.Errorf("expected 1 chunk creation, got %d", chunkDB.createCount)
+	}
+}
+
+func TestChunkingWorker_Process_SemanticSkipsEmptyChunks(t *testing.T) {
+	docDB := &mockDocForChunking{contentText: "some text"}
+	topicDB := &mockTopicDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockTopicRow{chunkingStrategy: []byte(`{"type":"semantic"}`)}
+		},
+	}
+	chunkDB := &mockChunkCreateDBTX{}
+	jobDB := &mockJobDBTX{}
+	w := NewChunkingWorker(
+		store.NewDocumentStore(docDB),
+		store.NewChunkStore(chunkDB),
+		store.NewJobStore(jobDB),
+		store.NewTopicStore(topicDB),
+		llm.NewStubProvider(`["real chunk", "", "  "]`),
+	)
+	job := &store.ProcessingJob{DocumentID: "doc-1"}
+	err := w.Process(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if chunkDB.createCount != 1 {
+		t.Errorf("expected 1 chunk creation (empty ones filtered), got %d", chunkDB.createCount)
 	}
 }

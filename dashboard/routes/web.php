@@ -8,6 +8,7 @@ use App\Http\Controllers\LlmConfigController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\SystemAccountController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\MemoryController;
 use App\Http\Controllers\TopicController;
 use Illuminate\Support\Facades\Route;
 
@@ -65,6 +66,10 @@ Route::middleware('auth.dashboard')->group(function () {
     Route::get('/topics/{topicId}/documents', [DocumentController::class, 'index'])->name('documents.index');
     Route::get('/documents/{id}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
     Route::patch('/documents/{id}', [DocumentController::class, 'update'])->name('documents.update');
+
+    // Memories
+    Route::get('/memories', [MemoryController::class, 'index'])->name('memories.index');
+    Route::get('/memories/{scope}', [MemoryController::class, 'scope'])->name('memories.scope');
 
     // System Accounts
     Route::get('/accounts', [SystemAccountController::class, 'index'])->name('accounts.index');

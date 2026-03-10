@@ -47,7 +47,7 @@ func TestChunkingWorker_Integration(t *testing.T) {
 		t.Fatalf("creating job: %v", err)
 	}
 
-	w := NewChunkingWorker(docStore, chunkStore, jobStore, topicStore)
+	w := NewChunkingWorker(docStore, chunkStore, jobStore, topicStore, nil)
 	if err := w.Process(ctx, job); err != nil {
 		t.Fatalf("processing: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestChunkingWorker_ShortText_Integration(t *testing.T) {
 		t.Fatalf("creating job: %v", err)
 	}
 
-	w := NewChunkingWorker(docStore, chunkStore, jobStore, topicStore)
+	w := NewChunkingWorker(docStore, chunkStore, jobStore, topicStore, nil)
 	if err := w.Process(ctx, job); err != nil {
 		t.Fatalf("processing: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestChunkingWorker_EmptyText_Integration(t *testing.T) {
 		t.Fatalf("creating job: %v", err)
 	}
 
-	w := NewChunkingWorker(docStore, chunkStore, jobStore, topicStore)
+	w := NewChunkingWorker(docStore, chunkStore, jobStore, topicStore, nil)
 	err = w.Process(ctx, job)
 	if err == nil {
 		t.Fatal("expected error for empty extracted text")
@@ -364,7 +364,7 @@ func TestPipeline_EndToEnd_Integration(t *testing.T) {
 	}
 
 	// Step 2: Chunking.
-	chunkingWorker := NewChunkingWorker(docStore, chunkStore, jobStore, topicStore)
+	chunkingWorker := NewChunkingWorker(docStore, chunkStore, jobStore, topicStore, nil)
 	if err := chunkingWorker.Process(ctx, chunkingJob); err != nil {
 		t.Fatalf("chunking: %v", err)
 	}

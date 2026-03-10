@@ -24,6 +24,7 @@
                         ['url' => '/config/embedding', 'label' => 'Embedding Configs', 'pattern' => 'config/embedding*'],
                         ['url' => '/config/prompt', 'label' => 'Extraction Prompts', 'pattern' => 'config/prompt*'],
                         ['url' => '/topics', 'label' => 'Topics', 'pattern' => 'topics*'],
+                        ['url' => '/memories', 'label' => 'Memories', 'pattern' => 'memories*'],
                         ['url' => '/accounts', 'label' => 'System Accounts', 'pattern' => 'accounts*'],
                     ];
                 @endphp

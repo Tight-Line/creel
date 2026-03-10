@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -81,8 +82,43 @@ func TestExtractText_AutoDetectHTML(t *testing.T) {
 	}
 }
 
+func TestExtractText_PDF(t *testing.T) {
+	data, err := os.ReadFile("testdata/sample.pdf")
+	if err != nil {
+		t.Fatalf("reading test PDF: %v", err)
+	}
+	got, err := ExtractText(data, "application/pdf")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "Hello World") {
+		t.Errorf("expected to contain 'Hello World', got %q", got)
+	}
+}
+
+func TestExtractText_PDFWithCharset(t *testing.T) {
+	data, err := os.ReadFile("testdata/sample.pdf")
+	if err != nil {
+		t.Fatalf("reading test PDF: %v", err)
+	}
+	got, err := ExtractText(data, "application/pdf; charset=utf-8")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "Hello World") {
+		t.Errorf("expected to contain 'Hello World', got %q", got)
+	}
+}
+
+func TestExtractText_PDFInvalid(t *testing.T) {
+	_, err := ExtractText([]byte("not a pdf"), "application/pdf")
+	if err == nil {
+		t.Fatal("expected error for invalid PDF")
+	}
+}
+
 func TestExtractText_Unsupported(t *testing.T) {
-	_, err := ExtractText([]byte("data"), "application/pdf")
+	_, err := ExtractText([]byte("data"), "application/octet-stream")
 	if err == nil {
 		t.Fatal("expected error for unsupported content type")
 	}

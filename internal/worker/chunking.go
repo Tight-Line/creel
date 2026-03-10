@@ -2,8 +2,11 @@ package worker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
+	"github.com/Tight-Line/creel/internal/llm"
 	"github.com/Tight-Line/creel/internal/store"
 )
 
@@ -16,19 +19,23 @@ const (
 
 // ChunkingWorker splits extracted text into chunks and creates the next pipeline job.
 type ChunkingWorker struct {
-	docStore   *store.DocumentStore
-	chunkStore *store.ChunkStore
-	jobStore   *store.JobStore
-	topicStore *store.TopicStore
+	docStore    *store.DocumentStore
+	chunkStore  *store.ChunkStore
+	jobStore    *store.JobStore
+	topicStore  *store.TopicStore
+	llmProvider llm.Provider
 }
 
-// NewChunkingWorker creates a new chunking worker.
-func NewChunkingWorker(docStore *store.DocumentStore, chunkStore *store.ChunkStore, jobStore *store.JobStore, topicStore *store.TopicStore) *ChunkingWorker {
+// NewChunkingWorker creates a new chunking worker. The llmProvider is optional;
+// it is only needed when a topic uses semantic chunking. Pass nil if semantic
+// chunking is not required.
+func NewChunkingWorker(docStore *store.DocumentStore, chunkStore *store.ChunkStore, jobStore *store.JobStore, topicStore *store.TopicStore, llmProvider llm.Provider) *ChunkingWorker {
 	return &ChunkingWorker{
-		docStore:   docStore,
-		chunkStore: chunkStore,
-		jobStore:   jobStore,
-		topicStore: topicStore,
+		docStore:    docStore,
+		chunkStore:  chunkStore,
+		jobStore:    jobStore,
+		topicStore:  topicStore,
+		llmProvider: llmProvider,
 	}
 }
 
@@ -76,19 +83,38 @@ func (w *ChunkingWorker) Process(ctx context.Context, job *store.ProcessingJob) 
 		return fmt.Errorf("getting topic: %w", err)
 	}
 
-	chunkSize := DefaultChunkSize
-	chunkOverlap := DefaultChunkOverlap
-	if topic.ChunkingStrategy != nil {
-		if topic.ChunkingStrategy.ChunkSize > 0 {
-			chunkSize = topic.ChunkingStrategy.ChunkSize
-		}
-		if topic.ChunkingStrategy.ChunkOverlap > 0 {
-			chunkOverlap = topic.ChunkingStrategy.ChunkOverlap
-		}
-	}
+	strategy := topic.ChunkingStrategy
+	useSemantic := strategy != nil && strategy.Type == "semantic"
 
-	// Split text into chunks.
-	chunks := SplitText(content.ExtractedText, chunkSize, chunkOverlap)
+	var chunks []string
+	if useSemantic {
+		if w.llmProvider == nil {
+			if setErr := w.docStore.UpdateStatus(ctx, job.DocumentID, "failed"); setErr != nil {
+				return fmt.Errorf("setting document status to failed: %w", setErr)
+			}
+			return fmt.Errorf("semantic chunking requires an LLM provider but none is configured")
+		}
+		var err error
+		chunks, err = w.splitSemantic(ctx, content.ExtractedText)
+		if err != nil {
+			if setErr := w.docStore.UpdateStatus(ctx, job.DocumentID, "failed"); setErr != nil {
+				return fmt.Errorf("setting document status to failed after semantic chunking error: %w (original: %v)", setErr, err)
+			}
+			return fmt.Errorf("semantic chunking: %w", err)
+		}
+	} else {
+		chunkSize := DefaultChunkSize
+		chunkOverlap := DefaultChunkOverlap
+		if strategy != nil {
+			if strategy.ChunkSize > 0 {
+				chunkSize = strategy.ChunkSize
+			}
+			if strategy.ChunkOverlap > 0 {
+				chunkOverlap = strategy.ChunkOverlap
+			}
+		}
+		chunks = SplitText(content.ExtractedText, chunkSize, chunkOverlap)
+	}
 
 	// Create chunks in the store.
 	for i, text := range chunks {
@@ -148,4 +174,55 @@ func SplitText(text string, chunkSize, overlap int) []string {
 		start = end - overlap
 	}
 	return chunks
+}
+
+const semanticChunkingPrompt = `You are a document chunking assistant. Split the following text into semantically coherent sections. Each section should cover a single topic or idea.
+
+Return a JSON array of strings, where each string is one chunk. Preserve the original text exactly; do not summarize or rephrase. Example response format:
+
+["First section text...", "Second section text...", "Third section text..."]
+
+Text to split:
+`
+
+// splitSemantic uses an LLM to identify natural split points in the text.
+func (w *ChunkingWorker) splitSemantic(ctx context.Context, text string) ([]string, error) {
+	resp, err := w.llmProvider.Complete(ctx, []llm.Message{
+		{Role: "system", Content: semanticChunkingPrompt},
+		{Role: "user", Content: text},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("calling LLM for semantic chunking: %w", err)
+	}
+
+	// Parse JSON array response.
+	content := strings.TrimSpace(resp.Content)
+	// Strip markdown code fences if present.
+	if strings.HasPrefix(content, "```") {
+		if idx := strings.Index(content[3:], "\n"); idx >= 0 {
+			content = content[3+idx+1:]
+		}
+		content = strings.TrimSuffix(content, "```")
+		content = strings.TrimSpace(content)
+	}
+
+	var chunks []string
+	if err := json.Unmarshal([]byte(content), &chunks); err != nil {
+		return nil, fmt.Errorf("parsing LLM chunking response: %w", err)
+	}
+
+	// Filter empty chunks.
+	var result []string
+	for _, c := range chunks {
+		trimmed := strings.TrimSpace(c)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+
+	if len(result) == 0 {
+		return nil, fmt.Errorf("LLM returned no chunks")
+	}
+
+	return result, nil
 }

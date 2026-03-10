@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- PDF text extraction in the document processing pipeline. Upload PDF files and Creel extracts text automatically using the same managed pipeline as plain text and HTML.
+- Semantic chunking via LLM. Topics can set `chunking_strategy.type` to `"semantic"` to split documents into topically coherent sections using the configured LLM, instead of fixed-size character windows.
+- Dashboard memory browser. The admin dashboard now has a "Memories" section that lists memory scopes and lets you browse individual memories within each scope.
+
 ## [0.2.1] - 2026-03-09
 
 ### Added
