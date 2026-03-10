@@ -338,11 +338,11 @@ Compaction merges multiple chunks into a single summary. You can do this manuall
 bin/creel-cli compact run --document "$DOC_ID"
 
 # Or compact specific chunks with an LLM summary
-bin/creel-cli compact run --document "$DOC_ID" --chunk "$CHUNK_A" --chunk "$CHUNK_B"
+bin/creel-cli compact run --document "$DOC_ID" --chunk-ids "$CHUNK_A,$CHUNK_B"
 
 # Provide your own summary (synchronous, no LLM)
 bin/creel-cli compact manual --document "$DOC_ID" \
-  --chunk "$CHUNK_A" --chunk "$CHUNK_B" \
+  --chunk-ids "$CHUNK_A,$CHUNK_B" \
   --summary "Combined summary of chunks A and B."
 
 # View compaction history
