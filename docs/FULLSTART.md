@@ -140,6 +140,17 @@ bin/creel-cli upload \
   --content-type text/html
 ```
 
+You can also upload PDF files. The server extracts text from PDFs automatically:
+
+```bash
+bin/creel-cli upload \
+  --topic fly-fishing \
+  --file /tmp/regulations.pdf \
+  --name "Maine Fishing Regulations 2026" \
+  --author "Maine IF&W" \
+  --content-type application/pdf
+```
+
 Upload a document to the ski topic:
 
 ```bash
@@ -327,6 +338,7 @@ The admin dashboard runs on port 3000. Open [http://localhost:3000](http://local
 From the dashboard you can:
 
 - Browse topics and their documents
+- Browse memory scopes and view individual memories
 - View system accounts and API keys
 - Manage server configuration (LLM, embedding, prompt configs)
 

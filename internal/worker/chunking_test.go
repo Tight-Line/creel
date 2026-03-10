@@ -130,7 +130,7 @@ func TestSplitText_LargeText(t *testing.T) {
 }
 
 func TestChunkingWorker_Type(t *testing.T) {
-	w := NewChunkingWorker(nil, nil, nil, nil)
+	w := NewChunkingWorker(nil, nil, nil, nil, nil)
 	if w.Type() != "chunking" {
 		t.Errorf("Type() = %q, want chunking", w.Type())
 	}

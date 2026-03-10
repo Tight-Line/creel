@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ledongthuc/pdf"
 	"golang.org/x/net/html"
 
 	"github.com/Tight-Line/creel/internal/store"
@@ -95,9 +96,31 @@ func ExtractText(data []byte, contentType string) (string, error) {
 		return string(data), nil
 	case "text/html", "application/xhtml+xml":
 		return extractHTML(data)
+	case "application/pdf":
+		return extractPDF(data)
 	default:
 		return "", fmt.Errorf("unsupported content type: %s", ct)
 	}
+}
+
+// extractPDF extracts text content from PDF bytes.
+func extractPDF(data []byte) (string, error) {
+	reader, err := pdf.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return "", fmt.Errorf("opening PDF: %w", err)
+	}
+
+	plainText, err := reader.GetPlainText()
+	if err != nil {
+		return "", fmt.Errorf("extracting PDF text: %w", err)
+	}
+
+	text, err := io.ReadAll(plainText)
+	if err != nil {
+		return "", fmt.Errorf("reading PDF text: %w", err)
+	}
+
+	return strings.TrimSpace(string(text)), nil
 }
 
 // extractHTML parses HTML and extracts visible text content.

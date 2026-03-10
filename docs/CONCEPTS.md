@@ -31,7 +31,7 @@ The topic creator automatically gets admin. There are no document-level or chunk
 
 Creel offers two ingestion paths:
 
-- **Managed path** (default): Upload a document (PDF, HTML, plain text, or URL). Creel extracts text, chunks it, and computes embeddings in the background using the topic's configured providers and strategies. The client does not need to know about chunking, embedding, or extraction.
+- **Managed path** (default): Upload a document (PDF, HTML, plain text, or URL). Creel extracts text, chunks it, and computes embeddings in the background using the topic's configured providers and strategies. The client does not need to know about chunking, embedding, or extraction. Supported content types: `text/plain`, `text/html`, and `application/pdf`.
 - **Direct path** (power users): Push pre-chunked, pre-embedded content via `IngestChunks`. This skips the worker pipeline entirely. Useful for users who have their own processing stack.
 
 ## Embeddings
@@ -47,6 +47,22 @@ Key constraints:
 ## Document metadata & citations
 
 Documents carry structured citation metadata: name, URL, author, publication date, and custom JSONB fields. All RAG search results include the parent document's citation metadata alongside each chunk, enabling LLMs to generate properly cited responses without additional lookups.
+
+## Chunking strategies
+
+Topics support two chunking strategies, controlled by the `chunking_strategy` JSONB field:
+
+- **Fixed-size** (default): splits text into windows of `chunk_size` characters (default 2048) with `chunk_overlap` characters of overlap (default 200). Good for most use cases.
+- **Semantic**: set `type` to `"semantic"` to use the topic's LLM to split text into topically coherent sections. The LLM identifies natural break points in the text and returns a JSON array of chunks. Requires an LLM provider to be configured on the server.
+
+Example `chunking_strategy` values:
+
+```json
+{"type": "fixed", "chunk_size": 1024, "chunk_overlap": 100}
+{"type": "semantic"}
+```
+
+When `chunking_strategy` is NULL or omitted, fixed-size chunking with server defaults is used.
 
 ## Search modes
 

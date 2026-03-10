@@ -37,7 +37,7 @@ See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.
 
 ## Key features
 
-- **Upload and forget**: upload PDFs, HTML, or plain text; Creel extracts, chunks, and embeds in the background
+- **Upload and forget**: upload PDFs, HTML, or plain text; Creel extracts text, chunks it (fixed-size or LLM-based semantic), and embeds in the background
 - **Document citations**: search results include document metadata (title, author, URL, date) for proper attribution
 - **Per-principal memory**: automatic fact extraction from conversations with Mem0-style conflict resolution (ADD/UPDATE/DELETE/NOOP)
 - **Topic > Document > Chunk** hierarchy with RBAC and cross-topic linking
@@ -46,7 +46,7 @@ See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.
 - **Pluggable vector backends**: pgvector (reference), OpenAI, Qdrant, Weaviate
 - **63 gRPC/REST RPCs** across 10 services
 - **Two ingestion paths**: managed (upload and forget) and direct (pre-chunked, pre-embedded) for power users
-- **Admin dashboard**: Laravel-based web UI for config, topic, and system account management
+- **Admin dashboard**: Laravel-based web UI for config, topic, system account, and memory management
 - **creel-chat**: interactive demo agent with streaming, memory, cross-topic RAG, and citation display
 
 ## Documentation

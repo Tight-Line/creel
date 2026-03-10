@@ -124,8 +124,11 @@ func run() error {
 	extractionWorker := worker.NewExtractionWorker(docStore, jobStore)
 	workerPool.Register(extractionWorker)
 
+	// TODO: replace stub LLM provider with a real one when available.
+	llmProvider := llm.NewStubProvider(`{"facts": []}`)
+
 	// Create and register chunking and embedding workers.
-	chunkingWorker := worker.NewChunkingWorker(docStore, chunkStore, jobStore, topicStore)
+	chunkingWorker := worker.NewChunkingWorker(docStore, chunkStore, jobStore, topicStore, llmProvider)
 	workerPool.Register(chunkingWorker)
 
 	embeddingProvider := &dynamicEmbeddingProvider{
@@ -137,8 +140,6 @@ func run() error {
 	workerPool.Register(embeddingWorker)
 
 	// Create and register memory workers.
-	// TODO: replace stub LLM provider with a real one when available.
-	llmProvider := llm.NewStubProvider(`{"facts": []}`)
 	memoryStore := store.NewMemoryStore(pool)
 	memExtractionWorker := worker.NewMemoryExtractionWorker(docStore, chunkStore, topicStore, jobStore, llmProvider)
 	workerPool.Register(memExtractionWorker)
