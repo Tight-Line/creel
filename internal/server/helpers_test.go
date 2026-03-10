@@ -1420,3 +1420,23 @@ func TestNilPrincipal_RetrievalServer(t *testing.T) {
 	_, err = s.GetContext(ctx, &pb.GetContextRequest{DocumentId: "doc-1"})
 	requireCode(t, err, codes.Unauthenticated)
 }
+
+// TestNewServer_MetricsRegistration verifies that creating multiple Server
+// instances does not panic from duplicate Prometheus metric registration.
+// This catches the bug where go-grpc-prometheus init() registers default
+// metrics and a subsequent MustRegister on the global registry panics.
+func TestNewServer_MetricsRegistration(t *testing.T) {
+	// Create two servers; if they share the global registry this would panic.
+	s1 := New(0, nil, nil)
+	s2 := New(0, nil, nil)
+
+	if s1.Registry == nil {
+		t.Fatal("expected non-nil Registry on first server")
+	}
+	if s2.Registry == nil {
+		t.Fatal("expected non-nil Registry on second server")
+	}
+	if s1.Registry == s2.Registry {
+		t.Error("each server should have its own Registry")
+	}
+}
