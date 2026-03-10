@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApiKeyConfigController;
+use App\Http\Controllers\ChunkController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmbeddingConfigController;
 use App\Http\Controllers\ExtractionPromptController;
@@ -66,6 +67,9 @@ Route::middleware('auth.dashboard')->group(function () {
     Route::get('/topics/{topicId}/documents', [DocumentController::class, 'index'])->name('documents.index');
     Route::get('/documents/{id}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
     Route::patch('/documents/{id}', [DocumentController::class, 'update'])->name('documents.update');
+
+    // Chunks
+    Route::get('/documents/{documentId}/chunks', [ChunkController::class, 'index'])->name('chunks.index');
 
     // Memories
     Route::get('/memories', [MemoryController::class, 'index'])->name('memories.index');
