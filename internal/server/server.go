@@ -6,6 +6,7 @@ import (
 	"net"
 
 	grpcprom "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
 
 	"github.com/Tight-Line/creel/internal/auth"
@@ -13,9 +14,12 @@ import (
 
 // Server wraps a gRPC server with Creel services.
 type Server struct {
-	grpcServer  *grpc.Server
-	port        int
-	GRPCMetrics *grpcprom.ServerMetrics
+	grpcServer *grpc.Server
+	port       int
+	// Registry is a dedicated Prometheus registry for gRPC metrics.
+	// Using a custom registry avoids conflicts with the default metrics
+	// that go-grpc-prometheus registers in init().
+	Registry *prometheus.Registry
 }
 
 // New creates a new Server with auth and Prometheus interceptors.
@@ -31,10 +35,15 @@ func New(port int, apiKeyValidator *auth.APIKeyValidator, oidcValidator *auth.OI
 	)
 	grpcMetrics.InitializeMetrics(grpcServer)
 
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(prometheus.NewGoCollector())
+	reg.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	reg.MustRegister(grpcMetrics)
+
 	return &Server{
-		grpcServer:  grpcServer,
-		port:        port,
-		GRPCMetrics: grpcMetrics,
+		grpcServer: grpcServer,
+		port:       port,
+		Registry:   reg,
 	}
 }
 

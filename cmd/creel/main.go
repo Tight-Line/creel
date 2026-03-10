@@ -11,7 +11,6 @@ import (
 	"syscall"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -181,9 +180,6 @@ func run() error {
 	compactionServer := server.NewCompactionServer(chunkStore, linkStore, compactionStore, docStore, jobStore, vectorBackend, authorizer)
 	pb.RegisterCompactionServiceServer(srv.GRPCServer(), compactionServer)
 
-	// Register Prometheus gRPC metrics.
-	prometheus.MustRegister(srv.GRPCMetrics)
-
 	// Handle shutdown signals.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
@@ -203,7 +199,7 @@ func run() error {
 	// Start metrics server.
 	go func() {
 		metricsMux := http.NewServeMux()
-		metricsMux.Handle("/metrics", promhttp.Handler())
+		metricsMux.Handle("/metrics", promhttp.HandlerFor(srv.Registry, promhttp.HandlerOpts{}))
 		fmt.Printf("creel: metrics server listening on :%d\n", cfg.Server.MetricsPort)
 		// coverage:ignore - requires port conflict to test
 		if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Server.MetricsPort), metricsMux); err != nil {
