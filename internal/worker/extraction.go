@@ -111,11 +111,13 @@ func extractPDF(data []byte) (string, error) {
 	}
 
 	plainText, err := reader.GetPlainText()
+	// coverage:ignore - requires malformed internal PDF structure
 	if err != nil {
 		return "", fmt.Errorf("extracting PDF text: %w", err)
 	}
 
 	text, err := io.ReadAll(plainText)
+	// coverage:ignore - requires IO failure on in-memory reader
 	if err != nil {
 		return "", fmt.Errorf("reading PDF text: %w", err)
 	}
