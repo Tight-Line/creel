@@ -128,8 +128,11 @@ func run() error {
 	extractionWorker := worker.NewExtractionWorker(docStore, jobStore)
 	workerPool.Register(extractionWorker)
 
-	// TODO: replace stub LLM provider with a real one when available.
-	llmProvider := llm.NewStubProvider(`{"facts": []}`)
+	// Dynamic LLM provider; resolves the default LLM config from the DB on each call.
+	llmProvider := &dynamicLLMProvider{
+		llmCfgStore:    llmConfigStore,
+		apiKeyCfgStore: apiKeyConfigStore,
+	}
 
 	// Create and register chunking and embedding workers.
 	chunkingWorker := worker.NewChunkingWorker(docStore, chunkStore, jobStore, topicStore, llmProvider)
@@ -309,6 +312,36 @@ func (d *dynamicEmbeddingProvider) Dimensions() int {
 		return d.fallbackDim
 	}
 	return provider.Dimensions()
+}
+
+// dynamicLLMProvider resolves the default LLM config from the database on each
+// call, so config changes take effect without a restart.
+type dynamicLLMProvider struct {
+	llmCfgStore    *store.LLMConfigStore
+	apiKeyCfgStore *store.APIKeyConfigStore
+}
+
+func (d *dynamicLLMProvider) Complete(ctx context.Context, messages []llm.Message) (*llm.Response, error) {
+	cfg, err := d.llmCfgStore.GetDefault(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("loading default LLM config: %w", err)
+	}
+	if cfg == nil {
+		// No LLM config; fall back to stub that returns empty facts.
+		return llm.NewStubProvider(`{"facts": []}`).Complete(ctx, messages)
+	}
+
+	apiKey, err := d.apiKeyCfgStore.GetDecrypted(ctx, cfg.APIKeyConfigID)
+	if err != nil {
+		return nil, fmt.Errorf("decrypting API key for LLM config %q: %w", cfg.Name, err)
+	}
+
+	switch cfg.Provider {
+	case "openai":
+		return llm.NewOpenAIProvider(string(apiKey), cfg.Model).Complete(ctx, messages)
+	default:
+		return nil, fmt.Errorf("unsupported LLM provider: %s", cfg.Provider)
+	}
 }
 
 // singleTextEmbedder adapts a batch worker.EmbeddingProvider to the

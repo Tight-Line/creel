@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- LLM provider now resolves dynamically from the database. When a default LLM config is set, the server uses it to call OpenAI chat completions instead of returning stub responses. Config changes take effect without a restart.
+
+### Fixed
+
+- Prometheus metrics no longer panic on server startup due to double-registration of default gRPC metrics. Each server instance now uses its own metric registry.
+- REST gateway now returns snake_case JSON field names matching proto definitions, fixing dashboard document editing and other clients that expect proto-style field names.
+- Fixed incorrect chunk listing endpoint and compact CLI flags in FULLSTART guide.
+
 ## [0.7.0] - 2026-03-10
 
 ### Added
