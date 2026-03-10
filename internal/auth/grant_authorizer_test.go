@@ -8,12 +8,12 @@ import (
 )
 
 type mockGrantStore struct {
-	grants       []Grant
-	owners       map[string]string // topicID -> owner
-	ownedTopics  map[string][]string // ownerID -> topicIDs
-	grantErr     error
-	ownerErr     error
-	ownedErr     error
+	grants      []Grant
+	owners      map[string]string   // topicID -> owner
+	ownedTopics map[string][]string // ownerID -> topicIDs
+	grantErr    error
+	ownerErr    error
+	ownedErr    error
 }
 
 func (m *mockGrantStore) GrantsForPrincipal(_ context.Context, principals []string) ([]Grant, error) {

@@ -33,12 +33,12 @@ func (p *OpenAIEmbeddingProvider) Embed(ctx context.Context, texts []string) ([]
 		"model": p.model,
 		"input": texts,
 	})
-	if err != nil {
+	if err != nil { // coverage:ignore - json.Marshal of map[string]any with string values cannot fail
 		return nil, fmt.Errorf("marshalling request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/v1/embeddings", bytes.NewReader(body))
-	if err != nil {
+	if err != nil { // coverage:ignore - NewRequestWithContext only fails with invalid HTTP method
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
