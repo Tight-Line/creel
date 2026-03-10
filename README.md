@@ -64,7 +64,7 @@ See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.
 
 ## Status
 
-Active development (v0.2.x). Phases 1-5 are complete; Phases 6-9 (integration layers, linking, compaction, additional backends) are next. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for release history.
+Active development (v0.3.x). Phases 1-5 complete plus PDF extraction, semantic chunking, and dashboard memory browser. Phases 6-9 (integration layers, linking, compaction, additional backends) are next. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
