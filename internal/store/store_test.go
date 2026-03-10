@@ -2677,3 +2677,200 @@ func TestLinkStore_DeleteByChunk_Success(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// CompactionStore
+// ---------------------------------------------------------------------------
+
+func TestCompactionStore_Create_Error(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewCompactionStore(db)
+	_, err := s.Create(ctx(), "sc1", []string{"c1", "c2"}, "d1", "user:test")
+	expectErr(t, err, "inserting compaction record")
+}
+
+func TestCompactionStore_GetBySummaryChunkID_NotFound(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: pgx.ErrNoRows}
+	}}
+	s := NewCompactionStore(db)
+	_, err := s.GetBySummaryChunkID(ctx(), "bad")
+	expectErr(t, err, "compaction record not found")
+}
+
+func TestCompactionStore_GetBySummaryChunkID_Error(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewCompactionStore(db)
+	_, err := s.GetBySummaryChunkID(ctx(), "sc1")
+	expectErr(t, err, "querying compaction record")
+}
+
+func TestCompactionStore_ListByDocument_Error(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewCompactionStore(db)
+	_, err := s.ListByDocument(ctx(), "d1")
+	expectErr(t, err, "listing compaction records")
+}
+
+func TestCompactionStore_ListByDocument_Empty(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{}, nil
+	}}
+	s := NewCompactionStore(db)
+	records, err := s.ListByDocument(ctx(), "d1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(records) != 0 {
+		t.Errorf("expected 0 records, got %d", len(records))
+	}
+}
+
+func TestCompactionStore_Delete_Error(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.CommandTag{}, errMock
+	}}
+	s := NewCompactionStore(db)
+	err := s.Delete(ctx(), "r1")
+	expectErr(t, err, "deleting compaction record")
+}
+
+func TestCompactionStore_Delete_NotFound(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag("DELETE 0"), nil
+	}}
+	s := NewCompactionStore(db)
+	err := s.Delete(ctx(), "bad")
+	expectErr(t, err, "compaction record not found")
+}
+
+func TestCompactionStore_Delete_Success(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag("DELETE 1"), nil
+	}}
+	s := NewCompactionStore(db)
+	err := s.Delete(ctx(), "r1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ChunkStore additions (MarkCompacted, RestoreCompacted, NextSequence)
+// ---------------------------------------------------------------------------
+
+func TestChunkStore_MarkCompacted_Error(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.CommandTag{}, errMock
+	}}
+	s := NewChunkStore(db)
+	err := s.MarkCompacted(ctx(), []string{"c1"}, "sc1")
+	expectErr(t, err, "marking chunks as compacted")
+}
+
+func TestChunkStore_MarkCompacted_NoRows(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag("UPDATE 0"), nil
+	}}
+	s := NewChunkStore(db)
+	err := s.MarkCompacted(ctx(), []string{"c1"}, "sc1")
+	expectErr(t, err, "no active chunks found to compact")
+}
+
+func TestChunkStore_MarkCompacted_Success(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag("UPDATE 3"), nil
+	}}
+	s := NewChunkStore(db)
+	err := s.MarkCompacted(ctx(), []string{"c1", "c2", "c3"}, "sc1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestChunkStore_RestoreCompacted_Error(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewChunkStore(db)
+	_, err := s.RestoreCompacted(ctx(), "sc1")
+	expectErr(t, err, "restoring compacted chunks")
+}
+
+func TestChunkStore_RestoreCompacted_Success(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &idRows{ids: []string{"c1", "c2"}}, nil
+	}}
+	s := NewChunkStore(db)
+	ids, err := s.RestoreCompacted(ctx(), "sc1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(ids) != 2 {
+		t.Errorf("expected 2 restored IDs, got %d", len(ids))
+	}
+}
+
+func TestChunkStore_NextSequence_Error(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewChunkStore(db)
+	_, err := s.NextSequence(ctx(), "d1")
+	expectErr(t, err, "querying next sequence")
+}
+
+func TestChunkStore_NextSequence_Success(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &seqRow{seq: 5}
+	}}
+	s := NewChunkStore(db)
+	seq, err := s.NextSequence(ctx(), "d1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if seq != 5 {
+		t.Errorf("expected seq 5, got %d", seq)
+	}
+}
+
+// idRows implements pgx.Rows returning string IDs.
+type idRows struct {
+	ids []string
+	idx int
+}
+
+func (r *idRows) Close()                                       {}
+func (r *idRows) Err() error                                   { return nil }
+func (r *idRows) CommandTag() pgconn.CommandTag                { return pgconn.CommandTag{} }
+func (r *idRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
+func (r *idRows) RawValues() [][]byte                          { return nil }
+func (r *idRows) Conn() *pgx.Conn                              { return nil }
+func (r *idRows) Values() ([]any, error)                       { return nil, nil }
+
+func (r *idRows) Next() bool {
+	if r.idx < len(r.ids) {
+		r.idx++
+		return true
+	}
+	return false
+}
+
+func (r *idRows) Scan(dest ...any) error {
+	*(dest[0].(*string)) = r.ids[r.idx-1]
+	return nil
+}
+
+// seqRow returns a sequence number for NextSequence queries.
+type seqRow struct{ seq int }
+
+func (r *seqRow) Scan(dest ...any) error {
+	*(dest[0].(*int)) = r.seq
+	return nil
+}

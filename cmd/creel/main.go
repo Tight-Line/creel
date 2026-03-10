@@ -147,6 +147,11 @@ func run() error {
 	memMaintenanceWorker := worker.NewMemoryMaintenanceWorker(memoryStore, jobStore, vectorBackend, embeddingProvider, llmProvider)
 	workerPool.Register(memMaintenanceWorker)
 
+	// Create and register compaction worker.
+	compactionStore := store.NewCompactionStore(pool)
+	compactionWorker := worker.NewCompactionWorker(chunkStore, linkStore, compactionStore, docStore, jobStore, vectorBackend, embeddingProvider, llmProvider)
+	workerPool.Register(compactionWorker)
+
 	// Create and wire server.
 	srv := server.New(cfg.Server.GRPCPort, apiKeyValidator, oidcValidator)
 	adminServer := server.NewAdminServer(pool, accountStore, version)
@@ -170,6 +175,8 @@ func run() error {
 	pb.RegisterConfigServiceServer(srv.GRPCServer(), configServer)
 	pb.RegisterJobServiceServer(srv.GRPCServer(), jobServer)
 	pb.RegisterMemoryServiceServer(srv.GRPCServer(), memoryServer)
+	compactionServer := server.NewCompactionServer(chunkStore, linkStore, compactionStore, docStore, jobStore, vectorBackend, authorizer)
+	pb.RegisterCompactionServiceServer(srv.GRPCServer(), compactionServer)
 
 	// Handle shutdown signals.
 	sigCh := make(chan os.Signal, 1)

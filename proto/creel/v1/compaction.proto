@@ -4,6 +4,7 @@ package creel.v1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 import "creel/v1/chunk.proto";
 
 service CompactionService {
@@ -17,6 +18,17 @@ service CompactionService {
     option (google.api.http) = {
       post: "/v1/uncompact"
       body: "*"
+    };
+  }
+  rpc RequestCompaction(RequestCompactionRequest) returns (RequestCompactionResponse) {
+    option (google.api.http) = {
+      post: "/v1/compact/request"
+      body: "*"
+    };
+  }
+  rpc GetCompactionHistory(GetCompactionHistoryRequest) returns (GetCompactionHistoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/documents/{document_id}/compaction-history"
     };
   }
 }
@@ -40,4 +52,30 @@ message UncompactRequest {
 
 message UncompactResponse {
   repeated Chunk restored_chunks = 1;
+}
+
+message RequestCompactionRequest {
+  string document_id = 1;
+  repeated string chunk_ids = 2;
+}
+
+message RequestCompactionResponse {
+  string job_id = 1;
+}
+
+message CompactionRecord {
+  string id = 1;
+  string summary_chunk_id = 2;
+  repeated string source_chunk_ids = 3;
+  string document_id = 4;
+  string created_by = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message GetCompactionHistoryRequest {
+  string document_id = 1;
+}
+
+message GetCompactionHistoryResponse {
+  repeated CompactionRecord records = 1;
 }

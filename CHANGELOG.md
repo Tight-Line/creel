@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- CompactionService with Compact, Uncompact, RequestCompaction, and GetCompactionHistory RPCs. Compact merges multiple chunks into a single summary chunk (synchronous, caller-supplied content). Uncompact reverses a compaction, restoring the original chunks. RequestCompaction enqueues a background LLM-powered compaction job.
+- Compaction worker that uses the configured LLM to synthesize multiple chunks into a coherent summary, with automatic embedding, link transfer, and source chunk cleanup.
+- Compaction history tracks which chunks were merged, when, and by whom.
+- CLI `compact` command group with `run`, `manual`, `undo`, and `history` subcommands.
+- Migration 000011: `compaction_records` table for tracking compaction provenance.
+- ChunkStore gains `MarkCompacted`, `RestoreCompacted`, and `NextSequence` methods.
+
 ## [0.4.0] - 2026-03-09
 
 ### Added

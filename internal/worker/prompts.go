@@ -52,3 +52,12 @@ Rules:
 // The first %s is replaced with the candidate fact.
 // The second %s is replaced with the formatted existing memories.
 const DefaultMaintenanceUserPrompt = "Candidate fact: %s\n\nExisting memories:\n%s"
+
+// DefaultCompactionSystemPrompt instructs the LLM to merge multiple chunks into a coherent summary.
+const DefaultCompactionSystemPrompt = `You are a content compaction assistant. Your task is to merge multiple text chunks into a single, coherent summary that preserves all key information, facts, and details from the original chunks. Do not add information that is not present in the source chunks. The summary should be self-contained and readable without reference to the original chunks.
+
+Return only the summary text, with no additional formatting or explanation.`
+
+// DefaultCompactionUserPrompt is the template for the user message in compaction.
+// The first %d is replaced with the number of chunks; the second %s is replaced with their content.
+const DefaultCompactionUserPrompt = "Merge the following %d chunks into a single coherent summary:\n\n%s"

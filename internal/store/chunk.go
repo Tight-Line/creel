@@ -227,6 +227,57 @@ func (s *ChunkStore) ListByDocument(ctx context.Context, documentID string, last
 	return chunks, nil
 }
 
+// MarkCompacted sets chunks to compacted status, recording which summary chunk replaced them.
+func (s *ChunkStore) MarkCompacted(ctx context.Context, chunkIDs []string, summaryChunkID string) error {
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE chunks SET status = 'compacted', compacted_by = $2 WHERE id = ANY($1) AND status = 'active'`,
+		chunkIDs, summaryChunkID)
+	if err != nil {
+		return fmt.Errorf("marking chunks as compacted: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("no active chunks found to compact")
+	}
+	return nil
+}
+
+// RestoreCompacted reactivates chunks that were compacted by the given summary chunk.
+// Returns the IDs of the restored chunks.
+func (s *ChunkStore) RestoreCompacted(ctx context.Context, summaryChunkID string) ([]string, error) {
+	rows, err := s.pool.Query(ctx,
+		`UPDATE chunks SET status = 'active', compacted_by = NULL
+		 WHERE compacted_by = $1
+		 RETURNING id`, summaryChunkID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("restoring compacted chunks: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		// coverage:ignore - requires corrupted DB response during iteration
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scanning restored chunk ID: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// NextSequence returns the next available sequence number for a document's chunks.
+func (s *ChunkStore) NextSequence(ctx context.Context, documentID string) (int, error) {
+	var seq int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COALESCE(MAX(sequence), 0) + 1 FROM chunks WHERE document_id = $1`, documentID,
+	).Scan(&seq)
+	if err != nil {
+		return 0, fmt.Errorf("querying next sequence: %w", err)
+	}
+	return seq, nil
+}
+
 // DocumentTopicID returns the topic ID for a chunk's document.
 func (s *ChunkStore) DocumentTopicID(ctx context.Context, documentID string) (string, error) {
 	var topicID string

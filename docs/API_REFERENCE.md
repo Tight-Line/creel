@@ -371,7 +371,34 @@ rpc Uncompact(UncompactRequest) returns (UncompactResponse)
 1. Restores all chunks where `compacted_by = summary_chunk_id` to status=active and clears `compacted_by`.
 2. Transfers `compaction_transfer` links back to their original source chunks.
 3. Deletes the summary chunk and its embedding from the vector backend.
-4. Returns the restored chunks.
+4. Enqueues an embedding job to recompute embeddings for the restored chunks.
+5. Returns the restored chunks.
+
+### RequestCompaction
+
+```
+rpc RequestCompaction(RequestCompactionRequest) returns (RequestCompactionResponse)
+```
+
+**Request**: `{document_id, chunk_ids[]}`
+**Response**: `{job_id}`
+**Permission**: write on the document's topic
+**Behavior**: Enqueues a background compaction job that uses the configured LLM to synthesize a summary.
+
+- If `chunk_ids` is provided, only those chunks are compacted. Otherwise, all active chunks for the document are compacted.
+- The compaction worker calls the LLM, creates a summary chunk, computes its embedding, transfers links, and marks source chunks as compacted.
+- Returns the job ID so the caller can poll for completion via `GetJob`.
+
+### GetCompactionHistory
+
+```
+rpc GetCompactionHistory(GetCompactionHistoryRequest) returns (GetCompactionHistoryResponse)
+```
+
+**Request**: `{document_id}`
+**Response**: `{records[]}`
+**Permission**: read on the document's topic
+**Behavior**: Returns all compaction records for a document. Each record includes the summary chunk ID, source chunk IDs, who created it, and when.
 
 ---
 

@@ -308,7 +308,32 @@ bin/creel-cli link list --chunk "$CHUNK_A"
 bin/creel-cli link list --chunk "$CHUNK_B" --backlinks
 ```
 
-## 10. Per-principal memory
+## 10. Compaction
+
+Compaction merges multiple chunks into a single summary. You can do this manually (providing your own summary text) or request a background LLM-powered compaction.
+
+```bash
+# Request background compaction for all chunks in a document
+bin/creel-cli compact run --document "$DOC_ID"
+
+# Or compact specific chunks with an LLM summary
+bin/creel-cli compact run --document "$DOC_ID" --chunk "$CHUNK_A" --chunk "$CHUNK_B"
+
+# Provide your own summary (synchronous, no LLM)
+bin/creel-cli compact manual --document "$DOC_ID" \
+  --chunk "$CHUNK_A" --chunk "$CHUNK_B" \
+  --summary "Combined summary of chunks A and B."
+
+# View compaction history
+bin/creel-cli compact history --document "$DOC_ID"
+
+# Undo a compaction (restores original chunks, re-queues embedding)
+bin/creel-cli compact undo --summary-chunk "$SUMMARY_CHUNK_ID"
+```
+
+When compaction runs, it transfers links from source chunks to the summary chunk and cleans up source embeddings. Undoing a compaction restores the original chunks and enqueues a job to recompute their embeddings.
+
+## 11. Per-principal memory
 
 Memory is scoped to your principal (the `dev` account in this case) and organized by named scopes.
 
@@ -349,7 +374,7 @@ bin/creel-cli memory delete "$WULFF_ID"
 bin/creel-cli memory list --scope fishing --all
 ```
 
-## 11. Dashboard
+## 12. Dashboard
 
 The admin dashboard runs on port 3000. Open [http://localhost:3000](http://localhost:3000) and log in:
 
@@ -363,7 +388,7 @@ From the dashboard you can:
 - View system accounts and API keys
 - Manage server configuration (LLM, embedding, prompt configs)
 
-## 12. Interactive chat with creel-chat
+## 13. Interactive chat with creel-chat
 
 creel-chat is a terminal REPL that uses Creel for RAG and memory, with streaming LLM responses. It calls OpenAI directly for both embeddings and chat completion, so you need `OPENAI_API_KEY` in your shell environment (separate from the server-side config you set in step 2).
 
@@ -473,10 +498,11 @@ rm -f /tmp/hatch-chart.txt /tmp/rangeley-report.html /tmp/ski-report.txt
 | Temporal context retrieval | 7 |
 | Direct chunk ingestion | 8 |
 | Chunk linking (manual, backlinks) | 9 |
-| Per-principal memory (CRUD, scopes, soft-delete) | 10 |
-| Admin dashboard | 11 |
-| Interactive chat with RAG + memory | 12 |
-| Cross-topic search | 6, 12 |
+| Compaction (manual, LLM-powered, undo) | 10 |
+| Per-principal memory (CRUD, scopes, soft-delete) | 11 |
+| Admin dashboard | 12 |
+| Interactive chat with RAG + memory | 13 |
+| Cross-topic search | 6, 13 |
 
 ## Next steps
 
