@@ -276,6 +276,92 @@ func TestConfigServer_Integration_EmbeddingLifecycle(t *testing.T) {
 	}
 }
 
+func TestConfigServer_Integration_VectorBackendLifecycle(t *testing.T) {
+	srv, cleanup := setupConfigServerTest(t)
+	defer cleanup()
+	ctx := auth.ContextWithPrincipal(context.Background(), &auth.Principal{ID: "system:test", IsSystem: true})
+
+	// Create.
+	c, err := srv.CreateVectorBackendConfig(ctx, &pb.CreateVectorBackendConfigRequest{
+		Name: "local-pgvector", Backend: "pgvector",
+		Config: map[string]string{"host": "localhost", "port": "5432"},
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if c.Name != "local-pgvector" {
+		t.Errorf("Name = %q", c.Name)
+	}
+	if c.Backend != "pgvector" {
+		t.Errorf("Backend = %q", c.Backend)
+	}
+	if c.Config["host"] != "localhost" {
+		t.Errorf("Config[host] = %q", c.Config["host"])
+	}
+
+	// Get.
+	got, err := srv.GetVectorBackendConfig(ctx, &pb.GetVectorBackendConfigRequest{Id: c.Id})
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.Backend != "pgvector" {
+		t.Errorf("Backend = %q", got.Backend)
+	}
+
+	// List.
+	list, err := srv.ListVectorBackendConfigs(ctx, &pb.ListVectorBackendConfigsRequest{})
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(list.Configs) != 1 {
+		t.Errorf("List len = %d", len(list.Configs))
+	}
+
+	// Update.
+	upd, err := srv.UpdateVectorBackendConfig(ctx, &pb.UpdateVectorBackendConfigRequest{
+		Id: c.Id, Name: "renamed-pgvector",
+		Config: map[string]string{"host": "db.example.com", "port": "5432"},
+	})
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if upd.Name != "renamed-pgvector" {
+		t.Errorf("Name = %q after update", upd.Name)
+	}
+
+	// SetDefault.
+	def, err := srv.SetDefaultVectorBackendConfig(ctx, &pb.SetDefaultVectorBackendConfigRequest{Id: c.Id})
+	if err != nil {
+		t.Fatalf("SetDefault: %v", err)
+	}
+	if !def.IsDefault {
+		t.Error("should be default")
+	}
+
+	// Create a second config with is_default to exercise the clear-previous-default path.
+	c2, err := srv.CreateVectorBackendConfig(ctx, &pb.CreateVectorBackendConfigRequest{
+		Name: "qdrant-cloud", Backend: "qdrant",
+		Config:    map[string]string{"url": "https://qdrant.example.com"},
+		IsDefault: true,
+	})
+	if err != nil {
+		t.Fatalf("Create second: %v", err)
+	}
+	if !c2.IsDefault {
+		t.Error("second config should be default")
+	}
+
+	// Delete both.
+	_, err = srv.DeleteVectorBackendConfig(ctx, &pb.DeleteVectorBackendConfigRequest{Id: c2.Id})
+	if err != nil {
+		t.Fatalf("Delete second: %v", err)
+	}
+	_, err = srv.DeleteVectorBackendConfig(ctx, &pb.DeleteVectorBackendConfigRequest{Id: c.Id})
+	if err != nil {
+		t.Fatalf("Delete first: %v", err)
+	}
+}
+
 func TestConfigServer_Integration_ExtractionPromptLifecycle(t *testing.T) {
 	srv, cleanup := setupConfigServerTest(t)
 	defer cleanup()

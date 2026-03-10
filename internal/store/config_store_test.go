@@ -38,7 +38,7 @@ func setupConfigTestDB(t *testing.T) *pgxpool.Pool {
 	// Clean config tables (order matters due to FK constraints).
 	// Do NOT delete topics; ON DELETE SET NULL handles config FK references,
 	// and deleting topics interferes with concurrent dbtest package runs.
-	for _, table := range []string{"llm_configs", "embedding_configs", "extraction_prompt_configs", "api_key_configs"} {
+	for _, table := range []string{"vector_backend_configs", "llm_configs", "embedding_configs", "extraction_prompt_configs", "api_key_configs"} {
 		if _, err := pool.Exec(ctx, "DELETE FROM "+table); err != nil {
 			t.Fatalf("cleaning %s: %v", table, err)
 		}
@@ -484,6 +484,108 @@ func TestExtractionPromptConfigStore_Integration_CRUD(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// VectorBackendConfigStore integration tests
+// ---------------------------------------------------------------------------
+
+func TestVectorBackendConfigStore_Integration_CRUD(t *testing.T) {
+	pool := setupConfigTestDB(t)
+	s := NewVectorBackendConfigStore(pool)
+	ctx := context.Background()
+
+	// Create.
+	c, err := s.Create(ctx, "local-pgvector", "pgvector", map[string]any{"host": "localhost"}, false)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if c.Name != "local-pgvector" {
+		t.Errorf("Name = %q", c.Name)
+	}
+	if c.Backend != "pgvector" {
+		t.Errorf("Backend = %q", c.Backend)
+	}
+
+	// Get.
+	got, err := s.Get(ctx, c.ID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.Backend != "pgvector" {
+		t.Errorf("Backend = %q", got.Backend)
+	}
+
+	// List.
+	configs, err := s.List(ctx)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(configs) != 1 {
+		t.Errorf("List len = %d", len(configs))
+	}
+
+	// Update.
+	updated, err := s.Update(ctx, c.ID, "renamed-pgvector", map[string]any{"host": "db.example.com"})
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if updated.Name != "renamed-pgvector" {
+		t.Errorf("Name = %q after update", updated.Name)
+	}
+
+	// GetDefault (none set).
+	def, err := s.GetDefault(ctx)
+	if err != nil {
+		t.Fatalf("GetDefault: %v", err)
+	}
+	if def != nil {
+		t.Error("expected nil default")
+	}
+
+	// SetDefault.
+	defC, err := s.SetDefault(ctx, c.ID)
+	if err != nil {
+		t.Fatalf("SetDefault: %v", err)
+	}
+	if !defC.IsDefault {
+		t.Error("should be default after SetDefault")
+	}
+
+	// GetDefault.
+	def2, err := s.GetDefault(ctx)
+	if err != nil {
+		t.Fatalf("GetDefault: %v", err)
+	}
+	if def2 == nil || def2.ID != c.ID {
+		t.Error("GetDefault should return the default config")
+	}
+
+	// Create with isDefault=true to exercise clear-previous-default in Create.
+	c2, err := s.Create(ctx, "qdrant-cloud", "qdrant", map[string]any{"url": "https://qdrant.example.com"}, true)
+	if err != nil {
+		t.Fatalf("Create with default: %v", err)
+	}
+	if !c2.IsDefault {
+		t.Error("second config should be default")
+	}
+
+	// Delete.
+	if err := s.Delete(ctx, c2.ID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	if err := s.Delete(ctx, c.ID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+}
+
+func TestVectorBackendConfigStore_Integration_DeleteNotFound(t *testing.T) {
+	pool := setupConfigTestDB(t)
+	s := NewVectorBackendConfigStore(pool)
+	err := s.Delete(context.Background(), "00000000-0000-0000-0000-000000000000")
+	if err == nil {
+		t.Error("expected error for nonexistent ID")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Delete not-found tests (exercise the RowsAffected==0 branch)
 // ---------------------------------------------------------------------------
 
@@ -563,9 +665,15 @@ func TestTopicStore_Integration_ConfigBinding(t *testing.T) {
 		t.Fatalf("creating extraction prompt config: %v", err)
 	}
 
+	vbStore := NewVectorBackendConfigStore(pool)
+	vb, err := vbStore.Create(ctx, "topic-bind-vb", "pgvector", map[string]any{"host": "localhost"}, false)
+	if err != nil {
+		t.Fatalf("creating vector backend config: %v", err)
+	}
+
 	// Create topic with config bindings.
 	topicStore := NewTopicStore(pool)
-	topic, err := topicStore.Create(ctx, "bound-topic", "Bound Topic", "", "system:test", &llm.ID, &emb.ID, &prompt.ID, false, nil)
+	topic, err := topicStore.Create(ctx, "bound-topic", "Bound Topic", "", "system:test", &llm.ID, &emb.ID, &prompt.ID, false, &vb.ID)
 	if err != nil {
 		t.Fatalf("Create topic: %v", err)
 	}
@@ -577,6 +685,9 @@ func TestTopicStore_Integration_ConfigBinding(t *testing.T) {
 	}
 	if topic.ExtractionPromptConfigID == nil || *topic.ExtractionPromptConfigID != prompt.ID {
 		t.Errorf("ExtractionPromptConfigID = %v, want %s", topic.ExtractionPromptConfigID, prompt.ID)
+	}
+	if topic.VectorBackendConfigID == nil || *topic.VectorBackendConfigID != vb.ID {
+		t.Errorf("VectorBackendConfigID = %v, want %s", topic.VectorBackendConfigID, vb.ID)
 	}
 
 	// Create topic without config bindings.

@@ -37,13 +37,13 @@ func topicDBWithExisting(llmID, embID, promptID *string) *mockDBTX {
 
 // topicRow implements pgx.Row that scans a Topic with specific config IDs.
 type topicRow struct {
-	llmID, embID, promptID *string
+	llmID, embID, promptID, vbCfgID *string
 }
 
 func (r *topicRow) Scan(dest ...any) error {
 	// Matches TopicStore.Get scan order: id, slug, name, description, owner,
 	// created_at, updated_at, llm_config_id, embedding_config_id, extraction_prompt_config_id,
-	// chunking_strategy, memory_enabled
+	// chunking_strategy, memory_enabled, vector_backend_config_id
 	*dest[0].(*string) = "topic-1"   // id
 	*dest[1].(*string) = "test-slug" // slug
 	*dest[2].(*string) = "Test"      // name
@@ -55,6 +55,7 @@ func (r *topicRow) Scan(dest ...any) error {
 	*dest[9].(**string) = r.promptID
 	*dest[10].(*[]byte) = nil // chunking_strategy
 	*dest[11].(*bool) = false // memory_enabled
+	*dest[12].(**string) = r.vbCfgID
 	return nil
 }
 
@@ -322,10 +323,41 @@ func TestTopicServer_UpdateTopic_NewEmbeddingConfigFetchError(t *testing.T) {
 	requireCode(t, err, codes.Internal)
 }
 
+func TestTopicServer_CreateTopic_WithVectorBackendConfigId(t *testing.T) {
+	db := failDBTX()
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
+	ctx := systemCtx()
+
+	vbID := "vb-1"
+	_, err := s.CreateTopic(ctx, &pb.CreateTopicRequest{
+		Slug:                  "test",
+		Name:                  "Test",
+		VectorBackendConfigId: &vbID,
+	})
+	// Passes validation, fails on store.
+	requireCode(t, err, codes.Internal)
+}
+
+func TestTopicServer_UpdateTopic_WithVectorBackendConfigId(t *testing.T) {
+	db := topicDBWithExisting(nil, nil, nil)
+	s := NewTopicServer(store.NewTopicStore(db), &mockAuthorizer{}, nil)
+	ctx := systemCtx()
+
+	vbID := "vb-1"
+	_, err := s.UpdateTopic(ctx, &pb.UpdateTopicRequest{
+		Id:                    "topic-1",
+		VectorBackendConfigId: &vbID,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestTopicServer_StoreTopicToProto_AllConfigIDs(t *testing.T) {
 	llmID := "llm-1"
 	embID := "emb-1"
 	promptID := "prompt-1"
+	vbID := "vb-1"
 	topic := &store.Topic{
 		ID:                       "t1",
 		Slug:                     "slug",
@@ -334,6 +366,7 @@ func TestTopicServer_StoreTopicToProto_AllConfigIDs(t *testing.T) {
 		LLMConfigID:              &llmID,
 		EmbeddingConfigID:        &embID,
 		ExtractionPromptConfigID: &promptID,
+		VectorBackendConfigID:    &vbID,
 	}
 	p := storeTopicToProto(topic)
 	if p.GetLlmConfigId() != "llm-1" {
@@ -344,6 +377,9 @@ func TestTopicServer_StoreTopicToProto_AllConfigIDs(t *testing.T) {
 	}
 	if p.GetExtractionPromptConfigId() != "prompt-1" {
 		t.Errorf("ExtractionPromptConfigId = %q, want prompt-1", p.GetExtractionPromptConfigId())
+	}
+	if p.GetVectorBackendConfigId() != "vb-1" {
+		t.Errorf("VectorBackendConfigId = %q, want vb-1", p.GetVectorBackendConfigId())
 	}
 }
 

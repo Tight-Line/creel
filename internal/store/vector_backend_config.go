@@ -57,19 +57,15 @@ func (s *VectorBackendConfigStore) Create(ctx context.Context, name, backend str
 		 RETURNING id, name, backend, config, is_default, created_at, updated_at`,
 		name, backend, configJSON, isDefault,
 	).Scan(&c.ID, &c.Name, &c.Backend, &rawConfig, &c.IsDefault, &c.CreatedAt, &c.UpdatedAt)
-	// coverage:ignore - requires real DB for successful INSERT RETURNING
 	if err != nil {
 		return nil, fmt.Errorf("inserting vector backend config: %w", err)
 	}
-	// coverage:ignore - requires real DB for successful INSERT RETURNING
 	if err := json.Unmarshal(rawConfig, &c.Config); err != nil {
 		return nil, fmt.Errorf("unmarshaling config: %w", err)
 	}
-	// coverage:ignore - requires real DB for successful INSERT RETURNING
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("committing transaction: %w", err)
 	}
-	// coverage:ignore - requires real DB for successful INSERT RETURNING
 	return &c, nil
 }
 
@@ -81,18 +77,15 @@ func (s *VectorBackendConfigStore) Get(ctx context.Context, id string) (*VectorB
 		`SELECT id, name, backend, config, is_default, created_at, updated_at
 		 FROM vector_backend_configs WHERE id = $1`, id,
 	).Scan(&c.ID, &c.Name, &c.Backend, &rawConfig, &c.IsDefault, &c.CreatedAt, &c.UpdatedAt)
-	// coverage:ignore - requires real DB for successful SELECT
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("vector backend config not found")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("querying vector backend config: %w", err)
 	}
-	// coverage:ignore - requires real DB for successful SELECT
 	if err := json.Unmarshal(rawConfig, &c.Config); err != nil {
 		return nil, fmt.Errorf("unmarshaling config: %w", err)
 	}
-	// coverage:ignore - requires real DB for successful SELECT
 	return &c, nil
 }
 
