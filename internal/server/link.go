@@ -47,8 +47,9 @@ func (s *LinkServer) CreateLink(ctx context.Context, req *pb.CreateLinkRequest) 
 	}
 
 	topicID, err := s.chunkStore.DocumentTopicID(ctx, sourceChunk.DocumentID)
+	// coverage:ignore - requires DB failure after successful chunk Get
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "resolving topic: %v", err) // coverage:ignore - requires DB failure
+		return nil, status.Errorf(codes.Internal, "resolving topic: %v", err)
 	}
 	if err := s.authorizer.Check(ctx, p, topicID, auth.ActionWrite); err != nil {
 		return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -86,20 +87,23 @@ func (s *LinkServer) DeleteLink(ctx context.Context, req *pb.DeleteLinkRequest) 
 	}
 
 	sourceChunk, err := s.chunkStore.Get(ctx, link.SourceChunkID)
+	// coverage:ignore - requires DB inconsistency (link exists but source chunk deleted)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "resolving source chunk: %v", err) // coverage:ignore - requires DB inconsistency
+		return nil, status.Errorf(codes.Internal, "resolving source chunk: %v", err)
 	}
 
 	topicID, err := s.chunkStore.DocumentTopicID(ctx, sourceChunk.DocumentID)
+	// coverage:ignore - requires DB failure after successful chunk Get
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "resolving topic: %v", err) // coverage:ignore - requires DB failure
+		return nil, status.Errorf(codes.Internal, "resolving topic: %v", err)
 	}
 	if err := s.authorizer.Check(ctx, p, topicID, auth.ActionWrite); err != nil {
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
+	// coverage:ignore - requires DB failure after successful Get
 	if err := s.linkStore.Delete(ctx, req.GetId()); err != nil {
-		return nil, status.Errorf(codes.Internal, "deleting link: %v", err) // coverage:ignore - requires DB failure after successful Get
+		return nil, status.Errorf(codes.Internal, "deleting link: %v", err)
 	}
 
 	return &pb.DeleteLinkResponse{}, nil
@@ -121,8 +125,9 @@ func (s *LinkServer) ListLinks(ctx context.Context, req *pb.ListLinksRequest) (*
 	}
 
 	topicID, err := s.chunkStore.DocumentTopicID(ctx, chunk.DocumentID)
+	// coverage:ignore - requires DB failure after successful chunk Get
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "resolving topic: %v", err) // coverage:ignore - requires DB failure
+		return nil, status.Errorf(codes.Internal, "resolving topic: %v", err)
 	}
 	if err := s.authorizer.Check(ctx, p, topicID, auth.ActionRead); err != nil {
 		return nil, status.Error(codes.PermissionDenied, err.Error())
