@@ -9,12 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Server uses DB-configured embedding provider (OpenAI) instead of the stub. The default embedding config is resolved dynamically on each call, so config changes take effect without restarting the server.
 - Topic owners now appear in `AccessibleTopics` results automatically. Previously, searching your own topics required an explicit grant; now ownership implies access.
 - Content type auto-detection in the extraction worker. Uploads without an explicit content type use `http.DetectContentType` to infer the type from raw bytes.
 - `query_text` support in the Search RPC. The server computes the embedding using the default embedding config, so clients no longer need to call the embedding API directly.
 - CLI: `document list`, `document get`, and `document delete` commands.
 - CLI: topic and document slugs are resolved to UUIDs automatically wherever an ID is expected.
 - CLI: `--query` flag on the `search` command for text-based search via the server.
+- Fullstart guide: hands-on walkthrough of provider config, upload, search, memory, direct ingestion, dashboard, and creel-chat with RAG and cross-topic search.
+- Quickstart: now self-contained with sample document, provider config, and creel-chat examples showing cross-session context recall.
 
 ### Changed
 
