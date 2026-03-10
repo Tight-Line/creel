@@ -3,6 +3,7 @@ bin/
 /creel
 /creel-cli
 /creel-chat
+/creel-mcp
 *.exe
 *.dll
 *.so
@@ -39,3 +40,10 @@ dashboard/database/database.sqlite
 # Helm chart downloaded dependencies and local values
 deploy/helm/creel/charts/*.tgz
 deploy/helm/creel/lab-values.yaml
+
+# SDK build artifacts
+sdk/typescript/node_modules/
+sdk/typescript/dist/
+sdk/typescript/package-lock.json
+sdk/python/__pycache__/
+sdk/python/*.egg-info/

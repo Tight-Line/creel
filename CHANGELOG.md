@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Python SDK (`sdk/python/creel`): REST client covering all Creel APIs. Install with `pip install creel-sdk`.
+- TypeScript SDK (`sdk/typescript`): REST client using native `fetch`, covering all Creel APIs. Install with `npm install @creel/sdk`.
+- AI agent tool schemas in Anthropic and OpenAI formats (`tools/anthropic/`, `tools/openai/`). Ten core tools for search, memory, uploads, and document management.
+- MCP server (`creel-mcp` binary) exposing Creel operations as Model Context Protocol tools over stdio. Supports search, memory, uploads, and document browsing.
+- MCP sidecar support in the Helm chart. Set `mcp.enabled: true` to deploy creel-mcp alongside the main server.
+
 ## [0.5.0] - 2026-03-10
 
 ### Added

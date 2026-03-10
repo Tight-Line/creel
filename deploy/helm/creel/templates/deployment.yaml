@@ -105,6 +105,23 @@ spec:
               readOnly: true
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+        {{- if .Values.mcp.enabled }}
+        - name: creel-mcp
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["creel-mcp"]
+          env:
+            - name: CREEL_ENDPOINT
+              value: "127.0.0.1:{{ .Values.service.grpc.port }}"
+            - name: CREEL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: bootstrap-api-key
+          stdin: true
+          resources:
+            {{- toYaml .Values.mcp.resources | nindent 12 }}
+        {{- end }}
       volumes:
         - name: config
           secret:
