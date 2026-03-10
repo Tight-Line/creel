@@ -7,6 +7,7 @@ import (
 
 	grpcprom "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"google.golang.org/grpc"
 
 	"github.com/Tight-Line/creel/internal/auth"
@@ -36,8 +37,8 @@ func New(port int, apiKeyValidator *auth.APIKeyValidator, oidcValidator *auth.OI
 	grpcMetrics.InitializeMetrics(grpcServer)
 
 	reg := prometheus.NewRegistry()
-	reg.MustRegister(prometheus.NewGoCollector())
-	reg.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	reg.MustRegister(collectors.NewGoCollector())
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(grpcMetrics)
 
 	return &Server{
