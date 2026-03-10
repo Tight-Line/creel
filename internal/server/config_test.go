@@ -20,6 +20,7 @@ func configServer() *ConfigServer {
 		store.NewLLMConfigStore(db),
 		store.NewEmbeddingConfigStore(db),
 		store.NewExtractionPromptConfigStore(db),
+		store.NewVectorBackendConfigStore(db),
 	)
 }
 
@@ -85,6 +86,20 @@ func TestConfigServer_RequiresSystemAccount(t *testing.T) {
 	_, err = s.DeleteExtractionPromptConfig(ctx, &pb.DeleteExtractionPromptConfigRequest{Id: "id"})
 	requireCode(t, err, codes.Unauthenticated)
 	_, err = s.SetDefaultExtractionPromptConfig(ctx, &pb.SetDefaultExtractionPromptConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+
+	// Vector Backend Config RPCs.
+	_, err = s.CreateVectorBackendConfig(ctx, &pb.CreateVectorBackendConfigRequest{Name: "x", Backend: "pgvector"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.GetVectorBackendConfig(ctx, &pb.GetVectorBackendConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.ListVectorBackendConfigs(ctx, &pb.ListVectorBackendConfigsRequest{})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.UpdateVectorBackendConfig(ctx, &pb.UpdateVectorBackendConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.DeleteVectorBackendConfig(ctx, &pb.DeleteVectorBackendConfigRequest{Id: "id"})
+	requireCode(t, err, codes.Unauthenticated)
+	_, err = s.SetDefaultVectorBackendConfig(ctx, &pb.SetDefaultVectorBackendConfigRequest{Id: "id"})
 	requireCode(t, err, codes.Unauthenticated)
 }
 
@@ -458,5 +473,94 @@ func TestConfigServer_SetDefaultExtractionPromptConfig_StoreError(t *testing.T) 
 	s := configServer()
 	ctx := systemCtx()
 	_, err := s.SetDefaultExtractionPromptConfig(ctx, &pb.SetDefaultExtractionPromptConfigRequest{Id: "some-id"})
+	requireCode(t, err, codes.Internal)
+}
+
+// ---------------------------------------------------------------------------
+// Vector Backend Config validation
+// ---------------------------------------------------------------------------
+
+func TestConfigServer_CreateVectorBackendConfig_Validation(t *testing.T) {
+	s := configServer()
+	ctx := systemCtx()
+
+	_, err := s.CreateVectorBackendConfig(ctx, &pb.CreateVectorBackendConfigRequest{Name: "", Backend: "pgvector"})
+	requireCode(t, err, codes.InvalidArgument)
+
+	_, err = s.CreateVectorBackendConfig(ctx, &pb.CreateVectorBackendConfigRequest{Name: "x", Backend: ""})
+	requireCode(t, err, codes.InvalidArgument)
+}
+
+func TestConfigServer_GetVectorBackendConfig_EmptyID(t *testing.T) {
+	s := configServer()
+	ctx := systemCtx()
+	_, err := s.GetVectorBackendConfig(ctx, &pb.GetVectorBackendConfigRequest{Id: ""})
+	requireCode(t, err, codes.InvalidArgument)
+}
+
+func TestConfigServer_UpdateVectorBackendConfig_EmptyID(t *testing.T) {
+	s := configServer()
+	ctx := systemCtx()
+	_, err := s.UpdateVectorBackendConfig(ctx, &pb.UpdateVectorBackendConfigRequest{Id: ""})
+	requireCode(t, err, codes.InvalidArgument)
+}
+
+func TestConfigServer_DeleteVectorBackendConfig_EmptyID(t *testing.T) {
+	s := configServer()
+	ctx := systemCtx()
+	_, err := s.DeleteVectorBackendConfig(ctx, &pb.DeleteVectorBackendConfigRequest{Id: ""})
+	requireCode(t, err, codes.InvalidArgument)
+}
+
+func TestConfigServer_SetDefaultVectorBackendConfig_EmptyID(t *testing.T) {
+	s := configServer()
+	ctx := systemCtx()
+	_, err := s.SetDefaultVectorBackendConfig(ctx, &pb.SetDefaultVectorBackendConfigRequest{Id: ""})
+	requireCode(t, err, codes.InvalidArgument)
+}
+
+// ---------------------------------------------------------------------------
+// Vector Backend Config store errors
+// ---------------------------------------------------------------------------
+
+func TestConfigServer_CreateVectorBackendConfig_StoreError(t *testing.T) {
+	s := configServer()
+	ctx := systemCtx()
+	_, err := s.CreateVectorBackendConfig(ctx, &pb.CreateVectorBackendConfigRequest{Name: "x", Backend: "pgvector"})
+	requireCode(t, err, codes.Internal)
+}
+
+func TestConfigServer_GetVectorBackendConfig_StoreError(t *testing.T) {
+	s := configServer()
+	ctx := systemCtx()
+	_, err := s.GetVectorBackendConfig(ctx, &pb.GetVectorBackendConfigRequest{Id: "some-id"})
+	requireCode(t, err, codes.NotFound)
+}
+
+func TestConfigServer_ListVectorBackendConfigs_StoreError(t *testing.T) {
+	s := configServer()
+	ctx := systemCtx()
+	_, err := s.ListVectorBackendConfigs(ctx, &pb.ListVectorBackendConfigsRequest{})
+	requireCode(t, err, codes.Internal)
+}
+
+func TestConfigServer_UpdateVectorBackendConfig_StoreError(t *testing.T) {
+	s := configServer()
+	ctx := systemCtx()
+	_, err := s.UpdateVectorBackendConfig(ctx, &pb.UpdateVectorBackendConfigRequest{Id: "some-id", Name: "new"})
+	requireCode(t, err, codes.Internal)
+}
+
+func TestConfigServer_DeleteVectorBackendConfig_StoreError(t *testing.T) {
+	s := configServer()
+	ctx := systemCtx()
+	_, err := s.DeleteVectorBackendConfig(ctx, &pb.DeleteVectorBackendConfigRequest{Id: "some-id"})
+	requireCode(t, err, codes.Internal)
+}
+
+func TestConfigServer_SetDefaultVectorBackendConfig_StoreError(t *testing.T) {
+	s := configServer()
+	ctx := systemCtx()
+	_, err := s.SetDefaultVectorBackendConfig(ctx, &pb.SetDefaultVectorBackendConfigRequest{Id: "some-id"})
 	requireCode(t, err, codes.Internal)
 }

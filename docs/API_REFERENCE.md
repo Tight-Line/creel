@@ -1,6 +1,6 @@
 # Creel API Reference
 
-63 RPC methods across 9 gRPC services (plus ConfigService). All methods are also available via REST (grpc-gateway).
+69 RPC methods across 10 gRPC services (plus ConfigService). All methods are also available via REST (grpc-gateway).
 
 Every request carries an `Authorization: Bearer <token>` header (OIDC JWT or API key). The server resolves the caller's principal, then checks permissions via the `Authorizer` interface before touching data.
 
@@ -578,3 +578,50 @@ rpc RevokeKey(RevokeKeyRequest) returns (RevokeKeyResponse)
 **Request**: `{account_id}`
 **Permission**: admin
 **Behavior**: Immediately invalidates all active keys for this system account.
+
+---
+
+## ConfigService: VectorBackendConfig
+
+Managed vector backend configurations. Requires system account for all operations.
+
+### CreateVectorBackendConfig
+
+```
+POST /v1/config/vector-backend
+```
+
+**Request**: `{name, backend, config, is_default}`
+**Behavior**: Creates a vector backend config. `backend` is the type (e.g. "pgvector"). `config` is a key-value map of backend-specific settings. If `is_default` is true, clears any previous default.
+
+### GetVectorBackendConfig
+
+```
+GET /v1/config/vector-backend/{id}
+```
+
+### ListVectorBackendConfigs
+
+```
+GET /v1/config/vector-backend
+```
+
+### UpdateVectorBackendConfig
+
+```
+PATCH /v1/config/vector-backend/{id}
+```
+
+**Request**: `{id, name, config}` (backend type cannot be changed post-creation)
+
+### DeleteVectorBackendConfig
+
+```
+DELETE /v1/config/vector-backend/{id}
+```
+
+### SetDefaultVectorBackendConfig
+
+```
+POST /v1/config/vector-backend/{id}/default
+```

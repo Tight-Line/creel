@@ -37,7 +37,7 @@ func setupConfigServerTest(t *testing.T) (*ConfigServer, func()) {
 
 	// Clean config tables. ON DELETE SET NULL handles topic FK references,
 	// so we do not need to (and must not) delete topics here.
-	for _, table := range []string{"llm_configs", "embedding_configs", "extraction_prompt_configs", "api_key_configs"} {
+	for _, table := range []string{"vector_backend_configs", "llm_configs", "embedding_configs", "extraction_prompt_configs", "api_key_configs"} {
 		if _, err := pool.Exec(ctx, "DELETE FROM "+table); err != nil {
 			t.Fatalf("cleaning %s: %v", table, err)
 		}
@@ -53,6 +53,7 @@ func setupConfigServerTest(t *testing.T) (*ConfigServer, func()) {
 		store.NewLLMConfigStore(pool),
 		store.NewEmbeddingConfigStore(pool),
 		store.NewExtractionPromptConfigStore(pool),
+		store.NewVectorBackendConfigStore(pool),
 	)
 
 	return srv, pool.Close

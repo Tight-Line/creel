@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,6 +20,7 @@ type ConfigServer struct {
 	llmStore              *store.LLMConfigStore
 	embeddingStore        *store.EmbeddingConfigStore
 	extractionPromptStore *store.ExtractionPromptConfigStore
+	vectorBackendStore    *store.VectorBackendConfigStore
 }
 
 // NewConfigServer creates a new config service.
@@ -27,12 +29,14 @@ func NewConfigServer(
 	llmStore *store.LLMConfigStore,
 	embeddingStore *store.EmbeddingConfigStore,
 	extractionPromptStore *store.ExtractionPromptConfigStore,
+	vectorBackendStore *store.VectorBackendConfigStore,
 ) *ConfigServer {
 	return &ConfigServer{
 		apiKeyStore:           apiKeyStore,
 		llmStore:              llmStore,
 		embeddingStore:        embeddingStore,
 		extractionPromptStore: extractionPromptStore,
+		vectorBackendStore:    vectorBackendStore,
 	}
 }
 
@@ -520,4 +524,133 @@ func storeExtractionPromptConfigToProto(c *store.ExtractionPromptConfig) *pb.Ext
 		CreatedAt:   timestamppb.New(c.CreatedAt),
 		UpdatedAt:   timestamppb.New(c.UpdatedAt),
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Vector Backend Config RPCs
+// ---------------------------------------------------------------------------
+
+func (s *ConfigServer) CreateVectorBackendConfig(ctx context.Context, req *pb.CreateVectorBackendConfigRequest) (*pb.VectorBackendConfig, error) {
+	if err := requireSystem(ctx); err != nil {
+		return nil, err
+	}
+	if req.GetName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "name is required")
+	}
+	if req.GetBackend() == "" {
+		return nil, status.Error(codes.InvalidArgument, "backend is required")
+	}
+
+	config := stringMapToAnyMap(req.GetConfig())
+	c, err := s.vectorBackendStore.Create(ctx, req.GetName(), req.GetBackend(), config, req.GetIsDefault())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "creating vector backend config: %v", err)
+	}
+	return storeVectorBackendConfigToProto(c), nil
+}
+
+func (s *ConfigServer) GetVectorBackendConfig(ctx context.Context, req *pb.GetVectorBackendConfigRequest) (*pb.VectorBackendConfig, error) {
+	if err := requireSystem(ctx); err != nil {
+		return nil, err
+	}
+	if req.GetId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	c, err := s.vectorBackendStore.Get(ctx, req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "vector backend config not found")
+	}
+	return storeVectorBackendConfigToProto(c), nil
+}
+
+func (s *ConfigServer) ListVectorBackendConfigs(ctx context.Context, _ *pb.ListVectorBackendConfigsRequest) (*pb.ListVectorBackendConfigsResponse, error) {
+	if err := requireSystem(ctx); err != nil {
+		return nil, err
+	}
+
+	configs, err := s.vectorBackendStore.List(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "listing vector backend configs: %v", err)
+	}
+
+	pbConfigs := make([]*pb.VectorBackendConfig, len(configs))
+	for i, c := range configs {
+		pbConfigs[i] = storeVectorBackendConfigToProto(&c)
+	}
+	return &pb.ListVectorBackendConfigsResponse{Configs: pbConfigs}, nil
+}
+
+func (s *ConfigServer) UpdateVectorBackendConfig(ctx context.Context, req *pb.UpdateVectorBackendConfigRequest) (*pb.VectorBackendConfig, error) {
+	if err := requireSystem(ctx); err != nil {
+		return nil, err
+	}
+	if req.GetId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	var config map[string]any
+	if len(req.GetConfig()) > 0 {
+		config = stringMapToAnyMap(req.GetConfig())
+	}
+
+	c, err := s.vectorBackendStore.Update(ctx, req.GetId(), req.GetName(), config)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "updating vector backend config: %v", err)
+	}
+	return storeVectorBackendConfigToProto(c), nil
+}
+
+func (s *ConfigServer) DeleteVectorBackendConfig(ctx context.Context, req *pb.DeleteVectorBackendConfigRequest) (*pb.DeleteVectorBackendConfigResponse, error) {
+	if err := requireSystem(ctx); err != nil {
+		return nil, err
+	}
+	if req.GetId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	if err := s.vectorBackendStore.Delete(ctx, req.GetId()); err != nil {
+		return nil, status.Errorf(codes.Internal, "deleting vector backend config: %v", err)
+	}
+	return &pb.DeleteVectorBackendConfigResponse{}, nil
+}
+
+func (s *ConfigServer) SetDefaultVectorBackendConfig(ctx context.Context, req *pb.SetDefaultVectorBackendConfigRequest) (*pb.VectorBackendConfig, error) {
+	if err := requireSystem(ctx); err != nil {
+		return nil, err
+	}
+	if req.GetId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	c, err := s.vectorBackendStore.SetDefault(ctx, req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "setting default vector backend config: %v", err)
+	}
+	return storeVectorBackendConfigToProto(c), nil
+}
+
+func storeVectorBackendConfigToProto(c *store.VectorBackendConfig) *pb.VectorBackendConfig {
+	config := make(map[string]string, len(c.Config))
+	for k, v := range c.Config {
+		config[k] = fmt.Sprintf("%v", v)
+	}
+	return &pb.VectorBackendConfig{
+		Id:        c.ID,
+		Name:      c.Name,
+		Backend:   c.Backend,
+		Config:    config,
+		IsDefault: c.IsDefault,
+		CreatedAt: timestamppb.New(c.CreatedAt),
+		UpdatedAt: timestamppb.New(c.UpdatedAt),
+	}
+}
+
+// stringMapToAnyMap converts map[string]string to map[string]any.
+func stringMapToAnyMap(m map[string]string) map[string]any {
+	result := make(map[string]any, len(m))
+	for k, v := range m {
+		result[k] = v
+	}
+	return result
 }

@@ -78,7 +78,7 @@ func seedFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool, backend 
 
 	for ti := 0; ti < numTopics; ti++ {
 		slug := fmt.Sprintf("qc-topic-%d", ti)
-		topic, err := topicStore.Create(ctx, slug, slug, "test topic", principal.ID, nil, nil, nil, false)
+		topic, err := topicStore.Create(ctx, slug, slug, "test topic", principal.ID, nil, nil, nil, false, nil)
 		if err != nil {
 			t.Fatalf("creating topic %d: %v", ti, err)
 		}
@@ -211,7 +211,7 @@ func TestNPlusOneDetection(t *testing.T) {
 	// Clean up stale data from previous failed runs.
 	_, _ = pool.Exec(ctx, `DELETE FROM topics WHERE slug = 'n1-test'`)
 
-	topic, err := topicStore.Create(ctx, "n1-test", "N1 Test", "test topic", principal.ID, nil, nil, nil, false)
+	topic, err := topicStore.Create(ctx, "n1-test", "N1 Test", "test topic", principal.ID, nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}

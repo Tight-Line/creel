@@ -89,6 +89,18 @@ autoscaling:
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
 
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: false
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  labels: {}
+
 ingress:
   enabled: false
   className: ""

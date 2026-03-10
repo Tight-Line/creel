@@ -1,0 +1,27 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-creel
+  labels:
+    app.kubernetes.io/name: creel
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: creel
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - port: {{ .Values.service.grpc.port }}
+          protocol: TCP
+        - port: {{ .Values.service.rest.port }}
+          protocol: TCP
+        - port: {{ .Values.service.metrics.port }}
+          protocol: TCP
+  egress:
+    - {}  # Allow all egress (PostgreSQL, external APIs)
+{{- end }}

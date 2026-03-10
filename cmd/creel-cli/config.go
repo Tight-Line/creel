@@ -16,7 +16,7 @@ func configCmd() *cobra.Command {
 		Short: "Configuration management (API keys, LLM, embedding, extraction prompts)",
 	}
 
-	cmd.AddCommand(apiKeyCmd(), llmCmd(), embeddingCmd(), promptCmd())
+	cmd.AddCommand(apiKeyCmd(), llmCmd(), embeddingCmd(), promptCmd(), vectorBackendCmd())
 	return cmd
 }
 
@@ -677,6 +677,176 @@ func promptCmd() *cobra.Command {
 			defer func() { _ = conn.Close() }()
 
 			resp, err := pb.NewConfigServiceClient(conn).SetDefaultExtractionPromptConfig(authCtx(), &pb.SetDefaultExtractionPromptConfigRequest{Id: args[0]})
+			if err != nil {
+				return err
+			}
+			printJSON(resp)
+			return nil
+		},
+	}
+
+	cmd.AddCommand(createCmd, listCmd, getCmd, updateCmd, deleteCmd, setDefaultCmd)
+	return cmd
+}
+
+// ---------------------------------------------------------------------------
+// Vector Backend Config
+// ---------------------------------------------------------------------------
+
+func vectorBackendCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "vector-backend",
+		Short: "Vector backend configuration management",
+	}
+
+	// create
+	var createName, createBackend string
+	var createConfig []string
+	var createDefault bool
+	createCmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create a vector backend config",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			conn, err := dial()
+			if err != nil {
+				return err
+			}
+			defer func() { _ = conn.Close() }()
+
+			config, err := parseParams(createConfig)
+			if err != nil {
+				return err
+			}
+
+			resp, err := pb.NewConfigServiceClient(conn).CreateVectorBackendConfig(authCtx(), &pb.CreateVectorBackendConfigRequest{
+				Name:      createName,
+				Backend:   createBackend,
+				Config:    config,
+				IsDefault: createDefault,
+			})
+			if err != nil {
+				return err
+			}
+			printJSON(resp)
+			return nil
+		},
+	}
+	createCmd.Flags().StringVar(&createName, "name", "", "config name (required)")
+	createCmd.Flags().StringVar(&createBackend, "backend", "", "backend type, e.g. pgvector (required)")
+	createCmd.Flags().StringSliceVar(&createConfig, "config", nil, "config key=value (repeatable)")
+	createCmd.Flags().BoolVar(&createDefault, "default", false, "set as default")
+	_ = createCmd.MarkFlagRequired("name")
+	_ = createCmd.MarkFlagRequired("backend")
+
+	// list
+	listCmd := &cobra.Command{
+		Use:   "list",
+		Short: "List vector backend configs",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			conn, err := dial()
+			if err != nil {
+				return err
+			}
+			defer func() { _ = conn.Close() }()
+
+			resp, err := pb.NewConfigServiceClient(conn).ListVectorBackendConfigs(authCtx(), &pb.ListVectorBackendConfigsRequest{})
+			if err != nil {
+				return err
+			}
+			printJSON(resp)
+			return nil
+		},
+	}
+
+	// get
+	getCmd := &cobra.Command{
+		Use:   "get [id]",
+		Short: "Get a vector backend config",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			conn, err := dial()
+			if err != nil {
+				return err
+			}
+			defer func() { _ = conn.Close() }()
+
+			resp, err := pb.NewConfigServiceClient(conn).GetVectorBackendConfig(authCtx(), &pb.GetVectorBackendConfigRequest{Id: args[0]})
+			if err != nil {
+				return err
+			}
+			printJSON(resp)
+			return nil
+		},
+	}
+
+	// update
+	var updateName string
+	var updateConfig []string
+	updateCmd := &cobra.Command{
+		Use:   "update [id]",
+		Short: "Update a vector backend config (name and config only)",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			conn, err := dial()
+			if err != nil {
+				return err
+			}
+			defer func() { _ = conn.Close() }()
+
+			config, err := parseParams(updateConfig)
+			if err != nil {
+				return err
+			}
+
+			resp, err := pb.NewConfigServiceClient(conn).UpdateVectorBackendConfig(authCtx(), &pb.UpdateVectorBackendConfigRequest{
+				Id:     args[0],
+				Name:   updateName,
+				Config: config,
+			})
+			if err != nil {
+				return err
+			}
+			printJSON(resp)
+			return nil
+		},
+	}
+	updateCmd.Flags().StringVar(&updateName, "name", "", "new name")
+	updateCmd.Flags().StringSliceVar(&updateConfig, "config", nil, "config key=value (repeatable)")
+
+	// delete
+	deleteCmd := &cobra.Command{
+		Use:   "delete [id]",
+		Short: "Delete a vector backend config",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			conn, err := dial()
+			if err != nil {
+				return err
+			}
+			defer func() { _ = conn.Close() }()
+
+			_, err = pb.NewConfigServiceClient(conn).DeleteVectorBackendConfig(authCtx(), &pb.DeleteVectorBackendConfigRequest{Id: args[0]})
+			if err != nil {
+				return err
+			}
+			fmt.Println("deleted")
+			return nil
+		},
+	}
+
+	// set-default
+	setDefaultCmd := &cobra.Command{
+		Use:   "set-default [id]",
+		Short: "Set a vector backend config as default",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			conn, err := dial()
+			if err != nil {
+				return err
+			}
+			defer func() { _ = conn.Close() }()
+
+			resp, err := pb.NewConfigServiceClient(conn).SetDefaultVectorBackendConfig(authCtx(), &pb.SetDefaultVectorBackendConfigRequest{Id: args[0]})
 			if err != nil {
 				return err
 			}

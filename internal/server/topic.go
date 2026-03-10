@@ -51,7 +51,7 @@ func (s *TopicServer) CreateTopic(ctx context.Context, req *pb.CreateTopicReques
 		}
 	}
 
-	var llmCfgID, embCfgID, promptCfgID *string
+	var llmCfgID, embCfgID, promptCfgID, vbCfgID *string
 	if req.LlmConfigId != nil {
 		v := req.GetLlmConfigId()
 		llmCfgID = &v
@@ -64,8 +64,12 @@ func (s *TopicServer) CreateTopic(ctx context.Context, req *pb.CreateTopicReques
 		v := req.GetExtractionPromptConfigId()
 		promptCfgID = &v
 	}
+	if req.VectorBackendConfigId != nil {
+		v := req.GetVectorBackendConfigId()
+		vbCfgID = &v
+	}
 
-	t, err := s.topicStore.Create(ctx, topicSlug, req.GetName(), req.GetDescription(), p.ID, llmCfgID, embCfgID, promptCfgID, req.GetMemoryEnabled())
+	t, err := s.topicStore.Create(ctx, topicSlug, req.GetName(), req.GetDescription(), p.ID, llmCfgID, embCfgID, promptCfgID, req.GetMemoryEnabled(), vbCfgID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "creating topic: %v", err)
 	}
@@ -139,7 +143,7 @@ func (s *TopicServer) UpdateTopic(ctx context.Context, req *pb.UpdateTopicReques
 	}
 
 	// Determine effective config IDs after update.
-	var llmCfgID, embCfgID, promptCfgID *string
+	var llmCfgID, embCfgID, promptCfgID, vbCfgID *string
 	if req.LlmConfigId != nil {
 		v := req.GetLlmConfigId()
 		llmCfgID = &v
@@ -151,6 +155,10 @@ func (s *TopicServer) UpdateTopic(ctx context.Context, req *pb.UpdateTopicReques
 	if req.ExtractionPromptConfigId != nil {
 		v := req.GetExtractionPromptConfigId()
 		promptCfgID = &v
+	}
+	if req.VectorBackendConfigId != nil {
+		v := req.GetVectorBackendConfigId()
+		vbCfgID = &v
 	}
 
 	// Enforce: if extraction prompt will be set, LLM config must exist.
@@ -191,7 +199,7 @@ func (s *TopicServer) UpdateTopic(ctx context.Context, req *pb.UpdateTopicReques
 		memEnabled = &v
 	}
 
-	t, err := s.topicStore.Update(ctx, req.GetId(), req.GetName(), req.GetDescription(), llmCfgID, embCfgID, promptCfgID, memEnabled)
+	t, err := s.topicStore.Update(ctx, req.GetId(), req.GetName(), req.GetDescription(), llmCfgID, embCfgID, promptCfgID, memEnabled, vbCfgID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "updating topic: %v", err)
 	}
@@ -314,6 +322,9 @@ func storeTopicToProto(t *store.Topic) *pb.Topic {
 			ChunkSize:    int32(t.ChunkingStrategy.ChunkSize),
 			ChunkOverlap: int32(t.ChunkingStrategy.ChunkOverlap),
 		}
+	}
+	if t.VectorBackendConfigID != nil {
+		p.VectorBackendConfigId = t.VectorBackendConfigID
 	}
 	return p
 }

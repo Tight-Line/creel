@@ -42,6 +42,7 @@ type Topic struct {
 	ExtractionPromptConfigID *string
 	ChunkingStrategy         *ChunkingStrategy
 	MemoryEnabled            bool
+	VectorBackendConfigID    *string
 }
 
 // TopicGrant represents a stored topic grant.
@@ -65,17 +66,17 @@ func scanTopicChunkingStrategy(t *Topic, data []byte) {
 }
 
 // Create inserts a new topic with optional config IDs.
-func (s *TopicStore) Create(ctx context.Context, slug, name, description, owner string, llmConfigID, embeddingConfigID, extractionPromptConfigID *string, memoryEnabled bool) (*Topic, error) {
+func (s *TopicStore) Create(ctx context.Context, slug, name, description, owner string, llmConfigID, embeddingConfigID, extractionPromptConfigID *string, memoryEnabled bool, vectorBackendConfigID *string) (*Topic, error) {
 	var t Topic
 	var chunkingBytes []byte
 	err := s.pool.QueryRow(ctx,
-		`INSERT INTO topics (slug, name, description, owner, llm_config_id, embedding_config_id, extraction_prompt_config_id, memory_enabled)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		`INSERT INTO topics (slug, name, description, owner, llm_config_id, embedding_config_id, extraction_prompt_config_id, memory_enabled, vector_backend_config_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		 RETURNING id, slug, name, description, owner, created_at, updated_at,
-		           llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy, memory_enabled`,
-		slug, name, description, owner, llmConfigID, embeddingConfigID, extractionPromptConfigID, memoryEnabled,
+		           llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy, memory_enabled, vector_backend_config_id`,
+		slug, name, description, owner, llmConfigID, embeddingConfigID, extractionPromptConfigID, memoryEnabled, vectorBackendConfigID,
 	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
-		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes, &t.MemoryEnabled)
+		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes, &t.MemoryEnabled, &t.VectorBackendConfigID)
 	if err != nil {
 		return nil, fmt.Errorf("inserting topic: %w", err)
 	}
@@ -89,10 +90,10 @@ func (s *TopicStore) Get(ctx context.Context, id string) (*Topic, error) {
 	var chunkingBytes []byte
 	err := s.pool.QueryRow(ctx,
 		`SELECT id, slug, name, description, owner, created_at, updated_at,
-		        llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy, memory_enabled
+		        llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy, memory_enabled, vector_backend_config_id
 		 FROM topics WHERE id = $1`, id,
 	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
-		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes, &t.MemoryEnabled)
+		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes, &t.MemoryEnabled, &t.VectorBackendConfigID)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("topic not found")
 	}
@@ -112,12 +113,12 @@ func (s *TopicStore) ListForPrincipals(ctx context.Context, principals []string)
 	if principals == nil {
 		rows, err = s.pool.Query(ctx,
 			`SELECT id, slug, name, description, owner, created_at, updated_at,
-			        llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy, memory_enabled
+			        llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy, memory_enabled, vector_backend_config_id
 			 FROM topics ORDER BY created_at`)
 	} else {
 		rows, err = s.pool.Query(ctx,
 			`SELECT DISTINCT t.id, t.slug, t.name, t.description, t.owner, t.created_at, t.updated_at,
-			        t.llm_config_id, t.embedding_config_id, t.extraction_prompt_config_id, t.chunking_strategy, t.memory_enabled
+			        t.llm_config_id, t.embedding_config_id, t.extraction_prompt_config_id, t.chunking_strategy, t.memory_enabled, t.vector_backend_config_id
 			 FROM topics t
 			 LEFT JOIN topic_grants g ON g.topic_id = t.id
 			 WHERE t.owner = ANY($1) OR g.principal = ANY($1)
@@ -133,7 +134,7 @@ func (s *TopicStore) ListForPrincipals(ctx context.Context, principals []string)
 		var t Topic
 		var chunkingBytes []byte
 		if err := rows.Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
-			&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes, &t.MemoryEnabled); err != nil {
+			&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes, &t.MemoryEnabled, &t.VectorBackendConfigID); err != nil {
 			return nil, fmt.Errorf("scanning topic: %w", err)
 		}
 		scanTopicChunkingStrategy(&t, chunkingBytes)
@@ -143,7 +144,7 @@ func (s *TopicStore) ListForPrincipals(ctx context.Context, principals []string)
 }
 
 // Update modifies a topic's name, description, and config bindings.
-func (s *TopicStore) Update(ctx context.Context, id, name, description string, llmConfigID, embeddingConfigID, extractionPromptConfigID *string, memoryEnabled *bool) (*Topic, error) {
+func (s *TopicStore) Update(ctx context.Context, id, name, description string, llmConfigID, embeddingConfigID, extractionPromptConfigID *string, memoryEnabled *bool, vectorBackendConfigID *string) (*Topic, error) {
 	var t Topic
 	var chunkingBytes []byte
 	err := s.pool.QueryRow(ctx,
@@ -153,13 +154,14 @@ func (s *TopicStore) Update(ctx context.Context, id, name, description string, l
 		     embedding_config_id = COALESCE($5, embedding_config_id),
 		     extraction_prompt_config_id = COALESCE($6, extraction_prompt_config_id),
 		     memory_enabled = COALESCE($7, memory_enabled),
+		     vector_backend_config_id = COALESCE($8, vector_backend_config_id),
 		     updated_at = now()
 		 WHERE id = $1
 		 RETURNING id, slug, name, description, owner, created_at, updated_at,
-		           llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy, memory_enabled`,
-		id, name, description, llmConfigID, embeddingConfigID, extractionPromptConfigID, memoryEnabled,
+		           llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy, memory_enabled, vector_backend_config_id`,
+		id, name, description, llmConfigID, embeddingConfigID, extractionPromptConfigID, memoryEnabled, vectorBackendConfigID,
 	).Scan(&t.ID, &t.Slug, &t.Name, &t.Description, &t.Owner, &t.CreatedAt, &t.UpdatedAt,
-		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes, &t.MemoryEnabled)
+		&t.LLMConfigID, &t.EmbeddingConfigID, &t.ExtractionPromptConfigID, &chunkingBytes, &t.MemoryEnabled, &t.VectorBackendConfigID)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("topic not found")
 	}

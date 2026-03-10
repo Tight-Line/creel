@@ -11,6 +11,8 @@ import (
 	"syscall"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -115,6 +117,7 @@ func run() error {
 	llmConfigStore := store.NewLLMConfigStore(pool)
 	embeddingConfigStore := store.NewEmbeddingConfigStore(pool)
 	extractionPromptConfigStore := store.NewExtractionPromptConfigStore(pool)
+	vectorBackendConfigStore := store.NewVectorBackendConfigStore(pool)
 
 	// Create job store and worker pool.
 	jobStore := store.NewJobStore(pool)
@@ -162,7 +165,7 @@ func run() error {
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authorizer)
 	singleEmbedder := &singleTextEmbedder{batch: embeddingProvider}
 	retrievalServer := server.NewRetrievalServer(searcher, contextFetcher, singleEmbedder)
-	configServer := server.NewConfigServer(apiKeyConfigStore, llmConfigStore, embeddingConfigStore, extractionPromptConfigStore)
+	configServer := server.NewConfigServer(apiKeyConfigStore, llmConfigStore, embeddingConfigStore, extractionPromptConfigStore, vectorBackendConfigStore)
 	jobServer := server.NewJobServer(jobStore, docStore, authorizer)
 	linkServer := server.NewLinkServer(linkStore, chunkStore, authorizer)
 	memoryServer := server.NewMemoryServer(memoryStore, vectorBackend, singleEmbedder)
@@ -178,11 +181,14 @@ func run() error {
 	compactionServer := server.NewCompactionServer(chunkStore, linkStore, compactionStore, docStore, jobStore, vectorBackend, authorizer)
 	pb.RegisterCompactionServiceServer(srv.GRPCServer(), compactionServer)
 
+	// Register Prometheus gRPC metrics.
+	prometheus.MustRegister(srv.GRPCMetrics)
+
 	// Handle shutdown signals.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	errCh := make(chan error, 2)
+	errCh := make(chan error, 3)
 
 	// Start gRPC server.
 	go func() {
@@ -192,6 +198,17 @@ func run() error {
 	// Start REST gateway.
 	go func() {
 		errCh <- runRESTGateway(ctx, cfg.Server.GRPCPort, cfg.Server.RESTPort)
+	}()
+
+	// Start metrics server.
+	go func() {
+		metricsMux := http.NewServeMux()
+		metricsMux.Handle("/metrics", promhttp.Handler())
+		fmt.Printf("creel: metrics server listening on :%d\n", cfg.Server.MetricsPort)
+		// coverage:ignore - requires port conflict to test
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Server.MetricsPort), metricsMux); err != nil {
+			errCh <- fmt.Errorf("metrics server: %w", err)
+		}
 	}()
 
 	// Start worker pool.

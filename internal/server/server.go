@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 
+	grpcprom "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"google.golang.org/grpc"
 
 	"github.com/Tight-Line/creel/internal/auth"
@@ -12,19 +13,28 @@ import (
 
 // Server wraps a gRPC server with Creel services.
 type Server struct {
-	grpcServer *grpc.Server
-	port       int
+	grpcServer  *grpc.Server
+	port        int
+	GRPCMetrics *grpcprom.ServerMetrics
 }
 
-// New creates a new Server with auth interceptor and registers services.
+// New creates a new Server with auth and Prometheus interceptors.
 func New(port int, apiKeyValidator *auth.APIKeyValidator, oidcValidator *auth.OIDCValidator) *Server {
+	grpcMetrics := grpcprom.NewServerMetrics()
+	grpcMetrics.EnableHandlingTimeHistogram()
+
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(auth.UnaryInterceptor(apiKeyValidator, oidcValidator)),
+		grpc.ChainUnaryInterceptor(
+			grpcMetrics.UnaryServerInterceptor(),
+			auth.UnaryInterceptor(apiKeyValidator, oidcValidator),
+		),
 	)
+	grpcMetrics.InitializeMetrics(grpcServer)
 
 	return &Server{
-		grpcServer: grpcServer,
-		port:       port,
+		grpcServer:  grpcServer,
+		port:        port,
+		GRPCMetrics: grpcMetrics,
 	}
 }
 

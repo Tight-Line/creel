@@ -159,7 +159,7 @@ func TestTopicStore_Create_Error(t *testing.T) {
 		return &mockRow{err: errMock}
 	}}
 	s := NewTopicStore(db)
-	_, err := s.Create(ctx(), "slug", "name", "desc", "owner", nil, nil, nil, false)
+	_, err := s.Create(ctx(), "slug", "name", "desc", "owner", nil, nil, nil, false, nil)
 	expectErr(t, err, "inserting topic")
 }
 
@@ -222,7 +222,7 @@ func TestTopicStore_Update_ErrNoRows(t *testing.T) {
 		return &mockRow{err: pgx.ErrNoRows}
 	}}
 	s := NewTopicStore(db)
-	_, err := s.Update(ctx(), "id", "name", "desc", nil, nil, nil, nil)
+	_, err := s.Update(ctx(), "id", "name", "desc", nil, nil, nil, nil, nil)
 	expectErr(t, err, "topic not found")
 }
 
@@ -231,7 +231,7 @@ func TestTopicStore_Update_OtherError(t *testing.T) {
 		return &mockRow{err: errMock}
 	}}
 	s := NewTopicStore(db)
-	_, err := s.Update(ctx(), "id", "name", "desc", nil, nil, nil, nil)
+	_, err := s.Update(ctx(), "id", "name", "desc", nil, nil, nil, nil, nil)
 	expectErr(t, err, "updating topic")
 }
 
@@ -2873,4 +2873,138 @@ type seqRow struct{ seq int }
 func (r *seqRow) Scan(dest ...any) error {
 	*(dest[0].(*int)) = r.seq
 	return nil
+}
+
+// ---------------------------------------------------------------------------
+// VectorBackendConfigStore
+// ---------------------------------------------------------------------------
+
+func TestVectorBackendConfigStore_Create_BeginError(t *testing.T) {
+	db := &mockDBTX{} // default Begin returns errMock
+	s := NewVectorBackendConfigStore(db)
+	_, err := s.Create(ctx(), "name", "pgvector", nil, false)
+	expectErr(t, err, "beginning transaction")
+}
+
+func TestVectorBackendConfigStore_Create_InsertError(t *testing.T) {
+	db := &mockDBTX{
+		beginFn: func(_ context.Context) (pgx.Tx, error) {
+			return &mockTx{inner: &mockDBTX{
+				queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+					return &mockRow{err: errMock}
+				},
+			}}, nil
+		},
+	}
+	s := NewVectorBackendConfigStore(db)
+	_, err := s.Create(ctx(), "name", "pgvector", nil, false)
+	expectErr(t, err, "inserting vector backend config")
+}
+
+func TestVectorBackendConfigStore_Get_NotFound(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: pgx.ErrNoRows}
+	}}
+	s := NewVectorBackendConfigStore(db)
+	_, err := s.Get(ctx(), "id")
+	expectErr(t, err, "vector backend config not found")
+}
+
+func TestVectorBackendConfigStore_Get_OtherError(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewVectorBackendConfigStore(db)
+	_, err := s.Get(ctx(), "id")
+	expectErr(t, err, "querying vector backend config")
+}
+
+func TestVectorBackendConfigStore_List_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewVectorBackendConfigStore(db)
+	_, err := s.List(ctx())
+	expectErr(t, err, "listing vector backend configs")
+}
+
+func TestVectorBackendConfigStore_Update_NotFound(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: pgx.ErrNoRows}
+	}}
+	s := NewVectorBackendConfigStore(db)
+	_, err := s.Update(ctx(), "id", "new", nil)
+	expectErr(t, err, "vector backend config not found")
+}
+
+func TestVectorBackendConfigStore_Update_OtherError(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewVectorBackendConfigStore(db)
+	_, err := s.Update(ctx(), "id", "new", nil)
+	expectErr(t, err, "updating vector backend config")
+}
+
+func TestVectorBackendConfigStore_Delete_ExecError(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag(""), errMock
+	}}
+	s := NewVectorBackendConfigStore(db)
+	err := s.Delete(ctx(), "id")
+	expectErr(t, err, "deleting vector backend config")
+}
+
+func TestVectorBackendConfigStore_Delete_NotFound(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag("DELETE 0"), nil
+	}}
+	s := NewVectorBackendConfigStore(db)
+	err := s.Delete(ctx(), "id")
+	expectErr(t, err, "vector backend config not found")
+}
+
+func TestVectorBackendConfigStore_SetDefault_BeginError(t *testing.T) {
+	db := &mockDBTX{} // default Begin returns errMock
+	s := NewVectorBackendConfigStore(db)
+	_, err := s.SetDefault(ctx(), "id")
+	expectErr(t, err, "beginning transaction")
+}
+
+func TestVectorBackendConfigStore_SetDefault_NotFound(t *testing.T) {
+	db := &mockDBTX{
+		beginFn: func(_ context.Context) (pgx.Tx, error) {
+			return &mockTx{inner: &mockDBTX{
+				queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+					return &mockRow{err: pgx.ErrNoRows}
+				},
+			}}, nil
+		},
+	}
+	s := NewVectorBackendConfigStore(db)
+	_, err := s.SetDefault(ctx(), "id")
+	expectErr(t, err, "vector backend config not found")
+}
+
+func TestVectorBackendConfigStore_GetDefault_NotFound(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: pgx.ErrNoRows}
+	}}
+	s := NewVectorBackendConfigStore(db)
+	c, err := s.GetDefault(ctx())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if c != nil {
+		t.Error("expected nil when no default")
+	}
+}
+
+func TestVectorBackendConfigStore_GetDefault_OtherError(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewVectorBackendConfigStore(db)
+	_, err := s.GetDefault(ctx())
+	expectErr(t, err, "querying default vector backend config")
 }

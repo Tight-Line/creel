@@ -54,7 +54,7 @@ func TestExtractionWorker_Integration(t *testing.T) {
 
 	// Create a topic.
 	topic, err := topicStore.Create(ctx, fmt.Sprintf("extraction-test-%d", time.Now().UnixNano()),
-		"Extraction Test", "", "system:test", nil, nil, nil, false)
+		"Extraction Test", "", "system:test", nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestExtractionWorker_PlainText_Integration(t *testing.T) {
 	jobStore := store.NewJobStore(pool)
 
 	topic, err := topicStore.Create(ctx, fmt.Sprintf("extraction-plain-%d", time.Now().UnixNano()),
-		"Plain Text Test", "", "system:test", nil, nil, nil, false)
+		"Plain Text Test", "", "system:test", nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}
@@ -175,7 +175,7 @@ func TestExtractionWorker_UnsupportedType_Integration(t *testing.T) {
 	jobStore := store.NewJobStore(pool)
 
 	topic, err := topicStore.Create(ctx, fmt.Sprintf("extraction-unsupported-%d", time.Now().UnixNano()),
-		"Unsupported Test", "", "system:test", nil, nil, nil, false)
+		"Unsupported Test", "", "system:test", nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}

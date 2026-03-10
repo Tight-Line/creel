@@ -68,7 +68,7 @@ func TestSearcher_EndToEnd(t *testing.T) {
 	var topicIDs []string
 	for i := 0; i < 3; i++ {
 		slug := fmt.Sprintf("search-test-topic-%d", i)
-		topic, err := topicStore.Create(ctx, slug, slug, "test", principal.ID, nil, nil, nil, false)
+		topic, err := topicStore.Create(ctx, slug, slug, "test", principal.ID, nil, nil, nil, false, nil)
 		if err != nil {
 			t.Fatalf("creating topic %d: %v", i, err)
 		}

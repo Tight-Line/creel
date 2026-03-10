@@ -141,6 +141,40 @@ service ConfigService {
       post: "/v1/config/prompt/{id}/default"
     };
   }
+
+  // Vector backend configs
+  rpc CreateVectorBackendConfig(CreateVectorBackendConfigRequest) returns (VectorBackendConfig) {
+    option (google.api.http) = {
+      post: "/v1/config/vector-backend"
+      body: "*"
+    };
+  }
+  rpc GetVectorBackendConfig(GetVectorBackendConfigRequest) returns (VectorBackendConfig) {
+    option (google.api.http) = {
+      get: "/v1/config/vector-backend/{id}"
+    };
+  }
+  rpc ListVectorBackendConfigs(ListVectorBackendConfigsRequest) returns (ListVectorBackendConfigsResponse) {
+    option (google.api.http) = {
+      get: "/v1/config/vector-backend"
+    };
+  }
+  rpc UpdateVectorBackendConfig(UpdateVectorBackendConfigRequest) returns (VectorBackendConfig) {
+    option (google.api.http) = {
+      patch: "/v1/config/vector-backend/{id}"
+      body: "*"
+    };
+  }
+  rpc DeleteVectorBackendConfig(DeleteVectorBackendConfigRequest) returns (DeleteVectorBackendConfigResponse) {
+    option (google.api.http) = {
+      delete: "/v1/config/vector-backend/{id}"
+    };
+  }
+  rpc SetDefaultVectorBackendConfig(SetDefaultVectorBackendConfigRequest) returns (VectorBackendConfig) {
+    option (google.api.http) = {
+      post: "/v1/config/vector-backend/{id}/default"
+    };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -342,5 +376,53 @@ message DeleteExtractionPromptConfigRequest {
 message DeleteExtractionPromptConfigResponse {}
 
 message SetDefaultExtractionPromptConfigRequest {
+  string id = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Vector Backend Config
+// ---------------------------------------------------------------------------
+
+message VectorBackendConfig {
+  string id = 1;
+  string name = 2;
+  string backend = 3;  // e.g. "pgvector", "qdrant", "weaviate"
+  map<string, string> config = 4;
+  bool is_default = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreateVectorBackendConfigRequest {
+  string name = 1;
+  string backend = 2;
+  map<string, string> config = 3;
+  bool is_default = 4;
+}
+
+message GetVectorBackendConfigRequest {
+  string id = 1;
+}
+
+message ListVectorBackendConfigsRequest {}
+
+message ListVectorBackendConfigsResponse {
+  repeated VectorBackendConfig configs = 1;
+}
+
+message UpdateVectorBackendConfigRequest {
+  string id = 1;
+  string name = 2;
+  map<string, string> config = 3;
+  // backend type cannot be changed post-creation
+}
+
+message DeleteVectorBackendConfigRequest {
+  string id = 1;
+}
+
+message DeleteVectorBackendConfigResponse {}
+
+message SetDefaultVectorBackendConfigRequest {
   string id = 1;
 }

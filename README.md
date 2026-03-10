@@ -8,7 +8,7 @@
 
 Self-hosted memory-as-a-service for AI agents.
 
-**v0.6.x**: Python and TypeScript SDKs, MCP server for AI agent tool use, Anthropic/OpenAI tool schemas, CompactionService, chunk linking, managed pipeline, per-principal memory, dashboard, creel-chat.
+**v0.7.x**: Per-topic vector backend configs, backend registry, Prometheus metrics, Helm hardening (PDB, NetworkPolicy, SecurityContext), Python and TypeScript SDKs, MCP server, CompactionService, chunk linking, managed pipeline, per-principal memory, dashboard, creel-chat.
 
 Creel provides topic-scoped memory with principal-based RBAC, server-side document processing, per-principal memory (Mem0-style), and dual-mode retrieval (semantic search with citations + temporal context). Upload documents and Creel handles extraction, chunking, and embedding automatically. It runs in your infrastructure via Helm chart.
 
@@ -45,7 +45,7 @@ See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.
 - **Topic > Document > Chunk** hierarchy with RBAC and cross-topic linking
 - **Dual-mode retrieval**: RAG (semantic search) and context (temporal ordering)
 - **Server-driven compaction** with link preservation
-- **Pluggable vector backends**: pgvector (reference), OpenAI, Qdrant, Weaviate
+- **Pluggable vector backends**: pgvector (reference) with per-topic backend configs and a lazy-initialized backend registry
 - **63 gRPC/REST RPCs** across 10 services
 - **Two ingestion paths**: managed (upload and forget) and direct (pre-chunked, pre-embedded) for power users
 - **Admin dashboard**: Laravel-based web UI for config, topic, system account, and memory management
@@ -66,7 +66,7 @@ See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.
 
 ## Status
 
-Active development (v0.4.x). Phases 1-5 complete plus PDF extraction, semantic chunking, dashboard memory browser, and chunk linking (LinkService). Phases 6, 8-9 (integration layers, compaction, additional backends) are next. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for release history.
+Active development (v0.7.x). Phases 1-9 complete: core storage, RAG, auth, managed pipeline, per-principal memory, compaction, integration layers (SDKs, MCP, tool schemas), and backend hardening (per-topic vector backends, Prometheus metrics, Helm production readiness). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 

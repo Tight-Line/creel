@@ -21,7 +21,7 @@ func TestChunkingWorker_Integration(t *testing.T) {
 	jobStore := store.NewJobStore(pool)
 
 	topic, err := topicStore.Create(ctx, fmt.Sprintf("chunking-test-%d", time.Now().UnixNano()),
-		"Chunking Test", "", "system:test", nil, nil, nil, false)
+		"Chunking Test", "", "system:test", nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestChunkingWorker_ShortText_Integration(t *testing.T) {
 	jobStore := store.NewJobStore(pool)
 
 	topic, err := topicStore.Create(ctx, fmt.Sprintf("chunking-short-%d", time.Now().UnixNano()),
-		"Short Text Test", "", "system:test", nil, nil, nil, false)
+		"Short Text Test", "", "system:test", nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestChunkingWorker_EmptyText_Integration(t *testing.T) {
 	jobStore := store.NewJobStore(pool)
 
 	topic, err := topicStore.Create(ctx, fmt.Sprintf("chunking-empty-%d", time.Now().UnixNano()),
-		"Empty Text Test", "", "system:test", nil, nil, nil, false)
+		"Empty Text Test", "", "system:test", nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestEmbeddingWorker_Integration(t *testing.T) {
 	vectorBackend := pgvector.New(pool)
 
 	topic, err := topicStore.Create(ctx, fmt.Sprintf("embedding-test-%d", time.Now().UnixNano()),
-		"Embedding Test", "", "system:test", nil, nil, nil, false)
+		"Embedding Test", "", "system:test", nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}
@@ -267,7 +267,7 @@ func TestEmbeddingWorker_NoChunksNeedEmbedding_Integration(t *testing.T) {
 	vectorBackend := pgvector.New(pool)
 
 	topic, err := topicStore.Create(ctx, fmt.Sprintf("embedding-noop-%d", time.Now().UnixNano()),
-		"No Embedding Test", "", "system:test", nil, nil, nil, false)
+		"No Embedding Test", "", "system:test", nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}
@@ -319,7 +319,7 @@ func TestPipeline_EndToEnd_Integration(t *testing.T) {
 	vectorBackend := pgvector.New(pool)
 
 	topic, err := topicStore.Create(ctx, fmt.Sprintf("pipeline-e2e-%d", time.Now().UnixNano()),
-		"Pipeline E2E Test", "", "system:test", nil, nil, nil, false)
+		"Pipeline E2E Test", "", "system:test", nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}

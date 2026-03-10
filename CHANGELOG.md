@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-10
+
+### Added
+
+- VectorBackendConfig CRUD: managed configuration for vector storage backends (pgvector, Qdrant, Weaviate) with is_default support. Six new ConfigService RPCs and CLI commands under `config vector-backend`.
+- Per-topic `vector_backend_config_id`: topics can now reference a specific vector backend config, enabling different topics to use different vector stores.
+- Vector backend registry (`vector.Registry`): lazy-initialized map of config ID to live `Backend` instances with factory-based creation and thread-safe caching.
+- Prometheus metrics: gRPC request counters and latency histograms via go-grpc-prometheus. Metrics served on the configured metrics port (default 9090) at `/metrics`.
+- Helm hardening: PodDisruptionBudget, NetworkPolicy, ServiceMonitor for Prometheus Operator, pod-level SecurityContext (runAsNonRoot, readOnlyRootFilesystem, drop all capabilities).
+- Migration 000012: `vector_backend_configs` table and `topics.vector_backend_config_id` foreign key.
+
 ## [0.6.0] - 2026-03-10
 
 ### Added
