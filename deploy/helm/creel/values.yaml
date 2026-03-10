@@ -65,6 +65,15 @@ postgresql:
 
 mcp:
   enabled: false
+  # MCP server runs as a sidecar in the Creel deployment pod.
+  # It connects to the main Creel server via localhost gRPC.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
 
 resources:
   requests:

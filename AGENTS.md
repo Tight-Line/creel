@@ -69,14 +69,19 @@ The query count bound must hold regardless of how many results come back. If you
 ```
 cmd/creel/          server entrypoint
 cmd/creel-cli/      CLI entrypoint
+cmd/creel-mcp/      MCP server entrypoint
 internal/auth/      authentication + authorization (OIDC, API keys, grants)
 internal/config/    configuration loading
 internal/retrieval/ RAG search logic
 internal/server/    gRPC service implementations
 internal/store/     PostgreSQL persistence (chunks, documents, topics, grants)
 internal/vector/    vector backend interface + implementations
+mcp/                MCP server protocol + tool handlers
 migrations/         SQL migrations (golang-migrate)
 proto/              protobuf definitions
+sdk/python/         Python client SDK
+sdk/typescript/     TypeScript client SDK
+tools/              AI agent tool schemas (Anthropic, OpenAI formats)
 ```
 
 ## Documentation Rules

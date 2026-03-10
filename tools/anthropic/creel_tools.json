@@ -1,0 +1,207 @@
+[
+  {
+    "name": "creel_search",
+    "description": "Search for relevant content chunks across one or more Creel topics using semantic similarity. Use this when you need to find information related to a query. Returns ranked chunks with scores, document citations, and optionally linked content.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "topic_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of topic IDs to search within. You must specify at least one topic."
+        },
+        "query_text": {
+          "type": "string",
+          "description": "The natural language query to search for. This will be embedded and compared against stored chunks."
+        },
+        "top_k": {
+          "type": "integer",
+          "description": "Maximum number of results to return. Defaults to 10.",
+          "default": 10
+        },
+        "follow_links": {
+          "type": "boolean",
+          "description": "If true, also return chunks linked to the top results. Useful for discovering related content."
+        },
+        "link_depth": {
+          "type": "integer",
+          "description": "How many hops to follow when follow_links is true. Higher values find more distant connections."
+        }
+      },
+      "required": ["topic_ids", "query_text"]
+    }
+  },
+  {
+    "name": "creel_get_context",
+    "description": "Retrieve temporal context from a specific document. Returns chunks in chronological order, optionally filtered by recency. Use this when you already know which document to read and want its recent content or a time-bounded slice.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "document_id": {
+          "type": "string",
+          "description": "The ID of the document to retrieve context from."
+        },
+        "last_n": {
+          "type": "integer",
+          "description": "Return only the last N chunks from the document. Useful for getting the most recent entries."
+        },
+        "since": {
+          "type": "string",
+          "description": "ISO 8601 timestamp. Only return chunks created after this time. Example: 2026-01-15T00:00:00Z"
+        }
+      },
+      "required": ["document_id"]
+    }
+  },
+  {
+    "name": "creel_add_memory",
+    "description": "Store a memory observation in a named scope. Memories are facts, preferences, or observations you want to recall later. Optionally structure the memory as a subject/predicate/object triple for precise retrieval.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "The memory scope (namespace). Use a consistent scope name to group related memories, such as 'user_preferences' or 'project_notes'."
+        },
+        "content": {
+          "type": "string",
+          "description": "The memory content as natural language text. This is the primary content that will be stored and searchable."
+        },
+        "subject": {
+          "type": "string",
+          "description": "Optional subject of a structured triple. Example: 'Nick'"
+        },
+        "predicate": {
+          "type": "string",
+          "description": "Optional predicate of a structured triple. Example: 'prefers'"
+        },
+        "object": {
+          "type": "string",
+          "description": "Optional object of a structured triple. Example: 'dark mode'"
+        }
+      },
+      "required": ["scope", "content"]
+    }
+  },
+  {
+    "name": "creel_search_memories",
+    "description": "Search stored memories by semantic similarity. Use this to recall previously stored observations, facts, or preferences. Optionally filter to a specific scope.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query_text": {
+          "type": "string",
+          "description": "The natural language query to search memories for."
+        },
+        "scope": {
+          "type": "string",
+          "description": "Optional scope to limit the search to. If omitted, searches across all scopes."
+        },
+        "top_k": {
+          "type": "integer",
+          "description": "Maximum number of results to return. Defaults to 10.",
+          "default": 10
+        }
+      },
+      "required": ["query_text"]
+    }
+  },
+  {
+    "name": "creel_list_memories",
+    "description": "List all memories in a given scope. Use this to see everything stored in a scope without searching. Optionally include memories that have been invalidated.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "The memory scope to list memories from."
+        },
+        "include_invalidated": {
+          "type": "boolean",
+          "description": "If true, also return memories that have been marked as invalidated. Defaults to false."
+        }
+      },
+      "required": ["scope"]
+    }
+  },
+  {
+    "name": "creel_delete_memory",
+    "description": "Permanently delete a stored memory by its ID. Use this to remove outdated or incorrect memories.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The ID of the memory to delete."
+        }
+      },
+      "required": ["id"]
+    }
+  },
+  {
+    "name": "creel_upload_document",
+    "description": "Upload text content as a new document in a topic. The content will be chunked, embedded, and indexed for future search. Use this to store new information that should be retrievable later.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "topic_id": {
+          "type": "string",
+          "description": "The ID of the topic to upload the document into."
+        },
+        "name": {
+          "type": "string",
+          "description": "A human-readable name for the document."
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content to upload. This will be chunked and embedded for semantic search."
+        },
+        "slug": {
+          "type": "string",
+          "description": "Optional URL-friendly identifier. If omitted, one will be generated from the name."
+        },
+        "content_type": {
+          "type": "string",
+          "description": "MIME type of the content. Defaults to text/plain. Use text/markdown for Markdown content."
+        }
+      },
+      "required": ["topic_id", "name", "content"]
+    }
+  },
+  {
+    "name": "creel_list_topics",
+    "description": "List all topics you have access to. Topics are collections of documents organized by subject area. Use this to discover what knowledge bases are available before searching.",
+    "input_schema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "creel_get_document",
+    "description": "Retrieve metadata for a specific document by its ID. Returns the document name, type, topic, status, and other metadata. Does not return the document content; use creel_get_context for that.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The ID of the document to retrieve."
+        }
+      },
+      "required": ["id"]
+    }
+  },
+  {
+    "name": "creel_list_documents",
+    "description": "List all documents within a topic. Use this to see what documents are available in a topic before searching or retrieving context.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "topic_id": {
+          "type": "string",
+          "description": "The ID of the topic to list documents from."
+        }
+      },
+      "required": ["topic_id"]
+    }
+  }
+]

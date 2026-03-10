@@ -6,6 +6,7 @@ build:
 	go build -o bin/creel ./cmd/creel
 	go build -o bin/creel-cli ./cmd/creel-cli
 	go build -o bin/creel-chat ./cmd/creel-chat
+	go build -o bin/creel-mcp ./cmd/creel-mcp
 
 test:
 	go test -race -count=1 ./...

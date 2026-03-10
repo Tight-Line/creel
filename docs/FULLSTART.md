@@ -503,6 +503,8 @@ rm -f /tmp/hatch-chart.txt /tmp/rangeley-report.html /tmp/ski-report.txt
 | Admin dashboard | 12 |
 | Interactive chat with RAG + memory | 13 |
 | Cross-topic search | 6, 13 |
+| MCP server for AI agent tool use | - |
+| Python and TypeScript SDKs | - |
 
 ## Next steps
 
