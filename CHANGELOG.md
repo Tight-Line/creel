@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.0] - 2026-03-10
-
 ### Added
 
 - VectorBackendConfig CRUD: managed configuration for vector storage backends (pgvector, Qdrant, Weaviate) with is_default support. Six new ConfigService RPCs and CLI commands under `config vector-backend`.
