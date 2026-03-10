@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-09
+
 ### Added
 
 - LinkService implementation with CreateLink, DeleteLink, and ListLinks RPCs. Links connect chunks across documents and topics, supporting manual, auto, and compaction transfer types.
