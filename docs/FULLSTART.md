@@ -287,7 +287,28 @@ curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   "http://localhost:8080/v1/documents/$DOC_DIRECT/chunks" | jq '.chunks[] | {id, sequence, content: .content[:60]}'
 ```
 
-## 9. Per-principal memory
+## 9. Chunk linking
+
+Chunks can be linked to other chunks, even across documents and topics. Links support knowledge graph traversal.
+
+```bash
+# Get two chunk IDs from the hatch chart document
+CHUNKS=$(curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
+  "http://localhost:8080/v1/documents/$DOC_DIRECT/chunks" | jq -r '.chunks[:2][].id')
+CHUNK_A=$(echo "$CHUNKS" | head -1)
+CHUNK_B=$(echo "$CHUNKS" | tail -1)
+
+# Create a manual link between them
+bin/creel-cli link create --source "$CHUNK_A" --target "$CHUNK_B" --type manual
+
+# List links for a chunk
+bin/creel-cli link list --chunk "$CHUNK_A"
+
+# Include backlinks (where the chunk is the target)
+bin/creel-cli link list --chunk "$CHUNK_B" --backlinks
+```
+
+## 10. Per-principal memory
 
 Memory is scoped to your principal (the `dev` account in this case) and organized by named scopes.
 
@@ -328,7 +349,7 @@ bin/creel-cli memory delete "$WULFF_ID"
 bin/creel-cli memory list --scope fishing --all
 ```
 
-## 10. Dashboard
+## 11. Dashboard
 
 The admin dashboard runs on port 3000. Open [http://localhost:3000](http://localhost:3000) and log in:
 
@@ -342,7 +363,7 @@ From the dashboard you can:
 - View system accounts and API keys
 - Manage server configuration (LLM, embedding, prompt configs)
 
-## 11. Interactive chat with creel-chat
+## 12. Interactive chat with creel-chat
 
 creel-chat is a terminal REPL that uses Creel for RAG and memory, with streaming LLM responses. It calls OpenAI directly for both embeddings and chat completion, so you need `OPENAI_API_KEY` in your shell environment (separate from the server-side config you set in step 2).
 
@@ -451,10 +472,11 @@ rm -f /tmp/hatch-chart.txt /tmp/rangeley-report.html /tmp/ski-report.txt
 | Search with citations (`query_text`) | 6 |
 | Temporal context retrieval | 7 |
 | Direct chunk ingestion | 8 |
-| Per-principal memory (CRUD, scopes, soft-delete) | 9 |
-| Admin dashboard | 10 |
-| Interactive chat with RAG + memory | 11 |
-| Cross-topic search | 6, 11 |
+| Chunk linking (manual, backlinks) | 9 |
+| Per-principal memory (CRUD, scopes, soft-delete) | 10 |
+| Admin dashboard | 11 |
+| Interactive chat with RAG + memory | 12 |
+| Cross-topic search | 6, 12 |
 
 ## Next steps
 

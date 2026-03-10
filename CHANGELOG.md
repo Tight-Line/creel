@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- LinkService implementation with CreateLink, DeleteLink, and ListLinks RPCs. Links connect chunks across documents and topics, supporting manual, auto, and compaction transfer types.
+- LinkStore for link persistence with batch retrieval (`ListByChunks`), transfer (`TransferLinks` for compaction), and cleanup (`DeleteByChunk`) operations.
+- CLI `link` command group with `create`, `delete`, and `list` subcommands.
+- `ListLinks` supports `include_backlinks` to show both forward and reverse links for a chunk.
+
 ## [0.3.0] - 2026-03-09
 
 ### Added

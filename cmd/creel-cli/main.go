@@ -44,6 +44,7 @@ func main() {
 	root.AddCommand(jobsCmd())
 	root.AddCommand(uploadCmd())
 	root.AddCommand(memoryCmd())
+	root.AddCommand(linkCmd())
 
 	if err := root.Execute(); err != nil {
 		os.Exit(1)

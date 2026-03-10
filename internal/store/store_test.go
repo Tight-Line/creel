@@ -2498,3 +2498,138 @@ func TestMemoryStore_GetByEmbeddingIDs_ScanError(t *testing.T) {
 	_, err := s.GetByEmbeddingIDs(ctx(), []string{"emb1"})
 	expectErr(t, err, "scanning memory")
 }
+
+// ---------------------------------------------------------------------------
+// LinkStore unit tests
+// ---------------------------------------------------------------------------
+
+func TestLinkStore_Create_MarshalError(t *testing.T) {
+	db := &mockDBTX{}
+	s := NewLinkStore(db)
+	_, err := s.Create(ctx(), "s", "t", "manual", "user", map[string]any{"bad": math.Inf(1)})
+	expectErr(t, err, "marshaling metadata")
+}
+
+func TestLinkStore_Create_QueryError(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewLinkStore(db)
+	_, err := s.Create(ctx(), "s", "t", "manual", "user", nil)
+	expectErr(t, err, "inserting link")
+}
+
+func TestLinkStore_Get_NotFound(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: pgx.ErrNoRows}
+	}}
+	s := NewLinkStore(db)
+	_, err := s.Get(ctx(), "bad-id")
+	expectErr(t, err, "link not found")
+}
+
+func TestLinkStore_Get_OtherError(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errMock}
+	}}
+	s := NewLinkStore(db)
+	_, err := s.Get(ctx(), "id")
+	expectErr(t, err, "querying link")
+}
+
+func TestLinkStore_Delete_ExecError(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.CommandTag{}, errMock
+	}}
+	s := NewLinkStore(db)
+	err := s.Delete(ctx(), "id")
+	expectErr(t, err, "deleting link")
+}
+
+func TestLinkStore_Delete_NotFound(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.NewCommandTag("DELETE 0"), nil
+	}}
+	s := NewLinkStore(db)
+	err := s.Delete(ctx(), "id")
+	expectErr(t, err, "link not found")
+}
+
+func TestLinkStore_ListByChunk_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewLinkStore(db)
+	_, err := s.ListByChunk(ctx(), "c1", false)
+	expectErr(t, err, "querying links")
+}
+
+func TestLinkStore_ListByChunk_WithBacklinks_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewLinkStore(db)
+	_, err := s.ListByChunk(ctx(), "c1", true)
+	expectErr(t, err, "querying links")
+}
+
+func TestLinkStore_ListByChunk_ScanError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{nextOnce: true, scanErr: errMock}, nil
+	}}
+	s := NewLinkStore(db)
+	_, err := s.ListByChunk(ctx(), "c1", false)
+	expectErr(t, err, "scanning link")
+}
+
+func TestLinkStore_ListByChunks_Empty(t *testing.T) {
+	s := NewLinkStore(&mockDBTX{})
+	links, err := s.ListByChunks(ctx(), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if links != nil {
+		t.Errorf("expected nil, got %v", links)
+	}
+}
+
+func TestLinkStore_ListByChunks_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewLinkStore(db)
+	_, err := s.ListByChunks(ctx(), []string{"c1", "c2"})
+	expectErr(t, err, "querying links by chunks")
+}
+
+func TestLinkStore_TransferLinks_SourceError(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.CommandTag{}, errMock
+	}}
+	s := NewLinkStore(db)
+	_, err := s.TransferLinks(ctx(), "old", "new")
+	expectErr(t, err, "transferring source links")
+}
+
+func TestLinkStore_TransferLinks_TargetError(t *testing.T) {
+	callCount := 0
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		callCount++
+		if callCount == 1 {
+			return pgconn.NewCommandTag("UPDATE 1"), nil
+		}
+		return pgconn.CommandTag{}, errMock
+	}}
+	s := NewLinkStore(db)
+	_, err := s.TransferLinks(ctx(), "old", "new")
+	expectErr(t, err, "transferring target links")
+}
+
+func TestLinkStore_DeleteByChunk_Error(t *testing.T) {
+	db := &mockDBTX{execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+		return pgconn.CommandTag{}, errMock
+	}}
+	s := NewLinkStore(db)
+	err := s.DeleteByChunk(ctx(), "c1")
+	expectErr(t, err, "deleting links by chunk")
+}
