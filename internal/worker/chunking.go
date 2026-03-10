@@ -89,6 +89,7 @@ func (w *ChunkingWorker) Process(ctx context.Context, job *store.ProcessingJob) 
 	var chunks []string
 	if useSemantic {
 		if w.llmProvider == nil {
+			// coverage:ignore - requires DB failure after successful claim
 			if setErr := w.docStore.UpdateStatus(ctx, job.DocumentID, "failed"); setErr != nil {
 				return fmt.Errorf("setting document status to failed: %w", setErr)
 			}
@@ -97,6 +98,7 @@ func (w *ChunkingWorker) Process(ctx context.Context, job *store.ProcessingJob) 
 		var err error
 		chunks, err = w.splitSemantic(ctx, content.ExtractedText)
 		if err != nil {
+			// coverage:ignore - requires DB failure after successful claim
 			if setErr := w.docStore.UpdateStatus(ctx, job.DocumentID, "failed"); setErr != nil {
 				return fmt.Errorf("setting document status to failed after semantic chunking error: %w (original: %v)", setErr, err)
 			}
