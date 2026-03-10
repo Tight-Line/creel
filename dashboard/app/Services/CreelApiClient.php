@@ -186,6 +186,26 @@ class CreelApiClient
         return $this->request('PATCH', "/v1/documents/{$id}", $data);
     }
 
+    // Chunks
+
+    public function getDocumentContext(string $documentId, bool $includeSummaries = false): array
+    {
+        $params = $includeSummaries ? '?include_summaries=true' : '';
+        return $this->request('GET', "/v1/documents/{$documentId}/context{$params}")['chunks'] ?? [];
+    }
+
+    public function getChunk(string $id): array
+    {
+        return $this->request('GET', "/v1/chunks/{$id}");
+    }
+
+    // Compaction
+
+    public function getCompactionHistory(string $documentId): array
+    {
+        return $this->request('GET', "/v1/documents/{$documentId}/compaction-history")['records'] ?? [];
+    }
+
     // System Accounts
 
     public function listSystemAccounts(): array
