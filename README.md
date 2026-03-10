@@ -8,6 +8,8 @@
 
 Self-hosted memory-as-a-service for AI agents.
 
+**v0.5.x**: CompactionService (sync/async compaction, undo, history), chunk linking (LinkService), managed document pipeline, semantic chunking, per-principal memory, dashboard, creel-chat.
+
 Creel provides topic-scoped memory with principal-based RBAC, server-side document processing, per-principal memory (Mem0-style), and dual-mode retrieval (semantic search with citations + temporal context). Upload documents and Creel handles extraction, chunking, and embedding automatically. It runs in your infrastructure via Helm chart.
 
 ## Quick start
