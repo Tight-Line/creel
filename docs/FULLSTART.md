@@ -315,7 +315,7 @@ Chunks can be linked to other chunks, even across documents and topics. Links su
 ```bash
 # Get two chunk IDs from the hatch chart document
 CHUNKS=$(curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  "http://localhost:8080/v1/documents/$DOC_DIRECT/chunks" | jq -r '.chunks[:2][].id')
+  "http://localhost:8080/v1/documents/$DOC_DIRECT/context" | jq -r '.chunks[:2][].id')
 CHUNK_A=$(echo "$CHUNKS" | head -1)
 CHUNK_B=$(echo "$CHUNKS" | tail -1)
 
