@@ -46,15 +46,17 @@
                                 {{ \Carbon\Carbon::parse($doc['published_at'])->format('Y-m-d') }}
                             @endif
                         </td>
-                        <td class="px-6 py-4 text-right space-x-3">
-                            <a href="{{ route('chunks.index', $doc['id']) }}"
-                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                Chunks
-                            </a>
-                            <a href="{{ route('documents.edit', $doc['id']) }}"
-                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                Edit
-                            </a>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{{ route('chunks.index', $doc['id']) }}"
+                                   class="text-slate-400 hover:text-slate-700 transition-colors" title="Chunks">
+                                    <x-heroicon-o-square-3-stack-3d class="w-5 h-5" />
+                                </a>
+                                <a href="{{ route('documents.edit', $doc['id']) }}"
+                                   class="text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+                                    <x-heroicon-o-pencil-square class="w-5 h-5" />
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 @empty

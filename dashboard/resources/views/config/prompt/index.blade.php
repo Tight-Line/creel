@@ -42,18 +42,18 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <div class="inline-flex items-center gap-3">
+                            <div class="inline-flex items-center gap-2">
                                 <a href="{{ route('config.prompt.edit', $config['id']) }}"
-                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                    Edit
+                                   class="text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+                                    <x-heroicon-o-pencil-square class="w-5 h-5" />
                                 </a>
 
                                 @if (empty($config['is_default']))
                                     <form method="POST" action="{{ route('config.prompt.default', $config['id']) }}">
                                         @csrf
                                         <button type="submit"
-                                                class="text-slate-600 hover:text-slate-800 text-sm font-medium">
-                                            Set Default
+                                                class="text-slate-400 hover:text-green-600 transition-colors" title="Set Default">
+                                            <x-heroicon-o-star class="w-5 h-5" />
                                         </button>
                                     </form>
                                 @endif
@@ -65,8 +65,8 @@
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit"
-                                            class="text-red-600 hover:text-red-800 text-sm font-medium">
-                                        Delete
+                                            class="text-slate-400 hover:text-red-600 transition-colors" title="Delete">
+                                        <x-heroicon-o-trash class="w-5 h-5" />
                                     </button>
                                 </form>
                             </div>

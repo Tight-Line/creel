@@ -21,8 +21,8 @@
                         <td class="px-6 py-4 font-mono text-sm text-slate-800">{{ $scope }}</td>
                         <td class="px-6 py-4 text-right">
                             <a href="{{ route('memories.scope', $scope) }}"
-                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                Browse
+                               class="text-slate-400 hover:text-slate-700 transition-colors" title="Browse">
+                                <x-heroicon-o-eye class="w-5 h-5 inline" />
                             </a>
                         </td>
                     </tr>

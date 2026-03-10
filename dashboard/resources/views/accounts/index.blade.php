@@ -53,16 +53,16 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <div class="inline-flex items-center gap-3">
+                            <div class="inline-flex items-center gap-2">
                                 {{-- Rotate --}}
                                 <form method="POST" action="{{ route('accounts.rotate', $account['id']) }}"
-                                      class="inline-flex items-center gap-2">
+                                      class="inline-flex items-center gap-1">
                                     @csrf
-                                    <input type="number" name="grace_period_seconds" placeholder="Grace period (seconds)"
-                                           class="w-40 rounded border-slate-300 shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500">
+                                    <input type="number" name="grace_period_seconds" placeholder="Grace (sec)"
+                                           class="w-24 rounded border-slate-300 shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500">
                                     <button type="submit"
-                                            class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                        Rotate
+                                            class="text-slate-400 hover:text-blue-600 transition-colors" title="Rotate Key">
+                                        <x-heroicon-o-arrow-path class="w-5 h-5" />
                                     </button>
                                 </form>
 
@@ -73,8 +73,8 @@
                                       x-on:submit.prevent="if (confirm('Are you sure you want to revoke this API key?')) $el.submit()">
                                     @csrf
                                     <button type="submit"
-                                            class="text-amber-600 hover:text-amber-800 text-sm font-medium">
-                                        Revoke
+                                            class="text-slate-400 hover:text-amber-600 transition-colors" title="Revoke Key">
+                                        <x-heroicon-o-no-symbol class="w-5 h-5" />
                                     </button>
                                 </form>
 
@@ -86,8 +86,8 @@
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit"
-                                            class="text-red-600 hover:text-red-800 text-sm font-medium">
-                                        Delete
+                                            class="text-slate-400 hover:text-red-600 transition-colors" title="Delete">
+                                        <x-heroicon-o-trash class="w-5 h-5" />
                                     </button>
                                 </form>
                             </div>
