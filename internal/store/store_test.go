@@ -843,6 +843,26 @@ func TestGrantStore_TopicIDsByOwner_Error(t *testing.T) {
 	expectErr(t, err, "querying owned topics")
 }
 
+func TestGrantStore_TopicIDsByOwner_ScanError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{nextOnce: true, scanErr: errMock}, nil
+	}}
+	s := NewGrantStore(db)
+	_, err := s.TopicIDsByOwner(ctx(), "user:alice")
+	expectErr(t, err, "scanning owned topic")
+}
+
+func TestGrantStore_TopicIDsByOwner_IterError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{iterErr: errMock}, nil
+	}}
+	s := NewGrantStore(db)
+	_, err := s.TopicIDsByOwner(ctx(), "user:alice")
+	if err == nil {
+		t.Fatal("expected error from rows.Err()")
+	}
+}
+
 // ---------------------------------------------------------------------------
 // SystemAccountStore tests
 // ---------------------------------------------------------------------------

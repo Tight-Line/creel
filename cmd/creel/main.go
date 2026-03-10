@@ -129,9 +129,9 @@ func run() error {
 	workerPool.Register(chunkingWorker)
 
 	embeddingProvider := &dynamicEmbeddingProvider{
-		embCfgStore:   embeddingConfigStore,
+		embCfgStore:    embeddingConfigStore,
 		apiKeyCfgStore: apiKeyConfigStore,
-		fallbackDim:   vectorBackend.EmbeddingDimension(),
+		fallbackDim:    vectorBackend.EmbeddingDimension(),
 	}
 	embeddingWorker := worker.NewEmbeddingWorker(docStore, chunkStore, topicStore, jobStore, vectorBackend, embeddingProvider)
 	workerPool.Register(embeddingWorker)

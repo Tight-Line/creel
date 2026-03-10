@@ -113,6 +113,27 @@ func TestOpenAIEmbeddingProvider_OutOfRangeIndex(t *testing.T) {
 	}
 }
 
+func TestOpenAIEmbeddingProvider_ConnectionError(t *testing.T) {
+	p := NewOpenAIEmbeddingProvider("key", "model", 3)
+	p.baseURL = "http://127.0.0.1:0" // nothing listening
+	_, err := p.Embed(context.Background(), []string{"hello"})
+	if err == nil {
+		t.Fatal("expected error for connection failure")
+	}
+}
+
+func TestOpenAIEmbeddingProvider_InvalidJSON(t *testing.T) {
+	p := newTestProvider(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`not valid json`))
+	})
+
+	_, err := p.Embed(context.Background(), []string{"hello"})
+	if err == nil {
+		t.Fatal("expected error for invalid JSON response")
+	}
+}
+
 func TestOpenAIEmbeddingProvider_Interface(t *testing.T) {
 	var _ EmbeddingProvider = &OpenAIEmbeddingProvider{}
 }
