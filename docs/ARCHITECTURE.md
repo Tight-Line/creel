@@ -1291,10 +1291,14 @@ creel/
 - [x] Chunking worker: fixed-size with overlap
 - [ ] Chunking worker: semantic boundaries via LLM (optional)
 - [x] Embedding worker (compute via topic's embedding config)
+- [x] OpenAI embedding provider (server-side, dynamically resolved from DB config)
+- [x] Content type auto-detection (falls back to `http.DetectContentType` when not provided)
 - [x] Document status lifecycle (pending -> processing -> ready | failed)
 - [x] `JobService` RPCs (GetJob, ListJobs)
 - [x] CLI: `creel-cli upload`
 - [x] CLI: `creel-cli jobs list` / `creel-cli jobs status`
+- [x] CLI: `creel-cli document list` / `get` / `delete`
+- [x] CLI: slug-to-UUID resolution for topics and documents
 - [x] Dashboard: document processing status view
 - [x] Dashboard: job monitoring view
 - [x] Worker configuration (concurrency, poll interval) in creel.yaml
@@ -1322,6 +1326,7 @@ creel/
 - [x] Memory integration (fetch memory at session start, include in system prompt)
 - [x] Cross-topic RAG retrieval
 - [x] Explicit memory commands (`/remember`, `/forget`)
+- [x] Removed self-grant workaround (no longer needed with `AccessibleTopics` ownership fix)
 
 ### Phase 6: Integration Layers
 
