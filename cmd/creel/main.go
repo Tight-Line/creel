@@ -128,9 +128,10 @@ func run() error {
 	chunkingWorker := worker.NewChunkingWorker(docStore, chunkStore, jobStore, topicStore)
 	workerPool.Register(chunkingWorker)
 
-	embeddingProvider, err := initEmbeddingProvider(ctx, embeddingConfigStore, apiKeyConfigStore, vectorBackend.EmbeddingDimension())
-	if err != nil {
-		return fmt.Errorf("initializing embedding provider: %w", err)
+	embeddingProvider := &dynamicEmbeddingProvider{
+		embCfgStore:   embeddingConfigStore,
+		apiKeyCfgStore: apiKeyConfigStore,
+		fallbackDim:   vectorBackend.EmbeddingDimension(),
 	}
 	embeddingWorker := worker.NewEmbeddingWorker(docStore, chunkStore, topicStore, jobStore, vectorBackend, embeddingProvider)
 	workerPool.Register(embeddingWorker)
@@ -229,30 +230,51 @@ func runRESTGateway(ctx context.Context, grpcPort, restPort int) error {
 	return nil
 }
 
-// initEmbeddingProvider loads the default embedding config from the database
-// and returns a real provider. Falls back to the stub if no config is set.
-func initEmbeddingProvider(ctx context.Context, embCfgStore *store.EmbeddingConfigStore, apiKeyCfgStore *store.APIKeyConfigStore, fallbackDim int) (worker.EmbeddingProvider, error) {
-	embCfg, err := embCfgStore.GetDefault(ctx)
+// dynamicEmbeddingProvider resolves the default embedding config from the
+// database on each call, so config changes take effect without a restart.
+type dynamicEmbeddingProvider struct {
+	embCfgStore    *store.EmbeddingConfigStore
+	apiKeyCfgStore *store.APIKeyConfigStore
+	fallbackDim    int
+}
+
+func (d *dynamicEmbeddingProvider) resolve(ctx context.Context) (worker.EmbeddingProvider, error) {
+	embCfg, err := d.embCfgStore.GetDefault(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("loading default embedding config: %w", err)
 	}
 	if embCfg == nil {
-		fmt.Println("creel: no default embedding config; using stub embedding provider")
-		return worker.NewStubEmbeddingProvider(fallbackDim), nil
+		return worker.NewStubEmbeddingProvider(d.fallbackDim), nil
 	}
 
-	apiKey, err := apiKeyCfgStore.GetDecrypted(ctx, embCfg.APIKeyConfigID)
+	apiKey, err := d.apiKeyCfgStore.GetDecrypted(ctx, embCfg.APIKeyConfigID)
 	if err != nil {
 		return nil, fmt.Errorf("decrypting API key for embedding config %q: %w", embCfg.Name, err)
 	}
 
 	switch embCfg.Provider {
 	case "openai":
-		fmt.Printf("creel: using OpenAI embedding provider (model: %s, dimensions: %d)\n", embCfg.Model, embCfg.Dimensions)
 		return worker.NewOpenAIEmbeddingProvider(string(apiKey), embCfg.Model, embCfg.Dimensions), nil
 	default:
 		return nil, fmt.Errorf("unsupported embedding provider: %s", embCfg.Provider)
 	}
+}
+
+func (d *dynamicEmbeddingProvider) Embed(ctx context.Context, texts []string) ([][]float64, error) {
+	provider, err := d.resolve(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return provider.Embed(ctx, texts)
+}
+
+func (d *dynamicEmbeddingProvider) Dimensions() int {
+	ctx := context.Background()
+	provider, err := d.resolve(ctx)
+	if err != nil {
+		return d.fallbackDim
+	}
+	return provider.Dimensions()
 }
 
 // singleTextEmbedder adapts a batch worker.EmbeddingProvider to the
