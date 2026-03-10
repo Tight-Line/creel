@@ -46,7 +46,7 @@ See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.
 - **Dual-mode retrieval**: RAG (semantic search) and context (temporal ordering)
 - **Server-driven compaction** with link preservation
 - **Pluggable vector backends**: pgvector (reference) with per-topic backend configs and a lazy-initialized backend registry
-- **63 gRPC/REST RPCs** across 10 services
+- **69 gRPC/REST RPCs** across 10 services
 - **Two ingestion paths**: managed (upload and forget) and direct (pre-chunked, pre-embedded) for power users
 - **Admin dashboard**: Laravel-based web UI for config, topic, system account, and memory management
 - **creel-chat**: interactive demo agent with streaming, memory, cross-topic RAG, and citation display

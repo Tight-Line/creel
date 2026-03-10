@@ -66,6 +66,27 @@ bin/creel-cli config llm list
 
 All document processing and search from this point forward uses real OpenAI embeddings.
 
+### Vector backend configs (optional)
+
+By default, all topics use the built-in pgvector backend. If you want to route specific topics to a different vector store (e.g. Qdrant, Weaviate), create a vector backend config and assign it when creating a topic.
+
+```bash
+# Create a vector backend config pointing to a Qdrant instance
+bin/creel-cli config vector-backend create \
+  --name "qdrant-local" \
+  --backend qdrant \
+  --param url=http://localhost:6333 \
+  --default
+
+# List configured backends
+bin/creel-cli config vector-backend list
+
+# Create a topic that uses this backend (--vector-backend-config flag)
+# If omitted, the topic uses the global default.
+```
+
+Vector backend configs support `pgvector`, `qdrant`, and `weaviate` backend types. Each stores its connection parameters as a key-value map. Use `set-default` to change which backend new topics use when none is specified.
+
 ## 3. Create topics
 
 We will create two topics to demonstrate cross-topic search later.
@@ -491,7 +512,7 @@ rm -f /tmp/hatch-chart.txt /tmp/rangeley-report.html /tmp/ski-report.txt
 
 | Feature | Steps |
 |---------|-------|
-| Provider configuration (API keys, embedding, LLM) | 2 |
+| Provider configuration (API keys, embedding, LLM, vector backend) | 2 |
 | Managed document upload | 4, 5 |
 | Processing pipeline (extraction, chunking, embedding) | 4, 5 |
 | Search with citations (`query_text`) | 6 |
@@ -509,6 +530,6 @@ rm -f /tmp/hatch-chart.txt /tmp/rangeley-report.html /tmp/ski-report.txt
 ## Next steps
 
 - [Concepts](CONCEPTS.md): deep dive on the data model, auth, and retrieval modes
-- [API Reference](API_REFERENCE.md): all 63 RPCs
+- [API Reference](API_REFERENCE.md): all 69 RPCs
 - [Deployment](DEPLOYMENT.md): production Helm chart
 - [Architecture](ARCHITECTURE.md): design document and roadmap

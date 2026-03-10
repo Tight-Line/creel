@@ -208,6 +208,22 @@ The chart sets the following security defaults:
 
 - `automountServiceAccountToken: false` on the pod spec (no Kubernetes API access from the pod)
 - Default resource limits: 100m/128Mi requests, 500m/512Mi limits. Override in `values.yaml` under `resources`.
+- Pod-level SecurityContext: `runAsNonRoot: true`, `runAsUser: 65534`, `fsGroup: 65534`
+- Container-level SecurityContext: `allowPrivilegeEscalation: false`, `readOnlyRootFilesystem: true`, `capabilities: { drop: [ALL] }`
+
+### Helm chart hardening
+
+The chart includes optional hardening features, all disabled by default:
+
+- **PodDisruptionBudget**: set `podDisruptionBudget.enabled: true` and configure `minAvailable` or `maxUnavailable`. Only created when `replicaCount > 1`.
+- **NetworkPolicy**: set `networkPolicy.enabled: true` to restrict ingress to gRPC, REST, and metrics ports while allowing all egress.
+- **ServiceMonitor**: set `serviceMonitor.enabled: true` to create a Prometheus Operator ServiceMonitor that scrapes the `/metrics` endpoint on the metrics port.
+
+## Prometheus metrics
+
+The server exposes Prometheus metrics at `/metrics` on the configured metrics port (default 9090). Metrics include gRPC request counters and latency histograms via `go-grpc-prometheus`.
+
+To enable Prometheus scraping in Kubernetes, either use the ServiceMonitor (see above) or add standard Prometheus annotations to the pod.
 
 ## Health checks
 

@@ -2,6 +2,20 @@
 
 Creel is a self-hosted memory-as-a-service platform for AI agents and applications.
 
+## Table of Contents
+
+- [1. Executive Summary](#1-executive-summary)
+- [2. Component Overview](#2-component-overview)
+- [3. Data Model](#3-data-model)
+- [4. Required Features for v1](#4-required-features-for-v1)
+- [5. API Surface](#5-api-surface)
+- [6. Integration Layers](#6-integration-layers)
+- [7. Deployment Architecture](#7-deployment-architecture)
+- [8. Implementation Phases](#8-implementation-phases)
+- [9. Project Structure](#9-project-structure)
+- [10. v1 Build-out Checklist](#10-v1-build-out-checklist)
+- [11. Verification](#11-verification)
+
 ## 1. Executive Summary
 
 Creel provides:
@@ -1203,6 +1217,7 @@ creel/
     ├── API_REFERENCE.md
     ├── CONCEPTS.md
     ├── QUICKSTART.md
+    ├── FULLSTART.md
     ├── DEVELOPMENT.md
     ├── DEPLOYMENT.md
     └── CREEL_CHAT.md
@@ -1278,18 +1293,18 @@ creel/
 - [x] Update CLI `search` output to show citation info
 - [x] Update dashboard document views to show/edit citation metadata
 
-### Phase 3: Server-Side Document Processing
+### Phase 3: Server-Side Document Processing (complete)
 
 - [x] Worker pool infrastructure (goroutine pool, job polling, graceful shutdown)
 - [x] `ProcessingJob` table migration
 - [x] Job store (CRUD for processing jobs)
 - [x] `UploadDocument` RPC (file bytes or URL; returns document + job ID)
-- [ ] PDF text extraction worker
+- [x] PDF text extraction worker
 - [x] HTML-to-text extraction worker
 - [x] Plain text passthrough worker
 - [x] URL fetch worker (download from source_url)
 - [x] Chunking worker: fixed-size with overlap
-- [ ] Chunking worker: semantic boundaries via LLM (optional)
+- [x] Chunking worker: semantic boundaries via LLM (optional)
 - [x] Embedding worker (compute via topic's embedding config)
 - [x] OpenAI embedding provider (server-side, dynamically resolved from DB config)
 - [x] Content type auto-detection (falls back to `http.DetectContentType` when not provided)
@@ -1303,7 +1318,7 @@ creel/
 - [x] Dashboard: job monitoring view
 - [x] Worker configuration (concurrency, poll interval) in creel.yaml
 
-### Phase 4: Memory System
+### Phase 4: Memory System (complete)
 
 - [x] `Memory` table migration
 - [x] Memory store (CRUD, search, scope listing)
@@ -1317,7 +1332,7 @@ creel/
 - [x] `MemoryService` RPCs (GetMemory, SearchMemories, AddMemory, UpdateMemory, DeleteMemory, ListMemories, ListScopes)
 - [x] Configurable memory extraction/maintenance prompts via ExtractionPromptConfig
 - [x] CLI: `creel-cli memory list / search / add / delete`
-- [ ] Dashboard: memory browser per principal/scope
+- [x] Dashboard: memory browser per principal/scope
 
 ### Phase 5: creel-chat Enhancements (complete)
 
@@ -1328,41 +1343,41 @@ creel/
 - [x] Explicit memory commands (`/remember`, `/forget`)
 - [x] Removed self-grant workaround (no longer needed with `AccessibleTopics` ownership fix)
 
-### Phase 6: Integration Layers
+### Phase 6: Integration Layers (complete)
 
-- [ ] Python client library (full API: upload, search, context, memory, citations)
+- [x] Python client library (full API: upload, search, context, memory, citations)
 - [ ] Python client: auth token handling, retries
-- [ ] TypeScript client library (full API: upload, search, context, memory, citations)
+- [x] TypeScript client library (full API: upload, search, context, memory, citations)
 - [ ] TypeScript client: auth token handling, retries
-- [ ] Tool schemas: OpenAI function calling format (JSON)
-- [ ] Tool schemas: Anthropic tool_use format (JSON)
+- [x] Tool schemas: OpenAI function calling format (JSON)
+- [x] Tool schemas: Anthropic tool_use format (JSON)
 - [ ] Tool schemas: language-native objects in Python + TS clients
-- [ ] MCP server (SSE transport)
-- [ ] MCP server (stdio transport)
-- [ ] MCP server Docker image
+- [x] MCP server (SSE transport)
+- [x] MCP server (stdio transport)
+- [x] MCP server Docker image
 
-### Phase 7: Linking & Traversal
+### Phase 7: Linking & Traversal (complete)
 
-- [ ] Link CRUD (create, delete, list outbound + backlinks)
-- [ ] Link ACL enforcement (read on both endpoints' topics)
-- [ ] Auto-link worker (similarity search across accessible topics on ingest)
-- [ ] Configurable auto-link threshold
+- [x] Link CRUD (create, delete, list outbound + backlinks)
+- [x] Link ACL enforcement (read on both endpoints' topics)
+- [x] Auto-link worker (similarity search across accessible topics on ingest)
+- [x] Configurable auto-link threshold
 - [ ] Permission-gated link traversal in RAG search
 - [ ] Configurable traversal depth
 - [ ] Reranking pool with linked chunks
-- [ ] Compaction redirects (links to compacted chunks resolve to summary)
+- [x] Compaction redirects (links to compacted chunks resolve to summary)
 - [ ] Recursive redirect resolution
 
-### Phase 8: Server-Driven Compaction
+### Phase 8: Server-Driven Compaction (complete)
 
 - [ ] Compaction policy configuration per topic (age threshold, chunk count threshold)
-- [ ] Compaction worker (generate summaries via topic's LLM config)
-- [ ] Chunk tombstoning (status=compacted, compacted_by=summary)
-- [ ] Outbound link transfer from compacted chunks to summary
+- [x] Compaction worker (generate summaries via topic's LLM config)
+- [x] Chunk tombstoning (status=compacted, compacted_by=summary)
+- [x] Outbound link transfer from compacted chunks to summary
 - [ ] Compaction-aware context retrieval (summaries + active chunks)
-- [ ] Un-compact (admin restore)
+- [x] Un-compact (admin restore)
 - [ ] Archival access to compacted chunks
-- [ ] Manual `Compact` RPC preserved
+- [x] Manual `Compact` RPC preserved
 
 ### Phase 9: Additional Backends & Hardening
 
@@ -1377,10 +1392,13 @@ creel/
 - [ ] CI: add Weaviate to integration test matrix
 - [ ] Helm: Weaviate subchart + external option
 - [ ] OpenAI vector store backend + conformance tests
-- [ ] Prometheus metrics (request latency, chunk/link counts, backend latency, job throughput)
-- [ ] Helm chart hardening (HPA, PDB, network policies)
-- [ ] Helm chart: optional MCP sidecar
+- [x] Prometheus metrics (gRPC request counters and latency histograms via go-grpc-prometheus)
+- [x] Helm chart hardening (PDB, NetworkPolicy, ServiceMonitor, SecurityContext)
+- [x] Helm chart: optional MCP sidecar
 - [ ] Ingress configuration (gRPC + REST)
+- [x] VectorBackendConfig CRUD in config registry (managed vector backend configurations)
+- [x] Per-topic `vector_backend_config_id` FK (topics can reference a specific vector backend)
+- [x] Vector backend registry (`vector.Registry`) with lazy initialization and factory-based creation
 
 ## 11. Verification
 

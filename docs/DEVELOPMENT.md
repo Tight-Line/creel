@@ -175,6 +175,19 @@ Never loop over a collection making one database call per iteration. Use batch q
 4. **Write integration tests**: use mock LLM/embedding providers to exercise the worker without real external calls.
 5. **Update the dashboard**: if the worker has user-visible status, add or update the relevant dashboard views.
 
+## Adding a vector backend implementation
+
+Creel supports pluggable vector storage backends. To add a new one (e.g. Qdrant, Weaviate):
+
+1. **Implement `vector.Backend`**: create a new package under `internal/vector/<name>/`. The interface requires `Store`, `Delete`, `Search`, and `Ping` methods.
+2. **Pass conformance tests**: import `internal/vector/vectortest` and call `conformance.Run(t, yourBackend)` in your test file. Every backend must pass the shared conformance suite.
+3. **Register a factory**: in `internal/vector/registry.go`, add a factory function that creates an instance from a `VectorBackendConfig`. The registry lazily initializes backends on first use.
+4. **Add Docker Compose service**: add the backend's Docker image to `docker-compose.yml` for local development.
+5. **Add Helm support**: add a subchart or StatefulSet template (see the Helm chart policy in ARCHITECTURE.md) with an external option for users who manage the backend themselves.
+6. **Write integration tests**: gate them on an environment variable (e.g. `CREEL_QDRANT_URL`) so they skip locally but run in CI.
+
+Users create backend configurations via the `config vector-backend` CLI commands or ConfigService RPCs, then assign them to topics via `vector_backend_config_id`.
+
 ## Project structure
 
 ```
@@ -193,8 +206,13 @@ internal/crypto/    AES-256-GCM encryption for API key configs
 internal/fetch/     HTTP fetcher interface for URL downloads (pluggable for Firecrawl/Browse.ai)
 internal/slug/      URL-safe slug generation with random suffixes
 internal/llm/       LLM provider interface for worker pipelines
+mcp/                MCP server (Model Context Protocol)
 migrations/         SQL migrations (golang-migrate)
 proto/              protobuf definitions
+sdk/python/         Python client library
+sdk/typescript/     TypeScript client library
+tools/anthropic/    Anthropic tool_use schema (JSON)
+tools/openai/       OpenAI function calling schema (JSON)
 deploy/docker/      Dockerfile (production) and Dockerfile.dev (live-reload)
 deploy/helm/creel/  Helm chart
 dashboard/          Laravel admin dashboard
@@ -202,6 +220,6 @@ dashboard/          Laravel admin dashboard
 
 ## Useful references
 
-- [Architecture](ARCHITECTURE.md): full design document and phase roadmap (phases 2-5 are now implemented), covering document processing, memory, and server-side workers
-- [API Reference](API_REFERENCE.md): all 28 RPCs
+- [Architecture](ARCHITECTURE.md): full design document and phase roadmap
+- [API Reference](API_REFERENCE.md): all 69 RPCs with request/response details
 - [Concepts](CONCEPTS.md): data model and design for integrators
