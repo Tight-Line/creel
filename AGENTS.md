@@ -20,6 +20,7 @@ CREEL_POSTGRES_HOST=localhost CREEL_POSTGRES_USER=creel CREEL_POSTGRES_PASSWORD=
 - **Linting**: `golangci-lint run`
 - **Error wrapping**: use `fmt.Errorf("context: %w", err)`, not bare returns.
 - **No em-dashes or en-dashes** as separators in comments or docs; use semicolons or new sentences.
+- **snake_case for all JSON field names.** The REST gateway uses `UseProtoNames: true`, so JSON responses use proto field names (snake_case). Request bodies, query parameters, SDK types, tool schemas, and documentation examples must all use snake_case to match. Proto field names are snake_case by convention; do not use camelCase anywhere in the JSON layer.
 
 ## Database Query Rules
 

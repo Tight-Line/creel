@@ -3,8 +3,8 @@
 // ---------------------------------------------------------------------------
 
 export interface PageParams {
-  pageSize?: number;
-  pageToken?: string;
+  page_size?: number;
+  page_token?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -16,29 +16,29 @@ export interface Topic {
   slug: string;
   name: string;
   description: string;
-  memoryEnabled: boolean;
-  embeddingConfigId?: string;
-  vectorBackendConfigId?: string;
-  createdAt: string;
-  updatedAt: string;
+  memory_enabled: boolean;
+  embedding_config_id?: string;
+  vector_backend_config_id?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateTopicRequest {
   slug: string;
   name: string;
   description?: string;
-  memoryEnabled?: boolean;
+  memory_enabled?: boolean;
 }
 
 export interface UpdateTopicRequest {
   name?: string;
   description?: string;
-  memoryEnabled?: boolean;
+  memory_enabled?: boolean;
 }
 
 export interface ListTopicsResponse {
   topics: Topic[];
-  nextPageToken: string;
+  next_page_token: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,10 +46,10 @@ export interface ListTopicsResponse {
 // ---------------------------------------------------------------------------
 
 export interface Grant {
-  topicId: string;
+  topic_id: string;
   principal: string;
   permission: string;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface GrantAccessRequest {
@@ -67,22 +67,22 @@ export interface ListGrantsResponse {
 
 export interface Document {
   id: string;
-  topicId: string;
+  topic_id: string;
   slug: string;
   name: string;
-  docType: string;
+  doc_type: string;
   metadata: Record<string, string>;
   url: string;
   author: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateDocumentRequest {
-  topicId: string;
+  topic_id: string;
   name: string;
   slug?: string;
-  docType?: string;
+  doc_type?: string;
   metadata?: Record<string, string>;
   url?: string;
   author?: string;
@@ -90,28 +90,28 @@ export interface CreateDocumentRequest {
 
 export interface UpdateDocumentRequest {
   name?: string;
-  docType?: string;
+  doc_type?: string;
   metadata?: Record<string, string>;
 }
 
 export interface ListDocumentsResponse {
   documents: Document[];
-  nextPageToken: string;
+  next_page_token: string;
 }
 
 export interface UploadDocumentRequest {
-  topicId: string;
+  topic_id: string;
   name: string;
   file: Uint8Array;
   slug?: string;
-  sourceUrl?: string;
-  contentType?: string;
+  source_url?: string;
+  content_type?: string;
   metadata?: Record<string, string>;
 }
 
 export interface UploadDocumentResponse {
   document: Document;
-  chunkCount: number;
+  chunk_count: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -120,14 +120,14 @@ export interface UploadDocumentResponse {
 
 export interface Chunk {
   id: string;
-  documentId: string;
+  document_id: string;
   content: string;
   index: number;
   metadata: Record<string, string>;
   embedding: number[];
-  compactedInto?: string;
-  createdAt: string;
-  updatedAt: string;
+  compacted_into?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface IngestChunk {
@@ -138,7 +138,7 @@ export interface IngestChunk {
 }
 
 export interface IngestChunksResponse {
-  chunkIds: string[];
+  chunk_ids: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -146,13 +146,13 @@ export interface IngestChunksResponse {
 // ---------------------------------------------------------------------------
 
 export interface SearchRequest {
-  topicIds: string[];
-  queryText?: string;
-  queryEmbedding?: number[];
-  topK?: number;
-  followLinks?: boolean;
-  linkDepth?: number;
-  metadataFilter?: Record<string, string>;
+  topic_ids: string[];
+  query_text?: string;
+  query_embedding?: number[];
+  top_k?: number;
+  follow_links?: boolean;
+  link_depth?: number;
+  metadata_filter?: Record<string, string>;
 }
 
 export interface SearchResult {
@@ -167,9 +167,9 @@ export interface SearchResponse {
 }
 
 export interface GetContextRequest {
-  lastN?: number;
+  last_n?: number;
   since?: string;
-  includeSummaries?: boolean;
+  include_summaries?: boolean;
 }
 
 export interface GetContextResponse {
@@ -188,9 +188,9 @@ export interface Memory {
   predicate: string;
   object: string;
   metadata: Record<string, string>;
-  invalidatedAt?: string;
-  createdAt: string;
-  updatedAt: string;
+  invalidated_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface GetMemoryResponse {
@@ -199,8 +199,8 @@ export interface GetMemoryResponse {
 
 export interface SearchMemoriesRequest {
   scope?: string;
-  queryText?: string;
-  topK?: number;
+  query_text?: string;
+  top_k?: number;
 }
 
 export interface SearchMemoriesResponse {
@@ -236,17 +236,17 @@ export interface ListScopesResponse {
 
 export interface Link {
   id: string;
-  sourceChunkId: string;
-  targetChunkId: string;
-  linkType: string;
+  source_chunk_id: string;
+  target_chunk_id: string;
+  link_type: string;
   metadata: Record<string, string>;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface CreateLinkRequest {
-  sourceChunkId: string;
-  targetChunkId: string;
-  linkType?: string;
+  source_chunk_id: string;
+  target_chunk_id: string;
+  link_type?: string;
   metadata?: Record<string, string>;
 }
 
@@ -259,34 +259,34 @@ export interface ListLinksResponse {
 // ---------------------------------------------------------------------------
 
 export interface CompactRequest {
-  documentId: string;
-  chunkIds: string[];
-  summaryContent: string;
-  summaryEmbedding?: number[];
-  summaryMetadata?: Record<string, string>;
+  document_id: string;
+  chunk_ids: string[];
+  summary_content: string;
+  summary_embedding?: number[];
+  summary_metadata?: Record<string, string>;
 }
 
 export interface CompactResponse {
-  summaryChunkId: string;
+  summary_chunk_id: string;
 }
 
 export interface UncompactResponse {
-  restoredChunkIds: string[];
+  restored_chunk_ids: string[];
 }
 
 export interface RequestCompactionRequest {
-  documentId: string;
-  chunkIds?: string[];
+  document_id: string;
+  chunk_ids?: string[];
 }
 
 export interface RequestCompactionResponse {
-  jobId: string;
+  job_id: string;
 }
 
 export interface CompactionHistoryEntry {
-  summaryChunkId: string;
-  originalChunkIds: string[];
-  createdAt: string;
+  summary_chunk_id: string;
+  original_chunk_ids: string[];
+  created_at: string;
 }
 
 export interface GetCompactionHistoryResponse {
@@ -299,25 +299,25 @@ export interface GetCompactionHistoryResponse {
 
 export interface Job {
   id: string;
-  topicId: string;
-  documentId: string;
-  jobType: string;
+  topic_id: string;
+  document_id: string;
+  job_type: string;
   status: string;
   progress: number;
   error: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ListJobsParams extends PageParams {
-  topicId?: string;
-  documentId?: string;
+  topic_id?: string;
+  document_id?: string;
   status?: string;
 }
 
 export interface ListJobsResponse {
   jobs: Job[];
-  nextPageToken: string;
+  next_page_token: string;
 }
 
 // ---------------------------------------------------------------------------

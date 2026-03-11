@@ -106,65 +106,56 @@ class CreelClient:
 
     @staticmethod
     def _parse_topic(data: dict[str, Any]) -> Topic:
-        cs = data.get("chunkingStrategy") or data.get("chunking_strategy")
+        cs = data.get("chunking_strategy")
         return Topic(
             id=data.get("id", ""),
             slug=data.get("slug", ""),
             name=data.get("name", ""),
             description=data.get("description", ""),
             owner=data.get("owner", ""),
-            created_at=data.get("createdAt", data.get("created_at", "")),
-            updated_at=data.get("updatedAt", data.get("updated_at", "")),
-            llm_config_id=data.get("llmConfigId", data.get("llm_config_id")),
-            embedding_config_id=data.get(
-                "embeddingConfigId", data.get("embedding_config_id")
-            ),
+            created_at=data.get("created_at", ""),
+            updated_at=data.get("updated_at", ""),
+            llm_config_id=data.get("llm_config_id"),
+            embedding_config_id=data.get("embedding_config_id"),
             extraction_prompt_config_id=data.get(
-                "extractionPromptConfigId",
-                data.get("extraction_prompt_config_id"),
+                "extraction_prompt_config_id"
             ),
             chunking_strategy=(
                 ChunkingStrategy(
-                    chunk_size=cs.get("chunkSize", cs.get("chunk_size", 0)),
-                    chunk_overlap=cs.get(
-                        "chunkOverlap", cs.get("chunk_overlap", 0)
-                    ),
+                    chunk_size=cs.get("chunk_size", 0),
+                    chunk_overlap=cs.get("chunk_overlap", 0),
                 )
                 if cs
                 else None
             ),
-            memory_enabled=data.get(
-                "memoryEnabled", data.get("memory_enabled", False)
-            ),
+            memory_enabled=data.get("memory_enabled", False),
         )
 
     @staticmethod
     def _parse_grant(data: dict[str, Any]) -> TopicGrant:
         return TopicGrant(
             id=data.get("id", ""),
-            topic_id=data.get("topicId", data.get("topic_id", "")),
+            topic_id=data.get("topic_id", ""),
             principal=data.get("principal", ""),
             permission=data.get("permission", ""),
-            granted_by=data.get("grantedBy", data.get("granted_by", "")),
-            created_at=data.get("createdAt", data.get("created_at", "")),
+            granted_by=data.get("granted_by", ""),
+            created_at=data.get("created_at", ""),
         )
 
     @staticmethod
     def _parse_document(data: dict[str, Any]) -> Document:
         return Document(
             id=data.get("id", ""),
-            topic_id=data.get("topicId", data.get("topic_id", "")),
+            topic_id=data.get("topic_id", ""),
             slug=data.get("slug", ""),
             name=data.get("name", ""),
-            doc_type=data.get("docType", data.get("doc_type", "")),
+            doc_type=data.get("doc_type", ""),
             metadata=data.get("metadata"),
-            created_at=data.get("createdAt", data.get("created_at", "")),
-            updated_at=data.get("updatedAt", data.get("updated_at", "")),
+            created_at=data.get("created_at", ""),
+            updated_at=data.get("updated_at", ""),
             url=data.get("url", ""),
             author=data.get("author", ""),
-            published_at=data.get(
-                "publishedAt", data.get("published_at", "")
-            ),
+            published_at=data.get("published_at", ""),
             status=data.get("status", ""),
         )
 
@@ -172,34 +163,26 @@ class CreelClient:
     def _parse_chunk(data: dict[str, Any]) -> Chunk:
         return Chunk(
             id=data.get("id", ""),
-            document_id=data.get("documentId", data.get("document_id", "")),
+            document_id=data.get("document_id", ""),
             sequence=data.get("sequence", 0),
             content=data.get("content", ""),
-            embedding_id=data.get(
-                "embeddingId", data.get("embedding_id", "")
-            ),
+            embedding_id=data.get("embedding_id", ""),
             status=data.get("status", ""),
-            compacted_by=data.get(
-                "compactedBy", data.get("compacted_by", "")
-            ),
+            compacted_by=data.get("compacted_by", ""),
             metadata=data.get("metadata"),
-            created_at=data.get("createdAt", data.get("created_at", "")),
+            created_at=data.get("created_at", ""),
         )
 
     @staticmethod
     def _parse_link(data: dict[str, Any]) -> Link:
         return Link(
             id=data.get("id", ""),
-            source_chunk_id=data.get(
-                "sourceChunkId", data.get("source_chunk_id", "")
-            ),
-            target_chunk_id=data.get(
-                "targetChunkId", data.get("target_chunk_id", "")
-            ),
-            link_type=data.get("linkType", data.get("link_type", "")),
-            created_by=data.get("createdBy", data.get("created_by", "")),
+            source_chunk_id=data.get("source_chunk_id", ""),
+            target_chunk_id=data.get("target_chunk_id", ""),
+            link_type=data.get("link_type", ""),
+            created_by=data.get("created_by", ""),
             metadata=data.get("metadata"),
-            created_at=data.get("createdAt", data.get("created_at", "")),
+            created_at=data.get("created_at", ""),
         )
 
     @staticmethod
@@ -210,23 +193,19 @@ class CreelClient:
             name=data.get("name", ""),
             url=data.get("url", ""),
             author=data.get("author", ""),
-            published_at=data.get(
-                "publishedAt", data.get("published_at", "")
-            ),
+            published_at=data.get("published_at", ""),
             metadata=data.get("metadata"),
         )
 
     @classmethod
     def _parse_search_result(cls, data: dict[str, Any]) -> SearchResult:
         chunk_data = data.get("chunk")
-        link_data = data.get("viaLink", data.get("via_link"))
-        cite_data = data.get(
-            "documentCitation", data.get("document_citation")
-        )
+        link_data = data.get("via_link")
+        cite_data = data.get("document_citation")
         return SearchResult(
             chunk=cls._parse_chunk(chunk_data) if chunk_data else None,
-            document_id=data.get("documentId", data.get("document_id", "")),
-            topic_id=data.get("topicId", data.get("topic_id", "")),
+            document_id=data.get("document_id", ""),
+            topic_id=data.get("topic_id", ""),
             score=data.get("score", 0.0),
             via_link=cls._parse_link(link_data) if link_data else None,
             document_citation=(
@@ -244,47 +223,37 @@ class CreelClient:
             subject=data.get("subject", ""),
             predicate=data.get("predicate", ""),
             object=data.get("object", ""),
-            source_chunk_id=data.get(
-                "sourceChunkId", data.get("source_chunk_id", "")
-            ),
+            source_chunk_id=data.get("source_chunk_id", ""),
             status=data.get("status", ""),
-            invalidated_at=data.get(
-                "invalidatedAt", data.get("invalidated_at", "")
-            ),
+            invalidated_at=data.get("invalidated_at", ""),
             metadata=data.get("metadata"),
-            created_at=data.get("createdAt", data.get("created_at", "")),
-            updated_at=data.get("updatedAt", data.get("updated_at", "")),
+            created_at=data.get("created_at", ""),
+            updated_at=data.get("updated_at", ""),
         )
 
     @staticmethod
     def _parse_job(data: dict[str, Any]) -> ProcessingJob:
         return ProcessingJob(
             id=data.get("id", ""),
-            document_id=data.get("documentId", data.get("document_id", "")),
-            job_type=data.get("jobType", data.get("job_type", "")),
+            document_id=data.get("document_id", ""),
+            job_type=data.get("job_type", ""),
             status=data.get("status", ""),
             progress=data.get("progress"),
             error=data.get("error", ""),
-            started_at=data.get("startedAt", data.get("started_at", "")),
-            completed_at=data.get(
-                "completedAt", data.get("completed_at", "")
-            ),
-            created_at=data.get("createdAt", data.get("created_at", "")),
+            started_at=data.get("started_at", ""),
+            completed_at=data.get("completed_at", ""),
+            created_at=data.get("created_at", ""),
         )
 
     @staticmethod
     def _parse_compaction_record(data: dict[str, Any]) -> CompactionRecord:
         return CompactionRecord(
             id=data.get("id", ""),
-            summary_chunk_id=data.get(
-                "summaryChunkId", data.get("summary_chunk_id", "")
-            ),
-            source_chunk_ids=data.get(
-                "sourceChunkIds", data.get("source_chunk_ids", [])
-            ),
-            document_id=data.get("documentId", data.get("document_id", "")),
-            created_by=data.get("createdBy", data.get("created_by", "")),
-            created_at=data.get("createdAt", data.get("created_at", "")),
+            summary_chunk_id=data.get("summary_chunk_id", ""),
+            source_chunk_ids=data.get("source_chunk_ids", []),
+            document_id=data.get("document_id", ""),
+            created_by=data.get("created_by", ""),
+            created_at=data.get("created_at", ""),
         )
 
     # ========================================================================
@@ -306,14 +275,14 @@ class CreelClient:
             "slug": slug,
             "name": name,
             "description": description,
-            "memoryEnabled": memory_enabled,
+            "memory_enabled": memory_enabled,
         }
         if llm_config_id is not None:
-            body["llmConfigId"] = llm_config_id
+            body["llm_config_id"] = llm_config_id
         if embedding_config_id is not None:
-            body["embeddingConfigId"] = embedding_config_id
+            body["embedding_config_id"] = embedding_config_id
         if extraction_prompt_config_id is not None:
-            body["extractionPromptConfigId"] = extraction_prompt_config_id
+            body["extraction_prompt_config_id"] = extraction_prompt_config_id
         return self._parse_topic(self._request("POST", "/v1/topics", json=body))
 
     def get_topic(self, topic_id: str) -> Topic:
@@ -328,11 +297,11 @@ class CreelClient:
         data = self._request(
             "GET",
             "/v1/topics",
-            params={"pageSize": page_size, "pageToken": page_token},
+            params={"page_size": page_size, "page_token": page_token},
         )
         return ListTopicsResponse(
             topics=[self._parse_topic(t) for t in data.get("topics", [])],
-            next_page_token=data.get("nextPageToken", ""),
+            next_page_token=data.get("next_page_token", ""),
         )
 
     def update_topic(
@@ -352,13 +321,13 @@ class CreelClient:
         if description is not None:
             body["description"] = description
         if memory_enabled is not None:
-            body["memoryEnabled"] = memory_enabled
+            body["memory_enabled"] = memory_enabled
         if llm_config_id is not None:
-            body["llmConfigId"] = llm_config_id
+            body["llm_config_id"] = llm_config_id
         if embedding_config_id is not None:
-            body["embeddingConfigId"] = embedding_config_id
+            body["embedding_config_id"] = embedding_config_id
         if extraction_prompt_config_id is not None:
-            body["extractionPromptConfigId"] = extraction_prompt_config_id
+            body["extraction_prompt_config_id"] = extraction_prompt_config_id
         return self._parse_topic(
             self._request("PATCH", f"/v1/topics/{topic_id}", json=body)
         )
@@ -403,11 +372,11 @@ class CreelClient:
         author: Optional[str] = None,
         published_at: Optional[str] = None,
     ) -> Document:
-        body: dict[str, Any] = {"topicId": topic_id, "name": name}
+        body: dict[str, Any] = {"topic_id": topic_id, "name": name}
         if slug is not None:
             body["slug"] = slug
         if doc_type is not None:
-            body["docType"] = doc_type
+            body["doc_type"] = doc_type
         if metadata is not None:
             body["metadata"] = metadata
         if url is not None:
@@ -415,7 +384,7 @@ class CreelClient:
         if author is not None:
             body["author"] = author
         if published_at is not None:
-            body["publishedAt"] = published_at
+            body["published_at"] = published_at
         return self._parse_document(
             self._request("POST", "/v1/documents", json=body)
         )
@@ -435,13 +404,13 @@ class CreelClient:
         data = self._request(
             "GET",
             f"/v1/topics/{topic_id}/documents",
-            params={"pageSize": page_size, "pageToken": page_token},
+            params={"page_size": page_size, "page_token": page_token},
         )
         return ListDocumentsResponse(
             documents=[
                 self._parse_document(d) for d in data.get("documents", [])
             ],
-            next_page_token=data.get("nextPageToken", ""),
+            next_page_token=data.get("next_page_token", ""),
         )
 
     def update_document(
@@ -459,7 +428,7 @@ class CreelClient:
         if name is not None:
             body["name"] = name
         if doc_type is not None:
-            body["docType"] = doc_type
+            body["doc_type"] = doc_type
         if metadata is not None:
             body["metadata"] = metadata
         if url is not None:
@@ -467,7 +436,7 @@ class CreelClient:
         if author is not None:
             body["author"] = author
         if published_at is not None:
-            body["publishedAt"] = published_at
+            body["published_at"] = published_at
         return self._parse_document(
             self._request("PATCH", f"/v1/documents/{document_id}", json=body)
         )
@@ -490,29 +459,29 @@ class CreelClient:
         published_at: Optional[str] = None,
     ) -> UploadDocumentResponse:
         body: dict[str, Any] = {
-            "topicId": topic_id,
+            "topic_id": topic_id,
             "name": name,
             "file": base64.b64encode(file).decode("ascii"),
         }
         if slug is not None:
             body["slug"] = slug
         if source_url is not None:
-            body["sourceUrl"] = source_url
+            body["source_url"] = source_url
         if content_type is not None:
-            body["contentType"] = content_type
+            body["content_type"] = content_type
         if doc_type is not None:
-            body["docType"] = doc_type
+            body["doc_type"] = doc_type
         if metadata is not None:
             body["metadata"] = metadata
         if author is not None:
             body["author"] = author
         if published_at is not None:
-            body["publishedAt"] = published_at
+            body["published_at"] = published_at
         data = self._request("POST", "/v1/documents:upload", json=body)
         doc_data = data.get("document")
         return UploadDocumentResponse(
             document=self._parse_document(doc_data) if doc_data else None,
-            job_id=data.get("jobId", data.get("job_id", "")),
+            job_id=data.get("job_id", ""),
         )
 
     # ========================================================================
@@ -562,21 +531,21 @@ class CreelClient:
         metadata_filter: Optional[dict[str, Any]] = None,
         exclude_document_ids: Optional[list[str]] = None,
     ) -> SearchResponse:
-        body: dict[str, Any] = {"topicIds": topic_ids}
+        body: dict[str, Any] = {"topic_ids": topic_ids}
         if query_text is not None:
-            body["queryText"] = query_text
+            body["query_text"] = query_text
         if query_embedding is not None:
-            body["queryEmbedding"] = query_embedding
+            body["query_embedding"] = query_embedding
         if top_k is not None:
-            body["topK"] = top_k
+            body["top_k"] = top_k
         if follow_links is not None:
-            body["followLinks"] = follow_links
+            body["follow_links"] = follow_links
         if link_depth is not None:
-            body["linkDepth"] = link_depth
+            body["link_depth"] = link_depth
         if metadata_filter is not None:
-            body["metadataFilter"] = metadata_filter
+            body["metadata_filter"] = metadata_filter
         if exclude_document_ids is not None:
-            body["excludeDocumentIds"] = exclude_document_ids
+            body["exclude_document_ids"] = exclude_document_ids
         data = self._request("POST", "/v1/search", json=body)
         return SearchResponse(
             results=[
@@ -596,9 +565,9 @@ class CreelClient:
             "GET",
             f"/v1/documents/{document_id}/context",
             params={
-                "lastN": last_n,
+                "last_n": last_n,
                 "since": since,
-                "includeSummaries": include_summaries,
+                "include_summaries": include_summaries,
             },
         )
         return GetContextResponse(
@@ -624,9 +593,9 @@ class CreelClient:
         if scope is not None:
             body["scope"] = scope
         if query_text is not None:
-            body["queryText"] = query_text
+            body["query_text"] = query_text
         if top_k is not None:
-            body["topK"] = top_k
+            body["top_k"] = top_k
         data = self._request("POST", "/v1/memories:search", json=body)
         results: list[MemorySearchResult] = []
         for r in data.get("results", []):
@@ -690,7 +659,7 @@ class CreelClient:
         data = self._request(
             "GET",
             f"/v1/memories/{scope}/list",
-            params={"includeInvalidated": include_invalidated},
+            params={"include_invalidated": include_invalidated},
         )
         return ListMemoriesResponse(
             memories=[self._parse_memory(m) for m in data.get("memories", [])]
@@ -713,11 +682,11 @@ class CreelClient:
         metadata: Optional[dict[str, Any]] = None,
     ) -> Link:
         body: dict[str, Any] = {
-            "sourceChunkId": source_chunk_id,
-            "targetChunkId": target_chunk_id,
+            "source_chunk_id": source_chunk_id,
+            "target_chunk_id": target_chunk_id,
         }
         if link_type is not None:
-            body["linkType"] = link_type
+            body["link_type"] = link_type
         if metadata is not None:
             body["metadata"] = metadata
         return self._parse_link(
@@ -736,7 +705,7 @@ class CreelClient:
         data = self._request(
             "GET",
             f"/v1/chunks/{chunk_id}/links",
-            params={"includeBacklinks": include_backlinks},
+            params={"include_backlinks": include_backlinks},
         )
         return ListLinksResponse(
             links=[self._parse_link(l) for l in data.get("links", [])]
@@ -756,32 +725,28 @@ class CreelClient:
         summary_metadata: Optional[dict[str, Any]] = None,
     ) -> CompactResponse:
         body: dict[str, Any] = {
-            "documentId": document_id,
-            "chunkIds": chunk_ids,
-            "summaryContent": summary_content,
+            "document_id": document_id,
+            "chunk_ids": chunk_ids,
+            "summary_content": summary_content,
         }
         if summary_embedding is not None:
-            body["summaryEmbedding"] = summary_embedding
+            body["summary_embedding"] = summary_embedding
         if summary_metadata is not None:
-            body["summaryMetadata"] = summary_metadata
+            body["summary_metadata"] = summary_metadata
         data = self._request("POST", "/v1/compact", json=body)
-        sc = data.get("summaryChunk", data.get("summary_chunk"))
+        sc = data.get("summary_chunk")
         return CompactResponse(
             summary_chunk=self._parse_chunk(sc) if sc else None,
-            compacted_count=data.get(
-                "compactedCount", data.get("compacted_count", 0)
-            ),
+            compacted_count=data.get("compacted_count", 0),
         )
 
     def uncompact(self, summary_chunk_id: str) -> UncompactResponse:
-        body = {"summaryChunkId": summary_chunk_id}
+        body = {"summary_chunk_id": summary_chunk_id}
         data = self._request("POST", "/v1/uncompact", json=body)
         return UncompactResponse(
             restored_chunks=[
                 self._parse_chunk(c)
-                for c in data.get(
-                    "restoredChunks", data.get("restored_chunks", [])
-                )
+                for c in data.get("restored_chunks", [])
             ]
         )
 
@@ -791,12 +756,12 @@ class CreelClient:
         *,
         chunk_ids: Optional[list[str]] = None,
     ) -> RequestCompactionResponse:
-        body: dict[str, Any] = {"documentId": document_id}
+        body: dict[str, Any] = {"document_id": document_id}
         if chunk_ids is not None:
-            body["chunkIds"] = chunk_ids
+            body["chunk_ids"] = chunk_ids
         data = self._request("POST", "/v1/compact/request", json=body)
         return RequestCompactionResponse(
-            job_id=data.get("jobId", data.get("job_id", ""))
+            job_id=data.get("job_id", "")
         )
 
     def get_compaction_history(
@@ -832,16 +797,16 @@ class CreelClient:
             "GET",
             "/v1/jobs",
             params={
-                "topicId": topic_id,
-                "documentId": document_id,
+                "topic_id": topic_id,
+                "document_id": document_id,
                 "status": status,
-                "pageSize": page_size,
-                "pageToken": page_token,
+                "page_size": page_size,
+                "page_token": page_token,
             },
         )
         return ListJobsResponse(
             jobs=[self._parse_job(j) for j in data.get("jobs", [])],
-            next_page_token=data.get("nextPageToken", ""),
+            next_page_token=data.get("next_page_token", ""),
         )
 
     # ========================================================================

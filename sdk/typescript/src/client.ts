@@ -230,12 +230,12 @@ export class CreelClient {
     // Encode file bytes as base64 for JSON transport.
     const fileBase64 = base64Encode(req.file);
     const body = {
-      topicId: req.topicId,
+      topic_id: req.topic_id,
       name: req.name,
       file: fileBase64,
       slug: req.slug,
-      sourceUrl: req.sourceUrl,
-      contentType: req.contentType,
+      source_url: req.source_url,
+      content_type: req.content_type,
       metadata: req.metadata,
     };
     return this.request<UploadDocumentResponse>(
@@ -335,7 +335,7 @@ export class CreelClient {
     includeInvalidated?: boolean,
   ): Promise<ListMemoriesResponse> {
     const qs = this.queryString({
-      includeInvalidated: includeInvalidated,
+      include_invalidated: includeInvalidated,
     });
     return this.request<ListMemoriesResponse>(
       "GET",
@@ -366,7 +366,7 @@ export class CreelClient {
     chunkId: string,
     includeBacklinks?: boolean,
   ): Promise<ListLinksResponse> {
-    const qs = this.queryString({ includeBacklinks });
+    const qs = this.queryString({ include_backlinks: includeBacklinks });
     return this.request<ListLinksResponse>(
       "GET",
       `/v1/chunks/${encodeURIComponent(chunkId)}/links${qs}`,
@@ -383,7 +383,7 @@ export class CreelClient {
 
   async uncompact(summaryChunkId: string): Promise<UncompactResponse> {
     return this.request<UncompactResponse>("POST", "/v1/uncompact", {
-      summaryChunkId,
+      summary_chunk_id: summaryChunkId,
     });
   }
 
