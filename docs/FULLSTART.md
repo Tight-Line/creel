@@ -254,16 +254,22 @@ curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
 
 Notice that each result includes `document_citation` with the name, author, and URL you provided at upload time.
 
-Search across both topics:
+Search across both topics. Use a query specific enough to pull results from each:
 
 ```bash
 curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
-  -d "{\"topic_ids\": [\"$FISH_TOPIC\", \"$SKI_TOPIC\"], \"query_text\": \"conditions report\", \"top_k\": 5}" \
+  -d "{\"topic_ids\": [\"$FISH_TOPIC\", \"$SKI_TOPIC\"], \"query_text\": \"what are conditions like in Rangeley this week\", \"top_k\": 5}" \
   "http://localhost:8080/v1/search" | jq '.results[] | {
     content: .chunk.content[:80],
     topic_id,
     citation: .document_citation.name
   }'
+```
+
+A vague query like "conditions report" would be dominated by the much larger fishing regulations document. Cross-topic search works best with specific queries, or you can scope to a single topic when the intent is clear:
+
+```bash
+bin/creel-cli search --query "conditions report" --topic ski-conditions --top-k 5
 ```
 
 ## 7. GetContext (temporal retrieval)
