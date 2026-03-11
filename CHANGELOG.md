@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-03-11
+
 ### Added
 
 - LLM provider now resolves dynamically from the database. When a default LLM config is set, the server uses it to call OpenAI chat completions instead of returning stub responses. Config changes take effect without a restart.
