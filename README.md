@@ -8,7 +8,7 @@
 
 Self-hosted memory-as-a-service for AI agents.
 
-**v0.7.x**: Per-topic vector backend configs, backend registry, Prometheus metrics, Helm hardening (PDB, NetworkPolicy, SecurityContext), Python and TypeScript SDKs, MCP server, CompactionService, chunk linking, managed pipeline, per-principal memory, dashboard, creel-chat.
+**v0.8.x**: Memory redesigned as per-principal behavior with automatic extraction from conversations (AddMessages RPC, memory_messages worker). Per-topic vector backend configs, backend registry, Prometheus metrics, Helm hardening, Python and TypeScript SDKs, MCP server, CompactionService, chunk linking, managed pipeline, dashboard, creel-chat.
 
 Creel provides topic-scoped memory with principal-based RBAC, server-side document processing, per-principal memory (Mem0-style), and dual-mode retrieval (semantic search with citations + temporal context). Upload documents and Creel handles extraction, chunking, and embedding automatically. It runs in your infrastructure via Helm chart.
 
@@ -66,7 +66,7 @@ See [Quickstart](docs/QUICKSTART.md) for the full walkthrough.
 
 ## Status
 
-Active development (v0.7.x). Phases 1-9 complete: core storage, RAG, auth, managed pipeline, per-principal memory, compaction, integration layers (SDKs, MCP, tool schemas), and backend hardening (per-topic vector backends, Prometheus metrics, Helm production readiness). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for release history.
+Active development (v0.8.x). Phases 1-10 complete: core storage, RAG, auth, managed pipeline, per-principal memory with automatic extraction, compaction, integration layers (SDKs, MCP, tool schemas), and backend hardening (per-topic vector backends, Prometheus metrics, Helm production readiness). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
