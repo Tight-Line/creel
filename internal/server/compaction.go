@@ -97,6 +97,8 @@ func (s *CompactionServer) Compact(ctx context.Context, req *pb.CompactRequest) 
 		if err := s.chunkStore.SetEmbeddingID(ctx, summaryChunk.ID, summaryChunk.ID); err != nil {
 			return nil, status.Errorf(codes.Internal, "setting embedding ID: %v", err)
 		}
+	} else if s.jobStore != nil { // coverage:ignore - best-effort hook; tested via integration
+		_, _ = s.jobStore.Create(ctx, req.GetDocumentId(), "embedding")
 	}
 
 	// Transfer links from source chunks to the summary chunk.

@@ -419,7 +419,7 @@ rpc Compact(CompactRequest) returns (CompactResponse)
 **Behavior**:
 
 1. All `chunk_ids` must belong to `document_id` and have status=active. Fails if any chunk is already compacted or belongs to a different document.
-2. Creates a new summary chunk with the provided content and embedding (computes embedding if omitted and provider is configured).
+2. Creates a new summary chunk with the provided content and embedding. If `summary_embedding` is omitted, enqueues a background embedding job so the configured provider computes it asynchronously.
 3. Sets each specified chunk's status to `compacted` and `compacted_by` to the summary chunk's ID.
 4. Transfers all outbound links from compacted chunks to the summary chunk. These links get `link_type = compaction_transfer`.
 5. Inbound links to compacted chunks now resolve to the summary on traversal (transparent redirect).

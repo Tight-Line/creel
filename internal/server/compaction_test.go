@@ -279,9 +279,12 @@ func TestCompactionServer_Compact_Success(t *testing.T) {
 				// ChunkStore.Create (INSERT INTO chunks)
 				return &compactChunkRow{id: "sc1", docID: "d1"}
 			case 4:
+				// JobStore.Create (embedding job; best-effort, error ignored)
+				return &mockRow{err: errors.New("ignored")}
+			case 5:
 				// CompactionStore.Create (INSERT INTO compaction_records)
 				return &compactRecordRow{id: "r1", summaryChunk: "sc1", docID: "d1"}
-			case 5:
+			case 6:
 				// ChunkStore.Get (re-read summary chunk)
 				return &compactChunkRow{id: "sc1", docID: "d1"}
 			default:
