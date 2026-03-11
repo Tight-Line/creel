@@ -16,7 +16,7 @@ The repository ships with a pre-configured dev API key for local development. Af
 source .env
 ```
 
-This sets `CREEL_ENDPOINT` and `CREEL_API_KEY` so that `creel-cli` and `creel-chat` authenticate against a local server running with `creel.example.yaml`. The dev key is intentionally public; it is only useful against a local instance.
+This sets `CREEL_GRPC_ENDPOINT` and `CREEL_API_KEY` so that `creel-cli` and `creel-chat` authenticate against a local server running with `creel.example.yaml`. The dev key is intentionally public; it is only useful against a local instance.
 
 ## Clone and build
 

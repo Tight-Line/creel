@@ -547,6 +547,7 @@ func TestParseGRPCEndpoint(t *testing.T) {
 		{"http://localhost", "", false, true},
 		{"http://localhost:9090", "localhost:9090", false, false},
 		{"127.0.0.1:8443", "127.0.0.1:8443", false, false},
+		{"grpc://example.com:443", "", false, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {

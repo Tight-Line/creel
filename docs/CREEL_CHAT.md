@@ -24,9 +24,10 @@ Every message is persisted. Conversations can be resumed later by document ID.
 
 | Flag | Env var | Default | Description |
 |------|---------|---------|-------------|
-| `--endpoint` | `CREEL_ENDPOINT` | `127.0.0.1:8443` | Creel gRPC endpoint |
+| `--endpoint` | `CREEL_GRPC_ENDPOINT` | `http://127.0.0.1:8443` | gRPC endpoint URL (`https://` for TLS, `http://` for plaintext) |
 | `--api-key` | `CREEL_API_KEY` | (required) | Creel API key |
-| `--tls` | | `false` | Use TLS for gRPC connection |
+| `--verify-tls` | `CREEL_VERIFY_TLS` | `true` | Verify TLS certificates (set to `false` for self-signed certs) |
+| `--authority` | `CREEL_GRPC_AUTHORITY` | | Override the `:authority` header (for routing through proxies) |
 | `--provider` | | `openai` | Chat LLM provider: `openai` or `anthropic` |
 | `--model` | | (provider default) | Override LLM model name |
 | `--embed-provider` | | `openai` | Embedding provider: `openai` or `ollama` |

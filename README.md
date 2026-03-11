@@ -21,7 +21,7 @@ docker compose up -d
 # Build the CLI tools
 make build
 
-# Source the dev environment (sets CREEL_ENDPOINT and CREEL_API_KEY)
+# Source the dev environment (sets CREEL_GRPC_ENDPOINT and CREEL_API_KEY)
 source .env
 
 # Create a topic and upload a document
