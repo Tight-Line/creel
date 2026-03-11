@@ -331,28 +331,44 @@ bin/creel-cli link list --chunk "$CHUNK_B" --backlinks
 
 ## 10. Compaction
 
-Compaction merges multiple chunks into a single summary. You can do this manually (providing your own summary text) or request a background LLM-powered compaction.
+Compaction merges multiple chunks into a single summary. We will use the streamer document (`$DOC_DIRECT`) from step 8, whose chunk IDs we captured in step 9.
+
+### Manual compaction
+
+Provide your own summary text. This runs synchronously with no LLM call:
 
 ```bash
-# Request background compaction for all chunks in a document
-bin/creel-cli compact run --document "$DOC_ID"
-
-# Or compact specific chunks with an LLM summary
-bin/creel-cli compact run --document "$DOC_ID" --chunk-ids "$CHUNK_A,$CHUNK_B"
-
-# Provide your own summary (synchronous, no LLM)
-bin/creel-cli compact manual --document "$DOC_ID" \
+bin/creel-cli compact manual --document "$DOC_DIRECT" \
   --chunk-ids "$CHUNK_A,$CHUNK_B" \
-  --summary "Combined summary of chunks A and B."
+  --summary "Streamer fishing fundamentals: strip-set on the swing, use articulated patterns on sinking lines."
 
 # View compaction history
-bin/creel-cli compact history --document "$DOC_ID"
+bin/creel-cli compact history --document "$DOC_DIRECT"
+```
 
-# Undo a compaction (restores original chunks, re-queues embedding)
+Note the summary chunk ID in the output. The original chunks are now inactive, and their links transfer to the summary chunk.
+
+### Undo and redo with LLM
+
+Undo the manual compaction to restore the original chunks:
+
+```bash
+SUMMARY_CHUNK_ID=$(bin/creel-cli compact history --document "$DOC_DIRECT" | jq -r '.records[0].summary_chunk_id')
+
 bin/creel-cli compact undo --summary-chunk "$SUMMARY_CHUNK_ID"
 ```
 
-When compaction runs, it transfers links from source chunks to the summary chunk and cleans up source embeddings. Undoing a compaction restores the original chunks and enqueues a job to recompute their embeddings.
+This restores the original chunks and enqueues a job to recompute their embeddings. Now run an LLM-powered compaction instead, which generates the summary automatically:
+
+```bash
+bin/creel-cli compact run --document "$DOC_DIRECT" --chunk-ids "$CHUNK_A,$CHUNK_B"
+```
+
+You can also compact an entire document at once by omitting `--chunk-ids`:
+
+```bash
+bin/creel-cli compact run --document "$DOC_DIRECT"
+```
 
 ## 11. Per-principal memory
 
