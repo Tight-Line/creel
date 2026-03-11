@@ -1,6 +1,6 @@
 # Creel API Reference
 
-69 RPC methods across 10 gRPC services (plus ConfigService). All methods are also available via REST (grpc-gateway).
+72 RPC methods across 10 gRPC services. All methods are also available via REST (grpc-gateway).
 
 Every request carries an `Authorization: Bearer <token>` header (OIDC JWT or API key). The server resolves the caller's principal, then checks permissions via the `Authorizer` interface before touching data.
 
@@ -16,6 +16,9 @@ Every request carries an `Authorization: Bearer <token>` header (OIDC JWT or API
 rpc CreateTopic(CreateTopicRequest) returns (Topic)
 ```
 
+| REST | `POST /v1/topics` |
+|------|-------------------|
+
 **Request**: `{slug, name, description}`
 **Permission**: authenticated (any valid principal)
 **Behavior**: Creates a topic. The caller becomes the owner (implicit admin). If `slug` is omitted, the server auto-generates one from `name` (slugified + short random suffix, e.g., `ml-research-a7x3`). If provided, the slug must be unique and URL-safe. Returns the created topic.
@@ -26,6 +29,9 @@ rpc CreateTopic(CreateTopicRequest) returns (Topic)
 rpc GetTopic(GetTopicRequest) returns (Topic)
 ```
 
+| REST | `GET /v1/topics/{id}` |
+|------|-----------------------|
+
 **Request**: `{id}`
 **Permission**: read
 **Behavior**: Returns topic metadata.
@@ -35,6 +41,9 @@ rpc GetTopic(GetTopicRequest) returns (Topic)
 ```
 rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse)
 ```
+
+| REST | `GET /v1/topics` |
+|------|------------------|
 
 **Request**: `{page_size, page_token}`
 **Response**: `{topics[], next_page_token}`
@@ -47,6 +56,9 @@ rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse)
 rpc UpdateTopic(UpdateTopicRequest) returns (Topic)
 ```
 
+| REST | `PATCH /v1/topics/{id}` |
+|------|-------------------------|
+
 **Request**: `{id, name, description}`
 **Permission**: admin
 **Behavior**: Updates mutable fields. Slug is immutable.
@@ -56,6 +68,9 @@ rpc UpdateTopic(UpdateTopicRequest) returns (Topic)
 ```
 rpc DeleteTopic(DeleteTopicRequest) returns (DeleteTopicResponse)
 ```
+
+| REST | `DELETE /v1/topics/{id}` |
+|------|--------------------------|
 
 **Request**: `{id}`
 **Permission**: admin
@@ -67,6 +82,9 @@ rpc DeleteTopic(DeleteTopicRequest) returns (DeleteTopicResponse)
 rpc GrantAccess(GrantAccessRequest) returns (TopicGrant)
 ```
 
+| REST | `POST /v1/topics/{topic_id}/grants` |
+|------|-------------------------------------|
+
 **Request**: `{topic_id, principal, permission}`
 **Permission**: admin
 **Behavior**: Creates or updates a grant. Principal is a typed ref (`user:...`, `group:...`, `system:...`). Upserts on the `(topic_id, principal)` unique constraint.
@@ -77,6 +95,9 @@ rpc GrantAccess(GrantAccessRequest) returns (TopicGrant)
 rpc RevokeAccess(RevokeAccessRequest) returns (RevokeAccessResponse)
 ```
 
+| REST | `DELETE /v1/topics/{topic_id}/grants/{principal}` |
+|------|---------------------------------------------------|
+
 **Request**: `{topic_id, principal}`
 **Permission**: admin
 **Behavior**: Deletes the grant row. Cannot revoke the owner's implicit admin.
@@ -86,6 +107,9 @@ rpc RevokeAccess(RevokeAccessRequest) returns (RevokeAccessResponse)
 ```
 rpc ListGrants(ListGrantsRequest) returns (ListGrantsResponse)
 ```
+
+| REST | `GET /v1/topics/{topic_id}/grants` |
+|------|-------------------------------------|
 
 **Request**: `{topic_id}`
 **Response**: `{grants[]}`
@@ -102,6 +126,9 @@ rpc ListGrants(ListGrantsRequest) returns (ListGrantsResponse)
 rpc CreateDocument(CreateDocumentRequest) returns (Document)
 ```
 
+| REST | `POST /v1/documents` |
+|------|----------------------|
+
 **Request**: `{topic_id, slug, name, doc_type, metadata, url, author, published_at}`
 **Permission**: write
 **Behavior**: Creates a document in the topic. If `slug` is omitted, the server auto-generates one from `name` (slugified + short random suffix). If provided, the slug must be unique within the topic. `doc_type` is informational only (Creel does not change behavior based on it). The `url`, `author`, and `published_at` fields are optional citation metadata; they are stored on the document and surfaced in search results via `DocumentCitation`.
@@ -111,6 +138,9 @@ rpc CreateDocument(CreateDocumentRequest) returns (Document)
 ```
 rpc UploadDocument(UploadDocumentRequest) returns (UploadDocumentResponse)
 ```
+
+| REST | `POST /v1/documents:upload` |
+|------|------------------------------|
 
 **Request**: `{topic_id, slug, name, url, author, published_at, metadata, file, source_url, doc_type}`
 **Response**: `{document, job_id}`
@@ -123,6 +153,9 @@ rpc UploadDocument(UploadDocumentRequest) returns (UploadDocumentResponse)
 rpc GetDocument(GetDocumentRequest) returns (Document)
 ```
 
+| REST | `GET /v1/documents/{id}` |
+|------|--------------------------|
+
 **Request**: `{id}`
 **Permission**: read
 **Behavior**: Returns document metadata. Server resolves the topic from the document and checks read access.
@@ -132,6 +165,9 @@ rpc GetDocument(GetDocumentRequest) returns (Document)
 ```
 rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse)
 ```
+
+| REST | `GET /v1/topics/{topic_id}/documents` |
+|------|---------------------------------------|
 
 **Request**: `{topic_id, page_size, page_token}`
 **Response**: `{documents[], next_page_token}`
@@ -144,6 +180,9 @@ rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse)
 rpc UpdateDocument(UpdateDocumentRequest) returns (Document)
 ```
 
+| REST | `PATCH /v1/documents/{id}` |
+|------|----------------------------|
+
 **Request**: `{id, name, doc_type, metadata, url, author, published_at}`
 **Permission**: write
 **Behavior**: Updates mutable fields including citation metadata. Slug is immutable.
@@ -153,6 +192,9 @@ rpc UpdateDocument(UpdateDocumentRequest) returns (Document)
 ```
 rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse)
 ```
+
+| REST | `DELETE /v1/documents/{id}` |
+|------|------------------------------|
 
 **Request**: `{id}`
 **Permission**: admin
@@ -167,6 +209,9 @@ rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse)
 ```
 rpc IngestChunks(IngestChunksRequest) returns (IngestChunksResponse)
 ```
+
+| REST | `POST /v1/documents/{document_id}/chunks` |
+|------|-------------------------------------------|
 
 **Request**: `{document_id, chunks[{content, embedding?, sequence, metadata}]}`
 **Response**: `{chunks[]}`
@@ -187,6 +232,9 @@ Returns the created chunks with their IDs.
 rpc GetChunk(GetChunkRequest) returns (Chunk)
 ```
 
+| REST | `GET /v1/chunks/{id}` |
+|------|-----------------------|
+
 **Request**: `{id}`
 **Permission**: read
 **Behavior**: Returns chunk metadata and content. Server resolves the topic via the document and checks read access.
@@ -196,6 +244,9 @@ rpc GetChunk(GetChunkRequest) returns (Chunk)
 ```
 rpc DeleteChunk(DeleteChunkRequest) returns (DeleteChunkResponse)
 ```
+
+| REST | `DELETE /v1/chunks/{id}` |
+|------|--------------------------|
 
 **Request**: `{id}`
 **Permission**: admin
@@ -211,6 +262,9 @@ rpc DeleteChunk(DeleteChunkRequest) returns (DeleteChunkResponse)
 rpc CreateLink(CreateLinkRequest) returns (Link)
 ```
 
+| REST | `POST /v1/links` |
+|------|-------------------|
+
 **Request**: `{source_chunk_id, target_chunk_id, link_type, metadata}`
 **Permission**: read on both the source and target chunks' topics
 **Behavior**: Creates a directional link between two chunks. `link_type` defaults to `manual`. If either chunk is compacted, the link targets the summary chunk instead (transparent redirect). Source and target may be in different topics and different documents.
@@ -221,6 +275,9 @@ rpc CreateLink(CreateLinkRequest) returns (Link)
 rpc DeleteLink(DeleteLinkRequest) returns (DeleteLinkResponse)
 ```
 
+| REST | `DELETE /v1/links/{id}` |
+|------|-------------------------|
+
 **Request**: `{id}`
 **Permission**: write on the source chunk's topic
 **Behavior**: Deletes the link.
@@ -230,6 +287,9 @@ rpc DeleteLink(DeleteLinkRequest) returns (DeleteLinkResponse)
 ```
 rpc ListLinks(ListLinksRequest) returns (ListLinksResponse)
 ```
+
+| REST | `GET /v1/chunks/{chunk_id}/links` |
+|------|-----------------------------------|
 
 **Request**: `{chunk_id, include_backlinks}`
 **Response**: `{links[]}`
@@ -245,6 +305,9 @@ rpc ListLinks(ListLinksRequest) returns (ListLinksResponse)
 ```
 rpc Search(SearchRequest) returns (SearchResponse)
 ```
+
+| REST | `POST /v1/search` |
+|------|-------------------|
 
 **Request**:
 
@@ -304,6 +367,9 @@ rpc Search(SearchRequest) returns (SearchResponse)
 rpc GetContext(GetContextRequest) returns (GetContextResponse)
 ```
 
+| REST | `GET /v1/documents/{document_id}/context` |
+|------|-------------------------------------------|
+
 **Request**:
 
 ```
@@ -334,6 +400,9 @@ rpc GetContext(GetContextRequest) returns (GetContextResponse)
 rpc Compact(CompactRequest) returns (CompactResponse)
 ```
 
+| REST | `POST /v1/compact` |
+|------|---------------------|
+
 **Request**:
 
 ```
@@ -363,6 +432,9 @@ rpc Compact(CompactRequest) returns (CompactResponse)
 rpc Uncompact(UncompactRequest) returns (UncompactResponse)
 ```
 
+| REST | `POST /v1/uncompact` |
+|------|----------------------|
+
 **Request**: `{summary_chunk_id}`
 **Response**: `{restored_chunks[]}`
 **Permission**: admin
@@ -380,6 +452,9 @@ rpc Uncompact(UncompactRequest) returns (UncompactResponse)
 rpc RequestCompaction(RequestCompactionRequest) returns (RequestCompactionResponse)
 ```
 
+| REST | `POST /v1/compact/request` |
+|------|----------------------------|
+
 **Request**: `{document_id, chunk_ids[]}`
 **Response**: `{job_id}`
 **Permission**: write on the document's topic
@@ -394,6 +469,9 @@ rpc RequestCompaction(RequestCompactionRequest) returns (RequestCompactionRespon
 ```
 rpc GetCompactionHistory(GetCompactionHistoryRequest) returns (GetCompactionHistoryResponse)
 ```
+
+| REST | `GET /v1/documents/{document_id}/compaction-history` |
+|------|------------------------------------------------------|
 
 **Request**: `{document_id}`
 **Response**: `{records[]}`
@@ -412,6 +490,9 @@ Memories are per-principal, scoped key-value observations that persist across se
 rpc GetMemory(GetMemoryRequest) returns (GetMemoryResponse)
 ```
 
+| REST | `GET /v1/memories/{scope}` |
+|------|----------------------------|
+
 **Request**: `{scope}`
 **Response**: `{memories[]}`
 **Permission**: authenticated
@@ -422,6 +503,9 @@ rpc GetMemory(GetMemoryRequest) returns (GetMemoryResponse)
 ```
 rpc SearchMemories(SearchMemoriesRequest) returns (SearchMemoriesResponse)
 ```
+
+| REST | `POST /v1/memories:search` |
+|------|----------------------------|
 
 **Request**: `{scope, query_text, query_embedding, top_k}`
 **Response**: `{memories[]}`
@@ -434,6 +518,9 @@ rpc SearchMemories(SearchMemoriesRequest) returns (SearchMemoriesResponse)
 rpc AddMemory(AddMemoryRequest) returns (Memory)
 ```
 
+| REST | `POST /v1/memories` |
+|------|---------------------|
+
 **Request**: `{scope, content, metadata}`
 **Response**: `{memory}`
 **Permission**: authenticated
@@ -444,6 +531,9 @@ rpc AddMemory(AddMemoryRequest) returns (Memory)
 ```
 rpc UpdateMemory(UpdateMemoryRequest) returns (Memory)
 ```
+
+| REST | `PATCH /v1/memories/{id}` |
+|------|---------------------------|
 
 **Request**: `{id, content, metadata}`
 **Response**: `{memory}`
@@ -456,6 +546,9 @@ rpc UpdateMemory(UpdateMemoryRequest) returns (Memory)
 rpc DeleteMemory(DeleteMemoryRequest) returns (DeleteMemoryResponse)
 ```
 
+| REST | `DELETE /v1/memories/{id}` |
+|------|----------------------------|
+
 **Request**: `{id}`
 **Response**: `{}`
 **Permission**: authenticated
@@ -467,6 +560,9 @@ rpc DeleteMemory(DeleteMemoryRequest) returns (DeleteMemoryResponse)
 rpc ListMemories(ListMemoriesRequest) returns (ListMemoriesResponse)
 ```
 
+| REST | `GET /v1/memories/{scope}/list` |
+|------|----------------------------------|
+
 **Request**: `{scope, include_invalidated}`
 **Response**: `{memories[]}`
 **Permission**: authenticated
@@ -477,6 +573,9 @@ rpc ListMemories(ListMemoriesRequest) returns (ListMemoriesResponse)
 ```
 rpc ListScopes(ListScopesRequest) returns (ListScopesResponse)
 ```
+
+| REST | `GET /v1/memories:scopes` |
+|------|---------------------------|
 
 **Request**: `{}`
 **Response**: `{scopes[]}`
@@ -495,6 +594,9 @@ Jobs track asynchronous work such as document extraction, chunking, and embeddin
 rpc GetJob(GetJobRequest) returns (Job)
 ```
 
+| REST | `GET /v1/jobs/{id}` |
+|------|---------------------|
+
 **Request**: `{id}`
 **Response**: `{job}`
 **Permission**: authenticated
@@ -505,6 +607,9 @@ rpc GetJob(GetJobRequest) returns (Job)
 ```
 rpc ListJobs(ListJobsRequest) returns (ListJobsResponse)
 ```
+
+| REST | `GET /v1/jobs` |
+|------|----------------|
 
 **Request**: `{topic_id, document_id, status, page_size, page_token}`
 **Response**: `{jobs[], next_page_token}`
@@ -521,6 +626,9 @@ rpc ListJobs(ListJobsRequest) returns (ListJobsResponse)
 rpc Health(HealthRequest) returns (HealthResponse)
 ```
 
+| REST | `GET /v1/health` |
+|------|------------------|
+
 **Request**: `{}`
 **Response**: `{status, version}`
 **Permission**: none (unauthenticated)
@@ -531,6 +639,9 @@ rpc Health(HealthRequest) returns (HealthResponse)
 ```
 rpc CreateSystemAccount(CreateSystemAccountRequest) returns (CreateSystemAccountResponse)
 ```
+
+| REST | `POST /v1/admin/accounts` |
+|------|---------------------------|
 
 **Request**: `{name, description}`
 **Response**: `{account, api_key}`
@@ -543,6 +654,9 @@ rpc CreateSystemAccount(CreateSystemAccountRequest) returns (CreateSystemAccount
 rpc ListSystemAccounts(ListSystemAccountsRequest) returns (ListSystemAccountsResponse)
 ```
 
+| REST | `GET /v1/admin/accounts` |
+|------|--------------------------|
+
 **Request**: `{}`
 **Response**: `{accounts[]}`
 **Permission**: admin
@@ -554,6 +668,9 @@ rpc ListSystemAccounts(ListSystemAccountsRequest) returns (ListSystemAccountsRes
 rpc DeleteSystemAccount(DeleteSystemAccountRequest) returns (DeleteSystemAccountResponse)
 ```
 
+| REST | `DELETE /v1/admin/accounts/{id}` |
+|------|---------------------------------|
+
 **Request**: `{id}`
 **Permission**: admin
 **Behavior**: Deletes the system account and all its keys. Topic grants referencing this account's principal remain as orphaned rows (no effect on access).
@@ -563,6 +680,9 @@ rpc DeleteSystemAccount(DeleteSystemAccountRequest) returns (DeleteSystemAccount
 ```
 rpc RotateKey(RotateKeyRequest) returns (RotateKeyResponse)
 ```
+
+| REST | `POST /v1/admin/accounts/{account_id}/rotate` |
+|------|------------------------------------------------|
 
 **Request**: `{account_id, grace_period_seconds}`
 **Response**: `{api_key}`
@@ -575,53 +695,107 @@ rpc RotateKey(RotateKeyRequest) returns (RotateKeyResponse)
 rpc RevokeKey(RevokeKeyRequest) returns (RevokeKeyResponse)
 ```
 
+| REST | `POST /v1/admin/accounts/{account_id}/revoke` |
+|------|------------------------------------------------|
+
 **Request**: `{account_id}`
 **Permission**: admin
 **Behavior**: Immediately invalidates all active keys for this system account.
 
+### GetStats
+
+```
+rpc GetStats(GetStatsRequest) returns (GetStatsResponse)
+```
+
+| REST | `GET /v1/admin/stats` |
+|------|----------------------|
+
+**Request**: `{}`
+**Response**: `{api_key_configs, llm_configs, embedding_configs, extraction_prompt_configs, topics, system_accounts, documents, chunks, memories}` (all `int64`)
+**Permission**: admin
+**Behavior**: Returns row counts for all major entity tables in a single database query. Used by the admin dashboard for the overview page.
+
 ---
 
-## ConfigService: VectorBackendConfig
+## ConfigService
 
-Managed vector backend configurations. Requires system account for all operations.
+Managed server configuration. All ConfigService RPCs require a system account. Each config type follows the same CRUD+SetDefault pattern. `is_default` is a singleton flag; setting a new default clears the previous one.
 
-### CreateVectorBackendConfig
+### API Key Configs
 
-```
-POST /v1/config/vector-backend
-```
+Store third-party API keys (e.g. OpenAI) encrypted at rest. Referenced by LLM and embedding configs.
 
-**Request**: `{name, backend, config, is_default}`
-**Behavior**: Creates a vector backend config. `backend` is the type (e.g. "pgvector"). `config` is a key-value map of backend-specific settings. If `is_default` is true, clears any previous default.
+| RPC | REST |
+|-----|------|
+| CreateAPIKeyConfig | `POST /v1/config/apikey` |
+| GetAPIKeyConfig | `GET /v1/config/apikey/{id}` |
+| ListAPIKeyConfigs | `GET /v1/config/apikey` |
+| UpdateAPIKeyConfig | `PATCH /v1/config/apikey/{id}` |
+| DeleteAPIKeyConfig | `DELETE /v1/config/apikey/{id}` |
+| SetDefaultAPIKeyConfig | `POST /v1/config/apikey/{id}/default` |
 
-### GetVectorBackendConfig
+**Create request**: `{name, provider, api_key, is_default}`. The `api_key` field is write-only; it is encrypted at rest and never returned.
+**Update request**: `{id, name, provider, api_key}`. If `api_key` is set, replaces the stored key.
 
-```
-GET /v1/config/vector-backend/{id}
-```
+### LLM Configs
 
-### ListVectorBackendConfigs
+Configure which LLM to use for compaction, memory extraction, and semantic chunking.
 
-```
-GET /v1/config/vector-backend
-```
+| RPC | REST |
+|-----|------|
+| CreateLLMConfig | `POST /v1/config/llm` |
+| GetLLMConfig | `GET /v1/config/llm/{id}` |
+| ListLLMConfigs | `GET /v1/config/llm` |
+| UpdateLLMConfig | `PATCH /v1/config/llm/{id}` |
+| DeleteLLMConfig | `DELETE /v1/config/llm/{id}` |
+| SetDefaultLLMConfig | `POST /v1/config/llm/{id}/default` |
 
-### UpdateVectorBackendConfig
+**Create request**: `{name, provider, model, parameters, api_key_config_id, is_default}`.
 
-```
-PATCH /v1/config/vector-backend/{id}
-```
+### Embedding Configs
 
-**Request**: `{id, name, config}` (backend type cannot be changed post-creation)
+Configure which embedding model to use for vector search.
 
-### DeleteVectorBackendConfig
+| RPC | REST |
+|-----|------|
+| CreateEmbeddingConfig | `POST /v1/config/embedding` |
+| GetEmbeddingConfig | `GET /v1/config/embedding/{id}` |
+| ListEmbeddingConfigs | `GET /v1/config/embedding` |
+| UpdateEmbeddingConfig | `PATCH /v1/config/embedding/{id}` |
+| DeleteEmbeddingConfig | `DELETE /v1/config/embedding/{id}` |
+| SetDefaultEmbeddingConfig | `POST /v1/config/embedding/{id}/default` |
 
-```
-DELETE /v1/config/vector-backend/{id}
-```
+**Create request**: `{name, provider, model, dimensions, api_key_config_id, is_default}`.
+**Update request**: `{id, name, api_key_config_id}`. Provider, model, and dimensions cannot be changed (would require re-embedding all vectors).
 
-### SetDefaultVectorBackendConfig
+### Extraction Prompt Configs
 
-```
-POST /v1/config/vector-backend/{id}/default
-```
+Custom prompts for the document extraction pipeline.
+
+| RPC | REST |
+|-----|------|
+| CreateExtractionPromptConfig | `POST /v1/config/prompt` |
+| GetExtractionPromptConfig | `GET /v1/config/prompt/{id}` |
+| ListExtractionPromptConfigs | `GET /v1/config/prompt` |
+| UpdateExtractionPromptConfig | `PATCH /v1/config/prompt/{id}` |
+| DeleteExtractionPromptConfig | `DELETE /v1/config/prompt/{id}` |
+| SetDefaultExtractionPromptConfig | `POST /v1/config/prompt/{id}/default` |
+
+**Create request**: `{name, prompt, description, is_default}`.
+
+### Vector Backend Configs
+
+Configure vector storage backends (pgvector, Qdrant, Weaviate). Topics can reference a specific config to route their vectors to a different store.
+
+| RPC | REST |
+|-----|------|
+| CreateVectorBackendConfig | `POST /v1/config/vector-backend` |
+| GetVectorBackendConfig | `GET /v1/config/vector-backend/{id}` |
+| ListVectorBackendConfigs | `GET /v1/config/vector-backend` |
+| UpdateVectorBackendConfig | `PATCH /v1/config/vector-backend/{id}` |
+| DeleteVectorBackendConfig | `DELETE /v1/config/vector-backend/{id}` |
+| SetDefaultVectorBackendConfig | `POST /v1/config/vector-backend/{id}/default` |
+
+**Create request**: `{name, backend, config, is_default}`. `backend` is the type (e.g. "pgvector", "qdrant", "weaviate"). `config` is a key-value map of backend-specific connection settings.
+**Update request**: `{id, name, config}`. Backend type cannot be changed post-creation.
