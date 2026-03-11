@@ -48,14 +48,14 @@
     @endif
 
     {{-- Chunk List with Filters --}}
-    <div x-data="{ show: { active: true, summary: true, compacted: true } }">
+    <div x-data="{ show: { original: true, summary: true, compacted: true } }">
 
         {{-- Filter toggles --}}
         <div class="flex items-center gap-4 mb-4 text-xs text-slate-600">
             <span class="text-slate-400">Show:</span>
             <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                <input type="checkbox" x-model="show.active" class="rounded border-slate-300 text-green-500 focus:ring-green-500">
-                <span class="inline-block w-2 h-2 rounded-full bg-green-400"></span> Active
+                <input type="checkbox" x-model="show.original" class="rounded border-slate-300 text-green-500 focus:ring-green-500">
+                <span class="inline-block w-2 h-2 rounded-full bg-green-400"></span> Original
             </label>
             <label class="flex items-center gap-1.5 cursor-pointer select-none">
                 <input type="checkbox" x-model="show.summary" class="rounded border-slate-300 text-blue-500 focus:ring-blue-500">
@@ -83,15 +83,15 @@
                 <tbody class="divide-y divide-slate-200">
                     @forelse ($chunks as $chunk)
                         @php
-                            $role = $chunk['_role'] ?? 'active';
+                            $role = $chunk['_role'] ?? 'original';
                             $statusColor = match($role) {
-                                'active' => 'bg-green-400',
+                                'original' => 'bg-green-400',
                                 'summary' => 'bg-blue-400',
                                 'compacted' => 'bg-slate-300',
                                 default => 'bg-slate-300',
                             };
                             $statusLabel = match($role) {
-                                'active' => 'Active',
+                                'original' => 'Original',
                                 'summary' => 'Summary',
                                 'compacted' => 'Compacted',
                                 default => $role,

@@ -54,7 +54,7 @@ class ChunkController extends Controller
 
             foreach ($activeChunks as $chunk) {
                 $id = $chunk['id'] ?? '';
-                $chunk['_role'] = in_array($id, $summaryChunkIds) ? 'summary' : 'active';
+                $chunk['_role'] = in_array($id, $summaryChunkIds) ? 'summary' : 'original';
                 $chunk['_compaction'] = $compactionMeta[$id] ?? null;
                 $allChunks[] = $chunk;
             }
@@ -73,7 +73,7 @@ class ChunkController extends Controller
                 if ($seqA !== $seqB) {
                     return $seqA <=> $seqB;
                 }
-                $order = ['active' => 0, 'summary' => 1, 'compacted' => 2];
+                $order = ['original' => 0, 'summary' => 1, 'compacted' => 2];
                 return ($order[$a['_role']] ?? 9) <=> ($order[$b['_role']] ?? 9);
             });
         } catch (CreelApiException $e) {
