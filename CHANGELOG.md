@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Helm ingress values renamed from `ingress.creel` to `ingress.rest` for clarity. The ingress section is now `rest` / `grpc` / `dashboard`.
+- Separate Ingress resource for gRPC with `backend-protocol: GRPC` annotation. REST and gRPC require different hostnames because nginx ingress does not allow duplicate host+path across Ingress resources.
+- Validation fails early if `ingress.rest.host` or `ingress.grpc.host` is missing when ingress is enabled, or if they are set to the same value.
+
+### Removed
+
+- Dead `embedding` section from Helm `values.yaml`. Embedding configuration is fully database-driven via the config registry.
+
 ## [0.7.1] - 2026-03-11
 
 ### Added

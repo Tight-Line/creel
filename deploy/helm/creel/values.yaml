@@ -28,11 +28,6 @@ vectorBackend:
   type: pgvector
   config: {}
 
-embedding:
-  provider: ""
-  model: ""
-  # apiKeySecret: ""
-
 links:
   autoLinkOnIngest: true
   autoLinkThreshold: 0.85
@@ -106,8 +101,13 @@ ingress:
   className: ""
   annotations: {}
   tls: []
-  creel:
-    # Required when ingress is enabled.
+  rest:
+    # Required when ingress is enabled. REST gateway (HTTP/JSON).
+    host: ""
+  grpc:
+    # Required when ingress is enabled. Native gRPC (HTTP/2).
+    # Must be a different hostname than rest.host; nginx ingress
+    # does not allow two Ingress resources with the same host+path.
     host: ""
   dashboard:
     # Required when both ingress and dashboard are enabled.
