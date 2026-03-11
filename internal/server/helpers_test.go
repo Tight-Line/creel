@@ -434,7 +434,7 @@ type mockPinger struct {
 func (p *mockPinger) Ping(_ context.Context) error { return p.err }
 
 func TestHealth_OK(t *testing.T) {
-	s := NewAdminServer(&mockPinger{}, store.NewSystemAccountStore(failDBTX()), "v1")
+	s := NewAdminServer(&mockPinger{}, store.NewSystemAccountStore(failDBTX()), store.NewStatsStore(failDBTX()), "v1")
 	resp, err := s.Health(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -448,7 +448,7 @@ func TestHealth_OK(t *testing.T) {
 }
 
 func TestHealth_Unhealthy(t *testing.T) {
-	s := NewAdminServer(&mockPinger{err: errors.New("db down")}, store.NewSystemAccountStore(failDBTX()), "v1")
+	s := NewAdminServer(&mockPinger{err: errors.New("db down")}, store.NewSystemAccountStore(failDBTX()), store.NewStatsStore(failDBTX()), "v1")
 	resp, err := s.Health(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -496,7 +496,7 @@ func TestServerGracefulStop(t *testing.T) {
 
 func TestAdminServer_CreateSystemAccount_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewAdminServer(nil, store.NewSystemAccountStore(db), "test")
+	s := NewAdminServer(nil, store.NewSystemAccountStore(db), store.NewStatsStore(db), "test")
 	ctx := systemCtx()
 
 	_, err := s.CreateSystemAccount(ctx, &pb.CreateSystemAccountRequest{Name: "x"})
@@ -505,7 +505,7 @@ func TestAdminServer_CreateSystemAccount_StoreError(t *testing.T) {
 
 func TestAdminServer_ListSystemAccounts_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewAdminServer(nil, store.NewSystemAccountStore(db), "test")
+	s := NewAdminServer(nil, store.NewSystemAccountStore(db), store.NewStatsStore(db), "test")
 	ctx := systemCtx()
 
 	_, err := s.ListSystemAccounts(ctx, &pb.ListSystemAccountsRequest{})
@@ -514,7 +514,7 @@ func TestAdminServer_ListSystemAccounts_StoreError(t *testing.T) {
 
 func TestAdminServer_DeleteSystemAccount_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewAdminServer(nil, store.NewSystemAccountStore(db), "test")
+	s := NewAdminServer(nil, store.NewSystemAccountStore(db), store.NewStatsStore(db), "test")
 	ctx := systemCtx()
 
 	_, err := s.DeleteSystemAccount(ctx, &pb.DeleteSystemAccountRequest{Id: "some-id"})
@@ -523,7 +523,7 @@ func TestAdminServer_DeleteSystemAccount_StoreError(t *testing.T) {
 
 func TestAdminServer_RotateKey_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewAdminServer(nil, store.NewSystemAccountStore(db), "test")
+	s := NewAdminServer(nil, store.NewSystemAccountStore(db), store.NewStatsStore(db), "test")
 	ctx := systemCtx()
 
 	_, err := s.RotateKey(ctx, &pb.RotateKeyRequest{AccountId: "some-id"})
@@ -532,10 +532,19 @@ func TestAdminServer_RotateKey_StoreError(t *testing.T) {
 
 func TestAdminServer_RevokeKey_StoreError(t *testing.T) {
 	db := failDBTX()
-	s := NewAdminServer(nil, store.NewSystemAccountStore(db), "test")
+	s := NewAdminServer(nil, store.NewSystemAccountStore(db), store.NewStatsStore(db), "test")
 	ctx := systemCtx()
 
 	_, err := s.RevokeKey(ctx, &pb.RevokeKeyRequest{AccountId: "some-id"})
+	requireCode(t, err, codes.Internal)
+}
+
+func TestAdminServer_GetStats_StoreError(t *testing.T) {
+	db := failDBTX()
+	s := NewAdminServer(nil, store.NewSystemAccountStore(db), store.NewStatsStore(db), "test")
+	ctx := systemCtx()
+
+	_, err := s.GetStats(ctx, &pb.GetStatsRequest{})
 	requireCode(t, err, codes.Internal)
 }
 

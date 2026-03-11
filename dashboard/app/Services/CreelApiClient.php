@@ -17,11 +17,16 @@ class CreelApiClient
         $this->apiKey = config('creel.api_key');
     }
 
-    // Health
+    // Health & Stats
 
     public function health(): array
     {
         return $this->request('GET', '/v1/health');
+    }
+
+    public function getStats(): array
+    {
+        return $this->request('GET', '/v1/admin/stats');
     }
 
     // API Key Configs

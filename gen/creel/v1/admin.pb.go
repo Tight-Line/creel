@@ -627,6 +627,150 @@ func (*RevokeKeyResponse) Descriptor() ([]byte, []int) {
 	return file_creel_v1_admin_proto_rawDescGZIP(), []int{12}
 }
 
+type GetStatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStatsRequest) Reset() {
+	*x = GetStatsRequest{}
+	mi := &file_creel_v1_admin_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatsRequest) ProtoMessage() {}
+
+func (x *GetStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_creel_v1_admin_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatsRequest.ProtoReflect.Descriptor instead.
+func (*GetStatsRequest) Descriptor() ([]byte, []int) {
+	return file_creel_v1_admin_proto_rawDescGZIP(), []int{13}
+}
+
+type GetStatsResponse struct {
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	ApiKeyConfigs           int64                  `protobuf:"varint,1,opt,name=api_key_configs,json=apiKeyConfigs,proto3" json:"api_key_configs,omitempty"`
+	LlmConfigs              int64                  `protobuf:"varint,2,opt,name=llm_configs,json=llmConfigs,proto3" json:"llm_configs,omitempty"`
+	EmbeddingConfigs        int64                  `protobuf:"varint,3,opt,name=embedding_configs,json=embeddingConfigs,proto3" json:"embedding_configs,omitempty"`
+	ExtractionPromptConfigs int64                  `protobuf:"varint,4,opt,name=extraction_prompt_configs,json=extractionPromptConfigs,proto3" json:"extraction_prompt_configs,omitempty"`
+	Topics                  int64                  `protobuf:"varint,5,opt,name=topics,proto3" json:"topics,omitempty"`
+	SystemAccounts          int64                  `protobuf:"varint,6,opt,name=system_accounts,json=systemAccounts,proto3" json:"system_accounts,omitempty"`
+	Documents               int64                  `protobuf:"varint,7,opt,name=documents,proto3" json:"documents,omitempty"`
+	Chunks                  int64                  `protobuf:"varint,8,opt,name=chunks,proto3" json:"chunks,omitempty"`
+	Memories                int64                  `protobuf:"varint,9,opt,name=memories,proto3" json:"memories,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *GetStatsResponse) Reset() {
+	*x = GetStatsResponse{}
+	mi := &file_creel_v1_admin_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatsResponse) ProtoMessage() {}
+
+func (x *GetStatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_creel_v1_admin_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatsResponse.ProtoReflect.Descriptor instead.
+func (*GetStatsResponse) Descriptor() ([]byte, []int) {
+	return file_creel_v1_admin_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *GetStatsResponse) GetApiKeyConfigs() int64 {
+	if x != nil {
+		return x.ApiKeyConfigs
+	}
+	return 0
+}
+
+func (x *GetStatsResponse) GetLlmConfigs() int64 {
+	if x != nil {
+		return x.LlmConfigs
+	}
+	return 0
+}
+
+func (x *GetStatsResponse) GetEmbeddingConfigs() int64 {
+	if x != nil {
+		return x.EmbeddingConfigs
+	}
+	return 0
+}
+
+func (x *GetStatsResponse) GetExtractionPromptConfigs() int64 {
+	if x != nil {
+		return x.ExtractionPromptConfigs
+	}
+	return 0
+}
+
+func (x *GetStatsResponse) GetTopics() int64 {
+	if x != nil {
+		return x.Topics
+	}
+	return 0
+}
+
+func (x *GetStatsResponse) GetSystemAccounts() int64 {
+	if x != nil {
+		return x.SystemAccounts
+	}
+	return 0
+}
+
+func (x *GetStatsResponse) GetDocuments() int64 {
+	if x != nil {
+		return x.Documents
+	}
+	return 0
+}
+
+func (x *GetStatsResponse) GetChunks() int64 {
+	if x != nil {
+		return x.Chunks
+	}
+	return 0
+}
+
+func (x *GetStatsResponse) GetMemories() int64 {
+	if x != nil {
+		return x.Memories
+	}
+	return 0
+}
+
 var File_creel_v1_admin_proto protoreflect.FileDescriptor
 
 const file_creel_v1_admin_proto_rawDesc = "" +
@@ -664,7 +808,19 @@ const file_creel_v1_admin_proto_rawDesc = "" +
 	"\x10RevokeKeyRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\"\x13\n" +
-	"\x11RevokeKeyResponse2\xd5\x05\n" +
+	"\x11RevokeKeyResponse\"\x11\n" +
+	"\x0fGetStatsRequest\"\xd7\x02\n" +
+	"\x10GetStatsResponse\x12&\n" +
+	"\x0fapi_key_configs\x18\x01 \x01(\x03R\rapiKeyConfigs\x12\x1f\n" +
+	"\vllm_configs\x18\x02 \x01(\x03R\n" +
+	"llmConfigs\x12+\n" +
+	"\x11embedding_configs\x18\x03 \x01(\x03R\x10embeddingConfigs\x12:\n" +
+	"\x19extraction_prompt_configs\x18\x04 \x01(\x03R\x17extractionPromptConfigs\x12\x16\n" +
+	"\x06topics\x18\x05 \x01(\x03R\x06topics\x12'\n" +
+	"\x0fsystem_accounts\x18\x06 \x01(\x03R\x0esystemAccounts\x12\x1c\n" +
+	"\tdocuments\x18\a \x01(\x03R\tdocuments\x12\x16\n" +
+	"\x06chunks\x18\b \x01(\x03R\x06chunks\x12\x1a\n" +
+	"\bmemories\x18\t \x01(\x03R\bmemories2\xb1\x06\n" +
 	"\fAdminService\x12O\n" +
 	"\x06Health\x12\x17.creel.v1.HealthRequest\x1a\x18.creel.v1.HealthResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
 	"/v1/health\x12\x81\x01\n" +
@@ -672,7 +828,8 @@ const file_creel_v1_admin_proto_rawDesc = "" +
 	"\x12ListSystemAccounts\x12#.creel.v1.ListSystemAccountsRequest\x1a$.creel.v1.ListSystemAccountsResponse\"\x1a\x82\xd3\xe4\x93\x02\x14\x12\x12/v1/admin/accounts\x12\x83\x01\n" +
 	"\x13DeleteSystemAccount\x12$.creel.v1.DeleteSystemAccountRequest\x1a%.creel.v1.DeleteSystemAccountResponse\"\x1f\x82\xd3\xe4\x93\x02\x19*\x17/v1/admin/accounts/{id}\x12w\n" +
 	"\tRotateKey\x12\x1a.creel.v1.RotateKeyRequest\x1a\x1b.creel.v1.RotateKeyResponse\"1\x82\xd3\xe4\x93\x02+:\x01*\"&/v1/admin/accounts/{account_id}/rotate\x12t\n" +
-	"\tRevokeKey\x12\x1a.creel.v1.RevokeKeyRequest\x1a\x1b.creel.v1.RevokeKeyResponse\".\x82\xd3\xe4\x93\x02(\"&/v1/admin/accounts/{account_id}/revokeB\x8d\x01\n" +
+	"\tRevokeKey\x12\x1a.creel.v1.RevokeKeyRequest\x1a\x1b.creel.v1.RevokeKeyResponse\".\x82\xd3\xe4\x93\x02(\"&/v1/admin/accounts/{account_id}/revoke\x12Z\n" +
+	"\bGetStats\x12\x19.creel.v1.GetStatsRequest\x1a\x1a.creel.v1.GetStatsResponse\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/v1/admin/statsB\x8d\x01\n" +
 	"\fcom.creel.v1B\n" +
 	"AdminProtoP\x01Z0github.com/Tight-Line/creel/gen/creel/v1;creelv1\xa2\x02\x03CXX\xaa\x02\bCreel.V1\xca\x02\bCreel\\V1\xe2\x02\x14Creel\\V1\\GPBMetadata\xea\x02\tCreel::V1b\x06proto3"
 
@@ -688,7 +845,7 @@ func file_creel_v1_admin_proto_rawDescGZIP() []byte {
 	return file_creel_v1_admin_proto_rawDescData
 }
 
-var file_creel_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_creel_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_creel_v1_admin_proto_goTypes = []any{
 	(*HealthRequest)(nil),               // 0: creel.v1.HealthRequest
 	(*HealthResponse)(nil),              // 1: creel.v1.HealthResponse
@@ -703,10 +860,12 @@ var file_creel_v1_admin_proto_goTypes = []any{
 	(*RotateKeyResponse)(nil),           // 10: creel.v1.RotateKeyResponse
 	(*RevokeKeyRequest)(nil),            // 11: creel.v1.RevokeKeyRequest
 	(*RevokeKeyResponse)(nil),           // 12: creel.v1.RevokeKeyResponse
-	(*timestamppb.Timestamp)(nil),       // 13: google.protobuf.Timestamp
+	(*GetStatsRequest)(nil),             // 13: creel.v1.GetStatsRequest
+	(*GetStatsResponse)(nil),            // 14: creel.v1.GetStatsResponse
+	(*timestamppb.Timestamp)(nil),       // 15: google.protobuf.Timestamp
 }
 var file_creel_v1_admin_proto_depIdxs = []int32{
-	13, // 0: creel.v1.SystemAccount.created_at:type_name -> google.protobuf.Timestamp
+	15, // 0: creel.v1.SystemAccount.created_at:type_name -> google.protobuf.Timestamp
 	2,  // 1: creel.v1.CreateSystemAccountResponse.account:type_name -> creel.v1.SystemAccount
 	2,  // 2: creel.v1.ListSystemAccountsResponse.accounts:type_name -> creel.v1.SystemAccount
 	0,  // 3: creel.v1.AdminService.Health:input_type -> creel.v1.HealthRequest
@@ -715,14 +874,16 @@ var file_creel_v1_admin_proto_depIdxs = []int32{
 	7,  // 6: creel.v1.AdminService.DeleteSystemAccount:input_type -> creel.v1.DeleteSystemAccountRequest
 	9,  // 7: creel.v1.AdminService.RotateKey:input_type -> creel.v1.RotateKeyRequest
 	11, // 8: creel.v1.AdminService.RevokeKey:input_type -> creel.v1.RevokeKeyRequest
-	1,  // 9: creel.v1.AdminService.Health:output_type -> creel.v1.HealthResponse
-	4,  // 10: creel.v1.AdminService.CreateSystemAccount:output_type -> creel.v1.CreateSystemAccountResponse
-	6,  // 11: creel.v1.AdminService.ListSystemAccounts:output_type -> creel.v1.ListSystemAccountsResponse
-	8,  // 12: creel.v1.AdminService.DeleteSystemAccount:output_type -> creel.v1.DeleteSystemAccountResponse
-	10, // 13: creel.v1.AdminService.RotateKey:output_type -> creel.v1.RotateKeyResponse
-	12, // 14: creel.v1.AdminService.RevokeKey:output_type -> creel.v1.RevokeKeyResponse
-	9,  // [9:15] is the sub-list for method output_type
-	3,  // [3:9] is the sub-list for method input_type
+	13, // 9: creel.v1.AdminService.GetStats:input_type -> creel.v1.GetStatsRequest
+	1,  // 10: creel.v1.AdminService.Health:output_type -> creel.v1.HealthResponse
+	4,  // 11: creel.v1.AdminService.CreateSystemAccount:output_type -> creel.v1.CreateSystemAccountResponse
+	6,  // 12: creel.v1.AdminService.ListSystemAccounts:output_type -> creel.v1.ListSystemAccountsResponse
+	8,  // 13: creel.v1.AdminService.DeleteSystemAccount:output_type -> creel.v1.DeleteSystemAccountResponse
+	10, // 14: creel.v1.AdminService.RotateKey:output_type -> creel.v1.RotateKeyResponse
+	12, // 15: creel.v1.AdminService.RevokeKey:output_type -> creel.v1.RevokeKeyResponse
+	14, // 16: creel.v1.AdminService.GetStats:output_type -> creel.v1.GetStatsResponse
+	10, // [10:17] is the sub-list for method output_type
+	3,  // [3:10] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -739,7 +900,7 @@ func file_creel_v1_admin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_creel_v1_admin_proto_rawDesc), len(file_creel_v1_admin_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

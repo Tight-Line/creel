@@ -22,14 +22,16 @@ type AdminServer struct {
 	pb.UnimplementedAdminServiceServer
 	pinger       Pinger
 	accountStore *store.SystemAccountStore
+	statsStore   *store.StatsStore
 	version      string
 }
 
 // NewAdminServer creates a new admin service.
-func NewAdminServer(pinger Pinger, accountStore *store.SystemAccountStore, version string) *AdminServer {
+func NewAdminServer(pinger Pinger, accountStore *store.SystemAccountStore, statsStore *store.StatsStore, version string) *AdminServer {
 	return &AdminServer{
 		pinger:       pinger,
 		accountStore: accountStore,
+		statsStore:   statsStore,
 		version:      version,
 	}
 }
@@ -120,6 +122,26 @@ func (s *AdminServer) RevokeKey(ctx context.Context, req *pb.RevokeKeyRequest) (
 	}
 
 	return &pb.RevokeKeyResponse{}, nil
+}
+
+// GetStats returns row counts for all major entity tables.
+func (s *AdminServer) GetStats(ctx context.Context, _ *pb.GetStatsRequest) (*pb.GetStatsResponse, error) {
+	stats, err := s.statsStore.GetStats(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "fetching stats: %v", err)
+	}
+
+	return &pb.GetStatsResponse{
+		ApiKeyConfigs:           stats.APIKeyConfigs,
+		LlmConfigs:              stats.LLMConfigs,
+		EmbeddingConfigs:        stats.EmbeddingConfigs,
+		ExtractionPromptConfigs: stats.ExtractionPromptConfigs,
+		Topics:                  stats.Topics,
+		SystemAccounts:          stats.SystemAccounts,
+		Documents:               stats.Documents,
+		Chunks:                  stats.Chunks,
+		Memories:                stats.Memories,
+	}, nil
 }
 
 func storeAccountToProto(a *store.SystemAccount) *pb.SystemAccount {
