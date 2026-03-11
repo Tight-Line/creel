@@ -95,7 +95,7 @@ func setupTestEnv(t *testing.T) *testEnv {
 	jobStore := store.NewJobStore(pool)
 	pb.RegisterDocumentServiceServer(srv.GRPCServer(), server.NewDocumentServer(docStore, jobStore, nil, authorizer))
 	pb.RegisterChunkServiceServer(srv.GRPCServer(), server.NewChunkServer(chunkStore, docStore, topicStore, jobStore, backend, authorizer))
-	pb.RegisterRetrievalServiceServer(srv.GRPCServer(), server.NewRetrievalServer(searcher, contextFetcher, nil))
+	pb.RegisterRetrievalServiceServer(srv.GRPCServer(), server.NewRetrievalServer(searcher, contextFetcher, nil, chunkStore))
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

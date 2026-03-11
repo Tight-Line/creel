@@ -168,7 +168,7 @@ func run() error {
 	searcher := retrieval.NewSearcher(chunkStore, docStore, authorizer, vectorBackend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authorizer)
 	singleEmbedder := &singleTextEmbedder{batch: embeddingProvider}
-	retrievalServer := server.NewRetrievalServer(searcher, contextFetcher, singleEmbedder)
+	retrievalServer := server.NewRetrievalServer(searcher, contextFetcher, singleEmbedder, chunkStore)
 	configServer := server.NewConfigServer(apiKeyConfigStore, llmConfigStore, embeddingConfigStore, extractionPromptConfigStore, vectorBackendConfigStore)
 	jobServer := server.NewJobServer(jobStore, docStore, authorizer)
 	linkServer := server.NewLinkServer(linkStore, chunkStore, authorizer)
@@ -319,6 +319,15 @@ func (d *dynamicEmbeddingProvider) Dimensions() int {
 		return d.fallbackDim
 	}
 	return provider.Dimensions()
+}
+
+func (d *dynamicEmbeddingProvider) Model() string {
+	ctx := context.Background()
+	provider, err := d.resolve(ctx)
+	if err != nil {
+		return ""
+	}
+	return provider.Model()
 }
 
 // dynamicLLMProvider resolves the default LLM config from the database on each

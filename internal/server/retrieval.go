@@ -10,6 +10,7 @@ import (
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
 	"github.com/Tight-Line/creel/internal/auth"
 	"github.com/Tight-Line/creel/internal/retrieval"
+	"github.com/Tight-Line/creel/internal/store"
 )
 
 // RetrievalServer implements the RetrievalService gRPC service.
@@ -18,13 +19,16 @@ type RetrievalServer struct {
 	searcher       *retrieval.Searcher
 	contextFetcher *retrieval.ContextFetcher
 	embedder       EmbeddingProvider
+	chunkStore     *store.ChunkStore
 }
 
 // NewRetrievalServer creates a new retrieval service.
 // The embedder is optional; if nil, query_text is not supported and clients
 // must provide query_embedding directly.
-func NewRetrievalServer(searcher *retrieval.Searcher, contextFetcher *retrieval.ContextFetcher, embedder EmbeddingProvider) *RetrievalServer {
-	return &RetrievalServer{searcher: searcher, contextFetcher: contextFetcher, embedder: embedder}
+// The chunkStore is optional; if non-nil, chunk responses are enriched with
+// embedding model info from chunk_embeddings metadata.
+func NewRetrievalServer(searcher *retrieval.Searcher, contextFetcher *retrieval.ContextFetcher, embedder EmbeddingProvider, chunkStore *store.ChunkStore) *RetrievalServer {
+	return &RetrievalServer{searcher: searcher, contextFetcher: contextFetcher, embedder: embedder, chunkStore: chunkStore}
 }
 
 // Search performs ACL-filtered similarity search.
@@ -96,6 +100,11 @@ func (s *RetrievalServer) GetContext(ctx context.Context, req *pb.GetContextRequ
 	chunks, err := s.contextFetcher.GetContext(ctx, p, req.GetDocumentId(), lastN, since)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get context: %v", err)
+	}
+
+	// Enrich chunks with embedding model info.
+	if s.chunkStore != nil { // coverage:ignore - requires chunk_embeddings table; tested via integration
+		enrichChunksWithEmbeddingModel(ctx, s.chunkStore, chunks)
 	}
 
 	pbChunks := make([]*pb.Chunk, len(chunks))

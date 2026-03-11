@@ -134,6 +134,13 @@ func TestOpenAIEmbeddingProvider_InvalidJSON(t *testing.T) {
 	}
 }
 
+func TestOpenAIEmbeddingProvider_Model(t *testing.T) {
+	p := NewOpenAIEmbeddingProvider("key", "text-embedding-3-small", 1536)
+	if got := p.Model(); got != "text-embedding-3-small" {
+		t.Errorf("Model() = %q, want %q", got, "text-embedding-3-small")
+	}
+}
+
 func TestOpenAIEmbeddingProvider_Interface(t *testing.T) {
 	var _ EmbeddingProvider = &OpenAIEmbeddingProvider{}
 }

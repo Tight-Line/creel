@@ -786,6 +786,7 @@ func (p *secondCallFailProvider) Embed(_ context.Context, texts []string) ([][]f
 }
 
 func (p *secondCallFailProvider) Dimensions() int { return p.dim }
+func (p *secondCallFailProvider) Model() string    { return "" }
 
 func TestMemoryMaintenanceWorker_UPDATE_SetEmbeddingIDError(t *testing.T) {
 	memDB := &mockMemoryDBTX{queryRows: nil, execErr: errors.New("exec failed")}
@@ -870,6 +871,7 @@ func (p *secondCallEmptyProvider) Embed(_ context.Context, texts []string) ([][]
 }
 
 func (p *secondCallEmptyProvider) Dimensions() int { return p.dim }
+func (p *secondCallEmptyProvider) Model() string    { return "" }
 
 // emptyEmbeddingProvider returns empty embeddings.
 type emptyEmbeddingProvider struct{}
@@ -879,6 +881,7 @@ func (p *emptyEmbeddingProvider) Embed(_ context.Context, _ []string) ([][]float
 }
 
 func (p *emptyEmbeddingProvider) Dimensions() int { return 4 }
+func (p *emptyEmbeddingProvider) Model() string    { return "" }
 
 // mockMemoryDBTXUpdateFail succeeds on Get (QueryRow SELECT) but fails on Update (QueryRow UPDATE).
 type mockMemoryDBTXUpdateFail struct {

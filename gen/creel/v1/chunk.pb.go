@@ -74,18 +74,21 @@ func (ChunkStatus) EnumDescriptor() ([]byte, []int) {
 }
 
 type Chunk struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	DocumentId    string                 `protobuf:"bytes,2,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
-	Sequence      int32                  `protobuf:"varint,3,opt,name=sequence,proto3" json:"sequence,omitempty"`
-	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
-	EmbeddingId   string                 `protobuf:"bytes,5,opt,name=embedding_id,json=embeddingId,proto3" json:"embedding_id,omitempty"`
-	Status        ChunkStatus            `protobuf:"varint,6,opt,name=status,proto3,enum=creel.v1.ChunkStatus" json:"status,omitempty"`
-	CompactedBy   string                 `protobuf:"bytes,7,opt,name=compacted_by,json=compactedBy,proto3" json:"compacted_by,omitempty"`
-	Metadata      *structpb.Struct       `protobuf:"bytes,8,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	DocumentId  string                 `protobuf:"bytes,2,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
+	Sequence    int32                  `protobuf:"varint,3,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Content     string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	EmbeddingId string                 `protobuf:"bytes,5,opt,name=embedding_id,json=embeddingId,proto3" json:"embedding_id,omitempty"`
+	Status      ChunkStatus            `protobuf:"varint,6,opt,name=status,proto3,enum=creel.v1.ChunkStatus" json:"status,omitempty"`
+	CompactedBy string                 `protobuf:"bytes,7,opt,name=compacted_by,json=compactedBy,proto3" json:"compacted_by,omitempty"`
+	Metadata    *structpb.Struct       `protobuf:"bytes,8,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	CreatedAt   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// The embedding model that produced this chunk's vector (e.g. "text-embedding-3-small").
+	// Empty if the chunk has no embedding or the model is unknown.
+	EmbeddingModel string `protobuf:"bytes,10,opt,name=embedding_model,json=embeddingModel,proto3" json:"embedding_model,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Chunk) Reset() {
@@ -179,6 +182,13 @@ func (x *Chunk) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *Chunk) GetEmbeddingModel() string {
+	if x != nil {
+		return x.EmbeddingModel
+	}
+	return ""
 }
 
 type ChunkInput struct {
@@ -473,7 +483,7 @@ var File_creel_v1_chunk_proto protoreflect.FileDescriptor
 
 const file_creel_v1_chunk_proto_rawDesc = "" +
 	"\n" +
-	"\x14creel/v1/chunk.proto\x12\bcreel.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xd3\x02\n" +
+	"\x14creel/v1/chunk.proto\x12\bcreel.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xfc\x02\n" +
 	"\x05Chunk\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vdocument_id\x18\x02 \x01(\tR\n" +
@@ -485,7 +495,9 @@ const file_creel_v1_chunk_proto_rawDesc = "" +
 	"\fcompacted_by\x18\a \x01(\tR\vcompactedBy\x123\n" +
 	"\bmetadata\x18\b \x01(\v2\x17.google.protobuf.StructR\bmetadata\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x95\x01\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12'\n" +
+	"\x0fembedding_model\x18\n" +
+	" \x01(\tR\x0eembeddingModel\"\x95\x01\n" +
 	"\n" +
 	"ChunkInput\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\x12\x1c\n" +

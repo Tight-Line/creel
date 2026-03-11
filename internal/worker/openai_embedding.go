@@ -85,3 +85,8 @@ func (p *OpenAIEmbeddingProvider) Embed(ctx context.Context, texts []string) ([]
 func (p *OpenAIEmbeddingProvider) Dimensions() int {
 	return p.dim
 }
+
+// Model returns the OpenAI model identifier.
+func (p *OpenAIEmbeddingProvider) Model() string {
+	return p.model
+}

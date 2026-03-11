@@ -120,6 +120,13 @@ func (s *ChunkServer) GetChunk(ctx context.Context, req *pb.GetChunkRequest) (*p
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
+	// Enrich with embedding model info.
+	if c.EmbeddingID != nil { // coverage:ignore - requires chunk_embeddings table; tested via integration
+		if models, err := s.chunkStore.GetEmbeddingModels(ctx, []string{c.ID}); err == nil {
+			c.EmbeddingModel = models[c.ID]
+		}
+	}
+
 	return storeChunkToProto(c), nil
 }
 
@@ -174,7 +181,34 @@ func storeChunkToProto(c *store.Chunk) *pb.Chunk {
 	if c.CompactedBy != nil {
 		chunk.CompactedBy = *c.CompactedBy
 	}
+	if c.EmbeddingModel != "" {
+		chunk.EmbeddingModel = c.EmbeddingModel
+	}
 	return chunk
+}
+
+// enrichChunksWithEmbeddingModel batch-fetches embedding model names and sets
+// them on the provided chunks. Best-effort; errors are silently ignored.
+// coverage:ignore - requires chunk_embeddings table; tested via integration
+func enrichChunksWithEmbeddingModel(ctx context.Context, cs *store.ChunkStore, chunks []*store.Chunk) {
+	var ids []string
+	for _, c := range chunks {
+		if c.EmbeddingID != nil {
+			ids = append(ids, c.ID)
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	models, err := cs.GetEmbeddingModels(ctx, ids)
+	if err != nil {
+		return
+	}
+	for _, c := range chunks {
+		if m, ok := models[c.ID]; ok {
+			c.EmbeddingModel = m
+		}
+	}
 }
 
 func stringToChunkStatus(s string) pb.ChunkStatus {
