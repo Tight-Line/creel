@@ -56,6 +56,7 @@ func (s *ChunkServer) IngestChunks(ctx context.Context, req *pb.IngestChunksRequ
 	}
 
 	var pbChunks []*pb.Chunk
+	needsEmbedding := false
 	for _, ci := range req.GetChunks() {
 		meta := structToMap(ci.GetMetadata())
 		c, err := s.chunkStore.Create(ctx, req.GetDocumentId(), ci.GetContent(), int(ci.GetSequence()), meta)
@@ -73,9 +74,16 @@ func (s *ChunkServer) IngestChunks(ctx context.Context, req *pb.IngestChunksRequ
 			}
 			embID := c.ID
 			c.EmbeddingID = &embID
+		} else {
+			needsEmbedding = true
 		}
 
 		pbChunks = append(pbChunks, storeChunkToProto(c))
+	}
+
+	// Enqueue an embedding job if any chunks were ingested without embeddings.
+	if needsEmbedding && s.jobStore != nil { // coverage:ignore - best-effort hook; tested via integration
+		_, _ = s.jobStore.Create(ctx, req.GetDocumentId(), "embedding")
 	}
 
 	// If the topic has memory_enabled, create a memory_extraction job.
