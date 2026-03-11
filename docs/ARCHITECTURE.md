@@ -234,7 +234,7 @@ memory {
 }
 ```
 
-Memories are natural language fact statements (e.g., "User specializes in thrombosis research", "Prefers concise answers with citations"). Each memory has a vector embedding for semantic retrieval. Optional structured fields (subject/predicate/object) enable precise filtering. Invalidated memories are soft-deleted for audit trail.
+Memories are natural language fact statements (e.g., "User specializes in thrombosis research", "Prefers concise answers with citations"). All memories in a scope are returned to the client; the LLM decides what to do with new candidate facts (ADD/UPDATE/DELETE/NOOP) and handles compaction. Optional structured fields (subject/predicate/object) enable precise filtering. Invalidated memories are soft-deleted for audit trail.
 
 **ProcessingJob**
 
@@ -1066,7 +1066,7 @@ Depends on Phase 3's worker infrastructure and LLM/embedding configs.
 - `Memory` table and migrations
 - Memory extraction workers (conversation chunks in, candidate facts out via LLM)
 - Memory maintenance workers (ADD/UPDATE/DELETE/NOOP conflict resolution via LLM)
-- Memory embedding (store vectors for semantic retrieval within memory)
+- Scope-based memory retrieval (all memories in a scope returned to client; no vector search)
 - Per-principal scoping with named scopes (default, work, home, etc.)
 - `MemoryService` RPCs (GetMemory, SearchMemories, AddMemory, UpdateMemory, DeleteMemory, ListMemories, ListScopes)
 - Soft-delete with audit trail (invalidated memories preserved with timestamp)
@@ -1323,7 +1323,7 @@ creel/
 
 - [x] `Memory` table migration
 - [x] Memory store (CRUD, search, scope listing)
-- [x] Memory embedding storage in vector backend
+- [x] Scope-based memory retrieval (all memories returned by scope; embedding removed)
 - [x] Memory extraction worker (LLM extracts candidate facts from conversation chunks)
 - [x] Memory extraction prompt (few-shot examples, category guidance)
 - [x] Memory maintenance worker (ADD/UPDATE/DELETE/NOOP conflict resolution via LLM)

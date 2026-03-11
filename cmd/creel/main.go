@@ -150,7 +150,7 @@ func run() error {
 	memoryStore := store.NewMemoryStore(pool)
 	memExtractionWorker := worker.NewMemoryExtractionWorker(docStore, chunkStore, topicStore, jobStore, llmProvider)
 	workerPool.Register(memExtractionWorker)
-	memMaintenanceWorker := worker.NewMemoryMaintenanceWorker(memoryStore, jobStore, vectorBackend, embeddingProvider, llmProvider)
+	memMaintenanceWorker := worker.NewMemoryMaintenanceWorker(memoryStore, jobStore, llmProvider)
 	workerPool.Register(memMaintenanceWorker)
 
 	// Create and register compaction worker.
@@ -172,7 +172,7 @@ func run() error {
 	configServer := server.NewConfigServer(apiKeyConfigStore, llmConfigStore, embeddingConfigStore, extractionPromptConfigStore, vectorBackendConfigStore)
 	jobServer := server.NewJobServer(jobStore, docStore, authorizer)
 	linkServer := server.NewLinkServer(linkStore, chunkStore, authorizer)
-	memoryServer := server.NewMemoryServer(memoryStore, vectorBackend, singleEmbedder, jobStore)
+	memoryServer := server.NewMemoryServer(memoryStore, jobStore)
 	pb.RegisterAdminServiceServer(srv.GRPCServer(), adminServer)
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), topicServer)
 	pb.RegisterDocumentServiceServer(srv.GRPCServer(), docServer)

@@ -23,6 +23,16 @@ import (
 // Mock infrastructure
 // ---------------------------------------------------------------------------
 
+// mockEmbedder implements EmbeddingProvider for tests.
+type mockEmbedder struct {
+	embedding []float64
+	err       error
+}
+
+func (m *mockEmbedder) Embed(_ context.Context, _ string) ([]float64, error) {
+	return m.embedding, m.err
+}
+
 // mockDBTX implements store.DBTX for injecting errors.
 type mockDBTX struct {
 	execFn     func(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)

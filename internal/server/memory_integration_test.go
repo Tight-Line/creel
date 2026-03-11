@@ -18,7 +18,6 @@ import (
 	"github.com/Tight-Line/creel/internal/config"
 	"github.com/Tight-Line/creel/internal/server"
 	"github.com/Tight-Line/creel/internal/store"
-	"github.com/Tight-Line/creel/internal/vector/pgvector"
 )
 
 type memoryTestEnv struct {
@@ -66,7 +65,6 @@ func setupMemoryTestEnv(t *testing.T) *memoryTestEnv {
 
 	memoryStore := store.NewMemoryStore(pool)
 	jobStore := store.NewJobStore(pool)
-	backend := pgvector.New(pool)
 	accountStore := store.NewSystemAccountStore(pool)
 
 	acct, rawKey, err := accountStore.Create(ctx, "memory-test", "memory integration test")
@@ -78,7 +76,7 @@ func setupMemoryTestEnv(t *testing.T) *memoryTestEnv {
 	apiKeyValidator := auth.NewAPIKeyValidator(nil, accountStore)
 
 	srv := server.New(0, apiKeyValidator, nil)
-	memoryServer := server.NewMemoryServer(memoryStore, backend, nil, jobStore)
+	memoryServer := server.NewMemoryServer(memoryStore, jobStore)
 	pb.RegisterMemoryServiceServer(srv.GRPCServer(), memoryServer)
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
