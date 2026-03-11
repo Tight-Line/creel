@@ -16,9 +16,11 @@ import (
 )
 
 var (
-	endpoint      string
+	endpointURL   string
 	apiKey        string
-	useTLS        bool
+	verifyTLS     bool
+	authority     string
+	grpcEP        config.GRPCEndpoint
 	provider      string
 	model         string
 	embedProvider string
@@ -36,11 +38,17 @@ func main() {
 		Use:   "creel-chat",
 		Short: "Interactive REPL that uses Creel as conversation memory",
 		RunE:  run,
+		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
+			var err error
+			grpcEP, err = config.ParseGRPCEndpoint(endpointURL)
+			return err
+		},
 	}
 
-	root.Flags().StringVar(&endpoint, "endpoint", envOr("CREEL_ENDPOINT", "127.0.0.1:8443"), "Creel gRPC endpoint")
+	root.Flags().StringVar(&endpointURL, "endpoint", envOr("CREEL_GRPC_ENDPOINT", "http://127.0.0.1:8443"), "gRPC endpoint URL (https://host or http://host:port)")
 	root.Flags().StringVar(&apiKey, "api-key", os.Getenv("CREEL_API_KEY"), "Creel API key")
-	root.Flags().BoolVar(&useTLS, "tls", false, "use TLS for gRPC connection")
+	root.Flags().BoolVar(&verifyTLS, "verify-tls", os.Getenv("CREEL_VERIFY_TLS") != "false", "verify TLS certificates (set CREEL_VERIFY_TLS=false to skip)")
+	root.Flags().StringVar(&authority, "authority", os.Getenv("CREEL_GRPC_AUTHORITY"), "override the :authority header (for routing through proxies)")
 	root.Flags().StringVar(&provider, "provider", "openai", "chat LLM provider (openai or anthropic)")
 	root.Flags().StringVar(&model, "model", "", "override LLM model name")
 	root.Flags().StringVar(&embedProvider, "embed-provider", "openai", "embedding provider (openai or ollama)")
@@ -93,24 +101,21 @@ func run(_ *cobra.Command, _ []string) error {
 		if err != nil {
 			return fmt.Errorf("resuming session: %w", err)
 		}
-		fmt.Printf("creel-chat: resumed session %s (%d prior messages, topic: %s, endpoint: %s)\n", docID, len(priorMessages), topicSlug, endpoint)
+		fmt.Printf("creel-chat: resumed session %s (%d prior messages, topic: %s, endpoint: %s)\n", docID, len(priorMessages), topicSlug, endpointURL)
 	} else {
 		docID, err = createSessionDoc(ctx, conn, topicID)
 		if err != nil {
 			return fmt.Errorf("creating session document: %w", err)
 		}
-		fmt.Printf("creel-chat: new session %s (topic: %s, endpoint: %s)\n", docID, topicSlug, endpoint)
+		fmt.Printf("creel-chat: new session %s (topic: %s, endpoint: %s)\n", docID, topicSlug, endpointURL)
 	}
 
 	err = runLoop(ctx, conn, llm, embedder, topicID, docID, seqOffset, priorMessages)
 
 	// Print resume command on exit.
 	fmt.Printf("\nTo resume this session:\n  creel-chat --resume %s --topic %s", docID, topicSlug)
-	if endpoint != "127.0.0.1:8443" {
-		fmt.Printf(" --endpoint %s", endpoint)
-	}
-	if useTLS {
-		fmt.Print(" --tls")
+	if endpointURL != "http://127.0.0.1:8443" {
+		fmt.Printf(" --endpoint %s", endpointURL)
 	}
 	fmt.Println()
 
@@ -125,12 +130,21 @@ func dial() (*grpc.ClientConn, error) {
 			grpc.MaxCallSendMsgSize(config.MaxGRPCMessageSize),
 		),
 	)
-	if useTLS {
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
+	if grpcEP.TLS {
+		tlsCfg := &tls.Config{
+			InsecureSkipVerify: !verifyTLS, //nolint:gosec // user-controlled flag for self-signed certs
+		}
+		if authority != "" {
+			tlsCfg.ServerName = authority
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)))
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	return grpc.NewClient(endpoint, opts...)
+	if authority != "" {
+		opts = append(opts, grpc.WithAuthority(authority))
+	}
+	return grpc.NewClient(grpcEP.Host, opts...)
 }
 
 func authCtx() context.Context {

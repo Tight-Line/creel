@@ -535,6 +535,41 @@ postgres:
 	}
 }
 
+func TestParseGRPCEndpoint(t *testing.T) {
+	tests := []struct {
+		input   string
+		host    string
+		tls     bool
+		wantErr bool
+	}{
+		{"https://grpc.example.com", "grpc.example.com:443", true, false},
+		{"https://grpc.example.com:8443", "grpc.example.com:8443", true, false},
+		{"http://localhost", "", false, true},
+		{"http://localhost:9090", "localhost:9090", false, false},
+		{"127.0.0.1:8443", "127.0.0.1:8443", false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			ep, err := ParseGRPCEndpoint(tt.input)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if ep.Host != tt.host {
+				t.Errorf("Host = %q, want %q", ep.Host, tt.host)
+			}
+			if ep.TLS != tt.tls {
+				t.Errorf("TLS = %v, want %v", ep.TLS, tt.tls)
+			}
+		})
+	}
+}
+
 func writeTemp(t *testing.T, content string) string {
 	t.Helper()
 	dir := t.TempDir()

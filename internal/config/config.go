@@ -3,12 +3,55 @@ package config
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 )
 
 // MaxGRPCMessageSize is the maximum gRPC message size (50 MB).
 // Used by the server, CLI, chat, and MCP binaries.
 const MaxGRPCMessageSize = 50 * 1024 * 1024
+
+// GRPCEndpoint holds the parsed components of a gRPC endpoint URL.
+type GRPCEndpoint struct {
+	// Host is the host:port target for grpc.NewClient.
+	Host string
+	// TLS is true when the scheme is https.
+	TLS bool
+}
+
+// ParseGRPCEndpoint parses a gRPC endpoint string. Accepted formats:
+//
+//   - https://host or https://host:port (TLS, default port 443)
+//   - http://host:port (plaintext, port required)
+//   - host:port (legacy format; plaintext)
+func ParseGRPCEndpoint(raw string) (GRPCEndpoint, error) {
+	// Legacy host:port format has no scheme. Detect it by checking for "://".
+	if !strings.Contains(raw, "://") {
+		return GRPCEndpoint{Host: raw, TLS: false}, nil
+	}
+
+	u, err := url.Parse(raw)
+	if err != nil {
+		return GRPCEndpoint{}, fmt.Errorf("invalid endpoint URL %q: %w", raw, err)
+	}
+
+	switch u.Scheme {
+	case "https":
+		host := u.Host
+		if u.Port() == "" {
+			host = u.Hostname() + ":443"
+		}
+		return GRPCEndpoint{Host: host, TLS: true}, nil
+	case "http":
+		if u.Port() == "" {
+			return GRPCEndpoint{}, fmt.Errorf("http:// endpoint requires an explicit port (e.g. http://%s:8443)", u.Hostname())
+		}
+		return GRPCEndpoint{Host: u.Host, TLS: false}, nil
+	default:
+		return GRPCEndpoint{}, fmt.Errorf("unsupported scheme %q in endpoint URL %q (use http:// or https://)", u.Scheme, raw)
+	}
+}
 
 // Config is the top-level server configuration.
 type Config struct {
