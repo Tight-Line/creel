@@ -35,7 +35,7 @@ func TestOpenAIProvider_Complete(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"choices": []map[string]any{
 				{
 					"message": map[string]string{
@@ -66,7 +66,7 @@ func TestOpenAIProvider_Complete(t *testing.T) {
 func TestOpenAIProvider_Complete_APIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
-		w.Write([]byte(`{"error": {"message": "rate limited"}}`))
+		_, _ = w.Write([]byte(`{"error": {"message": "rate limited"}}`))
 	}))
 	defer server.Close()
 
@@ -82,7 +82,7 @@ func TestOpenAIProvider_Complete_APIError(t *testing.T) {
 func TestOpenAIProvider_Complete_NoChoices(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"choices": []any{}})
+		_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{}})
 	}))
 	defer server.Close()
 
@@ -98,7 +98,7 @@ func TestOpenAIProvider_Complete_NoChoices(t *testing.T) {
 func TestOpenAIProvider_Complete_InvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`not json`))
+		_, _ = w.Write([]byte(`not json`))
 	}))
 	defer server.Close()
 
