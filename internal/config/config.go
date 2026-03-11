@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+// MaxGRPCMessageSize is the maximum gRPC message size (50 MB).
+// Used by the server, CLI, chat, and MCP binaries.
+const MaxGRPCMessageSize = 50 * 1024 * 1024
+
 // Config is the top-level server configuration.
 type Config struct {
 	Server        ServerConfig        `yaml:"server"`

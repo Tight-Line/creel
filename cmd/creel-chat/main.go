@@ -11,6 +11,8 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/Tight-Line/creel/internal/config"
 )
 
 var (
@@ -117,6 +119,12 @@ func run(_ *cobra.Command, _ []string) error {
 
 func dial() (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption
+	opts = append(opts,
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(config.MaxGRPCMessageSize),
+			grpc.MaxCallSendMsgSize(config.MaxGRPCMessageSize),
+		),
+	)
 	if useTLS {
 		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 	} else {

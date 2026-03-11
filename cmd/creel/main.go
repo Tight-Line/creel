@@ -239,7 +239,13 @@ func runRESTGateway(ctx context.Context, grpcPort, restPort int) error {
 			},
 		}),
 	)
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(config.MaxGRPCMessageSize),
+			grpc.MaxCallSendMsgSize(config.MaxGRPCMessageSize),
+		),
+	}
 	endpoint := fmt.Sprintf("localhost:%d", grpcPort)
 
 	// Register all service handlers.

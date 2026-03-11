@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
+	"github.com/Tight-Line/creel/internal/config"
 	"github.com/Tight-Line/creel/mcp"
 )
 
@@ -25,6 +26,12 @@ func run() int {
 	useTLS := os.Getenv("CREEL_TLS") == "true"
 
 	var opts []grpc.DialOption
+	opts = append(opts,
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(config.MaxGRPCMessageSize),
+			grpc.MaxCallSendMsgSize(config.MaxGRPCMessageSize),
+		),
+	)
 	if useTLS {
 		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 	} else {

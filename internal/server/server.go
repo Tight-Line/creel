@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/Tight-Line/creel/internal/auth"
+	"github.com/Tight-Line/creel/internal/config"
 )
 
 // Server wraps a gRPC server with Creel services.
@@ -29,6 +30,8 @@ func New(port int, apiKeyValidator *auth.APIKeyValidator, oidcValidator *auth.OI
 	grpcMetrics.EnableHandlingTimeHistogram()
 
 	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(config.MaxGRPCMessageSize),
+		grpc.MaxSendMsgSize(config.MaxGRPCMessageSize),
 		grpc.ChainUnaryInterceptor(
 			grpcMetrics.UnaryServerInterceptor(),
 			auth.UnaryInterceptor(apiKeyValidator, oidcValidator),

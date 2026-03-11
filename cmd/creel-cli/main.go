@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
+	"github.com/Tight-Line/creel/internal/config"
 )
 
 var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
@@ -54,6 +55,12 @@ func main() {
 
 func dial() (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption
+	opts = append(opts,
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(config.MaxGRPCMessageSize),
+			grpc.MaxCallSendMsgSize(config.MaxGRPCMessageSize),
+		),
+	)
 	if useTLS {
 		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 	} else {
