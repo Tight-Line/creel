@@ -89,12 +89,17 @@ class AuthTest extends TestCase
     {
         $mock = \Mockery::mock(\App\Services\CreelApiClient::class);
         $mock->shouldReceive('health')->andReturn(['status' => 'ok']);
-        $mock->shouldReceive('listApiKeyConfigs')->andReturn([]);
-        $mock->shouldReceive('listLlmConfigs')->andReturn([]);
-        $mock->shouldReceive('listEmbeddingConfigs')->andReturn([]);
-        $mock->shouldReceive('listPromptConfigs')->andReturn([]);
-        $mock->shouldReceive('listTopics')->andReturn([]);
-        $mock->shouldReceive('listSystemAccounts')->andReturn([]);
+        $mock->shouldReceive('getStats')->andReturn([
+            'api_key_configs' => 0,
+            'llm_configs' => 0,
+            'embedding_configs' => 0,
+            'extraction_prompt_configs' => 0,
+            'topics' => 0,
+            'system_accounts' => 0,
+            'documents' => 0,
+            'chunks' => 0,
+            'memories' => 0,
+        ]);
         $this->app->instance(\App\Services\CreelApiClient::class, $mock);
     }
 }
