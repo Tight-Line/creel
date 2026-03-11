@@ -175,14 +175,18 @@ func (s *CompactionServer) Uncompact(ctx context.Context, req *pb.UncompactReque
 		return nil, status.Errorf(codes.Internal, "deleting summary embedding: %v", err)
 	}
 
+	// Delete the compaction record before the summary chunk, because
+	// compaction_records.summary_chunk_id has ON DELETE CASCADE. Deleting
+	// the chunk first would cascade-delete the record, causing the
+	// explicit delete to fail with "not found".
 	// coverage:ignore - requires DB failure after vector delete
-	if err := s.chunkStore.Delete(ctx, req.GetSummaryChunkId()); err != nil {
-		return nil, status.Errorf(codes.Internal, "deleting summary chunk: %v", err)
-	}
-
-	// coverage:ignore - requires DB failure after chunk delete
 	if err := s.compactionStore.Delete(ctx, record.ID); err != nil {
 		return nil, status.Errorf(codes.Internal, "deleting compaction record: %v", err)
+	}
+
+	// coverage:ignore - requires DB failure after record delete
+	if err := s.chunkStore.Delete(ctx, req.GetSummaryChunkId()); err != nil {
+		return nil, status.Errorf(codes.Internal, "deleting summary chunk: %v", err)
 	}
 
 	// coverage:ignore - best-effort; chunks are already restored
