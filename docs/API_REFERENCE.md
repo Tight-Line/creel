@@ -514,16 +514,16 @@ rpc SearchMemories(SearchMemoriesRequest) returns (SearchMemoriesResponse)
 ### AddMemory
 
 ```
-rpc AddMemory(AddMemoryRequest) returns (Memory)
+rpc AddMemory(AddMemoryRequest) returns (AddMemoryResponse)
 ```
 
 | REST | `POST /v1/memories` |
 |------|---------------------|
 
 **Request**: `{scope, content, metadata}`
-**Response**: `{memory}`
+**Response**: `{job_id}`
 **Permission**: authenticated
-**Behavior**: Explicitly adds a memory for the calling principal in the given scope.
+**Behavior**: Queues a `memory_maintenance` job for the calling principal in the given scope. The maintenance worker processes the memory asynchronously, running LLM-based deduplication (ADD/UPDATE/DELETE/NOOP) against existing memories before storing. Returns the job ID so the caller can poll progress via `GetJob`.
 
 ### UpdateMemory
 
@@ -585,7 +585,7 @@ rpc ListScopes(ListScopesRequest) returns (ListScopesResponse)
 
 ## JobService
 
-Jobs track asynchronous work such as document extraction, chunking, and embedding. Jobs are created automatically by operations like `UploadDocument`.
+Jobs track asynchronous work such as document extraction, chunking, embedding, and memory maintenance. Jobs are created automatically by operations like `UploadDocument` and `AddMemory`. Some jobs (e.g. memory maintenance) are not associated with a document; their `document_id` is null.
 
 ### GetJob
 
@@ -599,7 +599,7 @@ rpc GetJob(GetJobRequest) returns (Job)
 **Request**: `{id}`
 **Response**: `{job}`
 **Permission**: authenticated
-**Behavior**: Returns job details. Any authenticated user can view jobs for documents they have read access to.
+**Behavior**: Returns job details. For document-based jobs, any authenticated user with read access to the document's topic can view the job. For documentless jobs (e.g. memory maintenance), the server checks the `principal` field in the job's progress metadata and only allows the owning principal to view it.
 
 ### ListJobs
 

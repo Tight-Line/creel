@@ -22,11 +22,13 @@ import (
 )
 
 type memoryTestEnv struct {
-	pool    *pgxpool.Pool
-	conn    *grpc.ClientConn
-	apiKey  string
-	cleanup func()
-	memory  pb.MemoryServiceClient
+	pool        *pgxpool.Pool
+	conn        *grpc.ClientConn
+	apiKey      string
+	principal   string
+	cleanup     func()
+	memory      pb.MemoryServiceClient
+	memoryStore *store.MemoryStore
 }
 
 func setupMemoryTestEnv(t *testing.T) *memoryTestEnv {
@@ -52,13 +54,18 @@ func setupMemoryTestEnv(t *testing.T) *memoryTestEnv {
 		t.Fatalf("creating pool: %v", err)
 	}
 
-	// Clean memories table.
+	// Clean test data.
 	if _, err := pool.Exec(ctx, "DELETE FROM memories"); err != nil {
 		pool.Close()
 		t.Fatalf("cleaning memories: %v", err)
 	}
+	if _, err := pool.Exec(ctx, "DELETE FROM processing_jobs WHERE document_id IS NULL"); err != nil {
+		pool.Close()
+		t.Fatalf("cleaning docless jobs: %v", err)
+	}
 
 	memoryStore := store.NewMemoryStore(pool)
+	jobStore := store.NewJobStore(pool)
 	backend := pgvector.New(pool)
 	accountStore := store.NewSystemAccountStore(pool)
 
@@ -71,7 +78,7 @@ func setupMemoryTestEnv(t *testing.T) *memoryTestEnv {
 	apiKeyValidator := auth.NewAPIKeyValidator(nil, accountStore)
 
 	srv := server.New(0, apiKeyValidator, nil)
-	memoryServer := server.NewMemoryServer(memoryStore, backend, nil)
+	memoryServer := server.NewMemoryServer(memoryStore, backend, nil, jobStore)
 	pb.RegisterMemoryServiceServer(srv.GRPCServer(), memoryServer)
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
@@ -93,16 +100,18 @@ func setupMemoryTestEnv(t *testing.T) *memoryTestEnv {
 	}
 
 	env := &memoryTestEnv{
-		pool:   pool,
-		conn:   conn,
-		apiKey: rawKey,
+		pool:      pool,
+		conn:      conn,
+		apiKey:    rawKey,
+		principal: acct.Principal,
 		cleanup: func() {
 			_ = accountStore.Delete(ctx, acct.ID)
 			_ = conn.Close()
 			srv.GracefulStop()
 			pool.Close()
 		},
-		memory: pb.NewMemoryServiceClient(conn),
+		memory:      pb.NewMemoryServiceClient(conn),
+		memoryStore: memoryStore,
 	}
 
 	t.Cleanup(env.cleanup)
@@ -114,27 +123,42 @@ func (e *memoryTestEnv) authCtx() context.Context {
 	return metadata.NewOutgoingContext(context.Background(), md)
 }
 
-func TestMemoryService_Integration_CRUD(t *testing.T) {
+// insertMemory creates a memory directly in the store, bypassing the RPC.
+func (e *memoryTestEnv) insertMemory(t *testing.T, scope, content string) *store.Memory {
+	t.Helper()
+	m, err := e.memoryStore.Create(context.Background(), &store.Memory{
+		Principal: e.principal,
+		Scope:     scope,
+		Content:   content,
+	})
+	if err != nil {
+		t.Fatalf("inserting test memory: %v", err)
+	}
+	return m
+}
+
+func TestMemoryService_Integration_AddMemoryCreatesJob(t *testing.T) {
 	env := setupMemoryTestEnv(t)
 	ctx := env.authCtx()
 
-	// AddMemory
-	mem, err := env.memory.AddMemory(ctx, &pb.AddMemoryRequest{
+	resp, err := env.memory.AddMemory(ctx, &pb.AddMemoryRequest{
 		Scope:   "test-scope",
 		Content: "User prefers concise answers",
 	})
 	if err != nil {
 		t.Fatalf("AddMemory: %v", err)
 	}
-	if mem.GetId() == "" {
-		t.Fatal("expected non-empty ID")
+	if resp.GetJobId() == "" {
+		t.Fatal("expected non-empty job_id")
 	}
-	if mem.GetStatus() != "active" {
-		t.Fatalf("expected active status, got %q", mem.GetStatus())
-	}
-	if mem.GetScope() != "test-scope" {
-		t.Fatalf("expected scope 'test-scope', got %q", mem.GetScope())
-	}
+}
+
+func TestMemoryService_Integration_CRUD(t *testing.T) {
+	env := setupMemoryTestEnv(t)
+	ctx := env.authCtx()
+
+	// Insert a memory directly for CRUD testing.
+	mem := env.insertMemory(t, "test-scope", "User prefers concise answers")
 
 	// GetMemory
 	getResp, err := env.memory.GetMemory(ctx, &pb.GetMemoryRequest{Scope: "test-scope"})
@@ -145,14 +169,8 @@ func TestMemoryService_Integration_CRUD(t *testing.T) {
 		t.Fatalf("expected 1 memory, got %d", len(getResp.GetMemories()))
 	}
 
-	// Add a second memory in a different scope
-	_, err = env.memory.AddMemory(ctx, &pb.AddMemoryRequest{
-		Scope:   "work",
-		Content: "Work related memory",
-	})
-	if err != nil {
-		t.Fatalf("AddMemory (second): %v", err)
-	}
+	// Insert a second memory in a different scope.
+	env.insertMemory(t, "work", "Work related memory")
 
 	// ListScopes
 	scopesResp, err := env.memory.ListScopes(ctx, &pb.ListScopesRequest{})
@@ -174,7 +192,7 @@ func TestMemoryService_Integration_CRUD(t *testing.T) {
 
 	// UpdateMemory
 	updated, err := env.memory.UpdateMemory(ctx, &pb.UpdateMemoryRequest{
-		Id:      mem.GetId(),
+		Id:      mem.ID,
 		Content: "Updated: user prefers verbose answers",
 	})
 	if err != nil {
@@ -185,12 +203,12 @@ func TestMemoryService_Integration_CRUD(t *testing.T) {
 	}
 
 	// DeleteMemory (soft delete)
-	_, err = env.memory.DeleteMemory(ctx, &pb.DeleteMemoryRequest{Id: mem.GetId()})
+	_, err = env.memory.DeleteMemory(ctx, &pb.DeleteMemoryRequest{Id: mem.ID})
 	if err != nil {
 		t.Fatalf("DeleteMemory: %v", err)
 	}
 
-	// Verify deleted memory is not in active list
+	// Verify deleted memory is not in active list.
 	listResp, err = env.memory.ListMemories(ctx, &pb.ListMemoriesRequest{Scope: "test-scope"})
 	if err != nil {
 		t.Fatalf("ListMemories after delete: %v", err)
@@ -199,7 +217,7 @@ func TestMemoryService_Integration_CRUD(t *testing.T) {
 		t.Fatalf("expected 0 memories after delete, got %d", len(listResp.GetMemories()))
 	}
 
-	// Verify deleted memory is included with flag
+	// Verify deleted memory is included with flag.
 	listResp, err = env.memory.ListMemories(ctx, &pb.ListMemoriesRequest{
 		Scope:              "test-scope",
 		IncludeInvalidated: true,
@@ -219,15 +237,15 @@ func TestMemoryService_Integration_DefaultScope(t *testing.T) {
 	env := setupMemoryTestEnv(t)
 	ctx := env.authCtx()
 
-	// AddMemory with no scope should use "default"
-	mem, err := env.memory.AddMemory(ctx, &pb.AddMemoryRequest{
+	// AddMemory with no scope should create a job with "default" scope.
+	resp, err := env.memory.AddMemory(ctx, &pb.AddMemoryRequest{
 		Content: "Test memory",
 	})
 	if err != nil {
 		t.Fatalf("AddMemory: %v", err)
 	}
-	if mem.GetScope() != "default" {
-		t.Fatalf("expected default scope, got %q", mem.GetScope())
+	if resp.GetJobId() == "" {
+		t.Fatal("expected non-empty job_id")
 	}
 }
 
@@ -235,21 +253,9 @@ func TestMemoryService_Integration_SearchFallback(t *testing.T) {
 	env := setupMemoryTestEnv(t)
 	ctx := env.authCtx()
 
-	// Add some memories.
-	_, err := env.memory.AddMemory(ctx, &pb.AddMemoryRequest{
-		Scope:   "search-test",
-		Content: "Memory one",
-	})
-	if err != nil {
-		t.Fatalf("AddMemory: %v", err)
-	}
-	_, err = env.memory.AddMemory(ctx, &pb.AddMemoryRequest{
-		Scope:   "search-test",
-		Content: "Memory two",
-	})
-	if err != nil {
-		t.Fatalf("AddMemory: %v", err)
-	}
+	// Insert memories directly.
+	env.insertMemory(t, "search-test", "Memory one")
+	env.insertMemory(t, "search-test", "Memory two")
 
 	// Search without embedding should fall back to returning all memories.
 	resp, err := env.memory.SearchMemories(ctx, &pb.SearchMemoriesRequest{
@@ -280,7 +286,9 @@ func TestMemoryService_Integration_AddWithTriple(t *testing.T) {
 	env := setupMemoryTestEnv(t)
 	ctx := env.authCtx()
 
-	mem, err := env.memory.AddMemory(ctx, &pb.AddMemoryRequest{
+	// AddMemory with triple fields should create a job (triple fields are
+	// stored in job progress for the maintenance worker to process).
+	resp, err := env.memory.AddMemory(ctx, &pb.AddMemoryRequest{
 		Scope:     "triple-test",
 		Content:   "User likes fly fishing",
 		Subject:   "user",
@@ -290,7 +298,7 @@ func TestMemoryService_Integration_AddWithTriple(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddMemory: %v", err)
 	}
-	if mem.GetSubject() != "user" || mem.GetPredicate() != "likes" || mem.GetObject() != "fly fishing" {
-		t.Fatalf("triple fields not preserved: %v", mem)
+	if resp.GetJobId() == "" {
+		t.Fatal("expected non-empty job_id")
 	}
 }

@@ -177,6 +177,11 @@ class SearchMemoriesResponse:
 
 
 @dataclass
+class AddMemoryResponse:
+    job_id: str = ""
+
+
+@dataclass
 class ListMemoriesResponse:
     memories: list[Memory] = field(default_factory=list)
 

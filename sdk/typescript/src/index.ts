@@ -42,6 +42,7 @@ export type {
   SearchMemoriesRequest,
   SearchMemoriesResponse,
   AddMemoryRequest,
+  AddMemoryResponse,
   UpdateMemoryRequest,
   ListMemoriesResponse,
   ListScopesResponse,

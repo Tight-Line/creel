@@ -9,6 +9,7 @@ import httpx
 
 from creel.exceptions import CreelError
 from creel.models import (
+    AddMemoryResponse,
     Chunk,
     ChunkingStrategy,
     CompactResponse,
@@ -618,7 +619,12 @@ class CreelClient:
         predicate: Optional[str] = None,
         object: Optional[str] = None,
         metadata: Optional[dict[str, Any]] = None,
-    ) -> Memory:
+    ) -> AddMemoryResponse:
+        """Queue a memory observation for processing.
+
+        Returns an AddMemoryResponse containing a job_id. The memory
+        maintenance worker handles deduplication asynchronously.
+        """
         body: dict[str, Any] = {"scope": scope, "content": content}
         if subject is not None:
             body["subject"] = subject
@@ -628,9 +634,8 @@ class CreelClient:
             body["object"] = object
         if metadata is not None:
             body["metadata"] = metadata
-        return self._parse_memory(
-            self._request("POST", "/v1/memories", json=body)
-        )
+        data = self._request("POST", "/v1/memories", json=body)
+        return AddMemoryResponse(job_id=data.get("job_id", ""))
 
     def update_memory(
         self,

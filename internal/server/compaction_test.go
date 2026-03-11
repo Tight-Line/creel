@@ -462,7 +462,8 @@ type compactJobRow struct{ id string }
 func (r *compactJobRow) Scan(dest ...any) error {
 	// id, document_id, job_type, status, progress, error, started_at, completed_at, created_at
 	*(dest[0].(*string)) = r.id
-	*(dest[1].(*string)) = "d1"
+	docID := "d1"
+	*(dest[1].(**string)) = &docID
 	*(dest[2].(*string)) = "compaction"
 	*(dest[3].(*string)) = "queued"
 	*(dest[4].(*[]byte)) = []byte(`{}`)

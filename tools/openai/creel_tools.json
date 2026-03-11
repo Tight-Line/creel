@@ -63,7 +63,7 @@
     "type": "function",
     "function": {
       "name": "creel_add_memory",
-      "description": "Store a memory observation in a named scope. Memories are facts, preferences, or observations you want to recall later. Optionally structure the memory as a subject/predicate/object triple for precise retrieval.",
+      "description": "Queue a memory observation for processing. Returns a job_id; the memory maintenance worker handles deduplication. Memories persist across sessions and are scoped to the calling principal and a named scope. Optionally structure the memory as a subject/predicate/object triple for precise retrieval.",
       "parameters": {
         "type": "object",
         "properties": {

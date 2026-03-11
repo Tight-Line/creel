@@ -32,8 +32,9 @@ func ensureTopic(ctx context.Context, conn *grpc.ClientConn, slug string) (strin
 	}
 
 	topic, err := client.CreateTopic(ctx, &pb.CreateTopicRequest{
-		Slug: slug,
-		Name: slug,
+		Slug:          slug,
+		Name:          slug,
+		MemoryEnabled: true,
 	})
 	if err != nil {
 		return "", fmt.Errorf("creating topic: %w", err)
@@ -147,7 +148,7 @@ func handleRemember(ctx context.Context, conn *grpc.ClientConn, scope, text stri
 	}
 
 	client := pb.NewMemoryServiceClient(conn)
-	mem, err := client.AddMemory(ctx, &pb.AddMemoryRequest{
+	resp, err := client.AddMemory(ctx, &pb.AddMemoryRequest{
 		Scope:   scope,
 		Content: text,
 	})
@@ -155,7 +156,7 @@ func handleRemember(ctx context.Context, conn *grpc.ClientConn, scope, text stri
 		fmt.Fprintf(os.Stderr, "error adding memory: %v\n", err)
 		return
 	}
-	fmt.Printf("Remembered: %s (id: %s)\n", mem.GetContent(), mem.GetId())
+	fmt.Printf("Memory queued for processing (job: %s)\n", resp.GetJobId())
 }
 
 // handleForget processes the /forget command.

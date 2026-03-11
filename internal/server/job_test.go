@@ -39,11 +39,11 @@ func TestJobServer_GetJob_NotFound(t *testing.T) {
 }
 
 func TestJobServer_GetJob_DocumentNotFound(t *testing.T) {
-	// JobStore.Get succeeds (mock returns zero-value job),
+	// JobStore.Get succeeds (returns job with document_id),
 	// then DocumentStore.TopicIDForDocument fails.
 	jobDB := &mockDBTX{
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
-			return &mockRow{err: nil} // Scan succeeds with zero values
+			return &mockJobGetRow{}
 		},
 	}
 	docDB := failDBTX()
@@ -53,12 +53,46 @@ func TestJobServer_GetJob_DocumentNotFound(t *testing.T) {
 }
 
 func TestJobServer_GetJob_PermissionDenied(t *testing.T) {
-	db := &mockDBTX{
+	jobDB := &mockDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockJobGetRow{}
+		},
+	}
+	docDB := &mockDBTX{
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
 			return &mockRow{err: nil}
 		},
 	}
-	s := NewJobServer(store.NewJobStore(db), store.NewDocumentStore(db), &mockAuthorizer{checkErr: errors.New("denied")})
+	s := NewJobServer(store.NewJobStore(jobDB), store.NewDocumentStore(docDB), &mockAuthorizer{checkErr: errors.New("denied")})
+	_, err := s.GetJob(systemCtx(), &pb.GetJobRequest{Id: "job-1"})
+	requireCode(t, err, codes.PermissionDenied)
+}
+
+func TestJobServer_GetJob_DoclessJob_Success(t *testing.T) {
+	// Documentless job where progress["principal"] matches the caller.
+	db := &mockDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockDoclessJobRow{principal: "system:test"}
+		},
+	}
+	s := NewJobServer(store.NewJobStore(db), nil, nil)
+	resp, err := s.GetJob(systemCtx(), &pb.GetJobRequest{Id: "job-1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp == nil {
+		t.Fatal("expected response")
+	}
+}
+
+func TestJobServer_GetJob_DoclessJob_WrongPrincipal(t *testing.T) {
+	// Documentless job where progress["principal"] does NOT match the caller.
+	db := &mockDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockDoclessJobRow{principal: "system:other"}
+		},
+	}
+	s := NewJobServer(store.NewJobStore(db), nil, nil)
 	_, err := s.GetJob(systemCtx(), &pb.GetJobRequest{Id: "job-1"})
 	requireCode(t, err, codes.PermissionDenied)
 }
@@ -147,9 +181,14 @@ func TestJobServer_ListJobs_AllTopics_StoreError(t *testing.T) {
 
 func TestJobServer_GetJob_Success(t *testing.T) {
 	// Mock where both JobStore.Get and DocStore.TopicIDForDocument succeed.
+	calls := 0
 	db := &mockDBTX{
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
-			return &mockRow{err: nil}
+			calls++
+			if calls == 1 {
+				return &mockJobGetRow{} // JobStore.Get
+			}
+			return &mockRow{err: nil} // DocStore.TopicIDForDocument
 		},
 	}
 	s := NewJobServer(store.NewJobStore(db), store.NewDocumentStore(db), &mockAuthorizer{})
@@ -237,6 +276,41 @@ func TestJobServer_ListJobs_ByTopicID_WithResults(t *testing.T) {
 	}
 }
 
+// mockJobGetRow implements pgx.Row that returns a single job with a document_id.
+// Used for GetJob tests where the job must have a non-nil document_id.
+type mockJobGetRow struct{}
+
+func (r *mockJobGetRow) Scan(dest ...any) error {
+	// id, document_id(*string), job_type, status, progress, error, started_at, completed_at, created_at
+	*(dest[0].(*string)) = "job-1"
+	docID := "doc-1"
+	*(dest[1].(**string)) = &docID
+	*(dest[2].(*string)) = "extraction"
+	*(dest[3].(*string)) = "queued"
+	// dest[4] *[]byte (progress) - leave nil
+	// dest[5] **string (error) - leave nil
+	// dest[6] **time.Time (started_at) - leave nil
+	// dest[7] **time.Time (completed_at) - leave nil
+	*(dest[8].(*time.Time)) = time.Now()
+	return nil
+}
+
+// mockDoclessJobRow implements pgx.Row for a documentless job with progress data.
+type mockDoclessJobRow struct{ principal string }
+
+func (r *mockDoclessJobRow) Scan(dest ...any) error {
+	*(dest[0].(*string)) = "job-1"
+	*(dest[1].(**string)) = nil // document_id is NULL
+	*(dest[2].(*string)) = "memory_maintenance"
+	*(dest[3].(*string)) = "queued"
+	*(dest[4].(*[]byte)) = []byte(fmt.Sprintf(`{"principal":%q}`, r.principal))
+	// dest[5] **string (error) - leave nil
+	// dest[6] **time.Time (started_at) - leave nil
+	// dest[7] **time.Time (completed_at) - leave nil
+	*(dest[8].(*time.Time)) = time.Now()
+	return nil
+}
+
 // mockJobRows implements pgx.Rows that returns n mock job rows.
 type mockJobRows struct {
 	count int
@@ -264,8 +338,9 @@ func (r *mockJobRows) Scan(dest ...any) error {
 	if id, ok := dest[0].(*string); ok {
 		*id = fmt.Sprintf("job-%d", r.idx)
 	}
-	if docID, ok := dest[1].(*string); ok {
-		*docID = "doc-1"
+	if docID, ok := dest[1].(**string); ok {
+		v := "doc-1"
+		*docID = &v
 	}
 	if jt, ok := dest[2].(*string); ok {
 		*jt = "extraction"

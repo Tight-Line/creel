@@ -3,6 +3,7 @@
 from creel.client import CreelClient
 from creel.exceptions import CreelError
 from creel.models import (
+    AddMemoryResponse,
     Chunk,
     ChunkingStrategy,
     CompactResponse,
@@ -35,6 +36,7 @@ from creel.models import (
 )
 
 __all__ = [
+    "AddMemoryResponse",
     "CreelClient",
     "CreelError",
     "Chunk",

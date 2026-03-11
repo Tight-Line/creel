@@ -2,13 +2,13 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -38,13 +38,13 @@ func authedCtx(principalID string) context.Context {
 // ---------------------------------------------------------------------------
 
 func TestMemoryServer_GetMemory_Unauthenticated(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.GetMemory(context.Background(), &pb.GetMemoryRequest{Scope: "s"})
 	assertCode(t, err, codes.Unauthenticated)
 }
 
 func TestMemoryServer_GetMemory_MissingScope(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.GetMemory(authedCtx("user:alice"), &pb.GetMemoryRequest{})
 	assertCode(t, err, codes.InvalidArgument)
 }
@@ -53,7 +53,7 @@ func TestMemoryServer_GetMemory_StoreError(t *testing.T) {
 	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 		return nil, errors.New("db error")
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	_, err := srv.GetMemory(authedCtx("user:alice"), &pb.GetMemoryRequest{Scope: "s"})
 	assertCode(t, err, codes.Internal)
 }
@@ -63,19 +63,19 @@ func TestMemoryServer_GetMemory_StoreError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMemoryServer_SearchMemories_Unauthenticated(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.SearchMemories(context.Background(), &pb.SearchMemoriesRequest{Scope: "s"})
 	assertCode(t, err, codes.Unauthenticated)
 }
 
 func TestMemoryServer_SearchMemories_MissingScope(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{})
 	assertCode(t, err, codes.InvalidArgument)
 }
 
 func TestMemoryServer_SearchMemories_QueryTextNoEmbedder(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope:     "s",
 		QueryText: "hello",
@@ -85,7 +85,7 @@ func TestMemoryServer_SearchMemories_QueryTextNoEmbedder(t *testing.T) {
 
 func TestMemoryServer_SearchMemories_EmbedError(t *testing.T) {
 	embedder := &mockEmbedder{err: errors.New("embed error")}
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, embedder)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, embedder, nil)
 	_, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope:     "s",
 		QueryText: "hello",
@@ -97,7 +97,7 @@ func TestMemoryServer_SearchMemories_EmbeddingIDsError(t *testing.T) {
 	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 		return nil, errors.New("db error")
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	_, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope:          "s",
 		QueryEmbedding: []float64{1.0, 2.0},
@@ -109,7 +109,7 @@ func TestMemoryServer_SearchMemories_NoEmbeddings(t *testing.T) {
 	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 		return &emptyRows{}, nil
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	resp, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope:          "s",
 		QueryEmbedding: []float64{1.0, 2.0},
@@ -128,7 +128,7 @@ func TestMemoryServer_SearchMemories_BackendSearchError(t *testing.T) {
 		return &stringRows{values: []string{"emb_1"}}, nil
 	}}
 	backend := &mockBackend{searchErr: errors.New("search error")}
-	srv := NewMemoryServer(store.NewMemoryStore(db), backend, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), backend, nil, nil)
 	_, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope:          "s",
 		QueryEmbedding: []float64{1.0, 2.0},
@@ -141,7 +141,7 @@ func TestMemoryServer_SearchMemories_NoSearchResults(t *testing.T) {
 		return &stringRows{values: []string{"emb_1"}}, nil
 	}}
 	backend := &mockBackend{searchResults: nil}
-	srv := NewMemoryServer(store.NewMemoryStore(db), backend, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), backend, nil, nil)
 	resp, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope:          "s",
 		QueryEmbedding: []float64{1.0, 2.0},
@@ -166,7 +166,7 @@ func TestMemoryServer_SearchMemories_FetchMemoriesError(t *testing.T) {
 		return nil, errors.New("db error")
 	}}
 	backend := &mockBackend{searchResults: []vector.SearchResult{{ChunkID: "emb_1", Score: 0.9}}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), backend, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), backend, nil, nil)
 	_, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope:          "s",
 		QueryEmbedding: []float64{1.0, 2.0},
@@ -178,7 +178,7 @@ func TestMemoryServer_SearchMemories_FallbackNoEmbedding(t *testing.T) {
 	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 		return &emptyRows{}, nil
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	resp, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope: "s",
 	})
@@ -194,7 +194,7 @@ func TestMemoryServer_SearchMemories_FallbackError(t *testing.T) {
 	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 		return nil, errors.New("db error")
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	_, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope: "s",
 	})
@@ -206,66 +206,106 @@ func TestMemoryServer_SearchMemories_FallbackError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMemoryServer_AddMemory_Unauthenticated(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, store.NewJobStore(&mockDBTX{}))
 	_, err := srv.AddMemory(context.Background(), &pb.AddMemoryRequest{Content: "c"})
 	assertCode(t, err, codes.Unauthenticated)
 }
 
 func TestMemoryServer_AddMemory_MissingContent(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, store.NewJobStore(&mockDBTX{}))
 	_, err := srv.AddMemory(authedCtx("user:alice"), &pb.AddMemoryRequest{})
 	assertCode(t, err, codes.InvalidArgument)
 }
 
-func TestMemoryServer_AddMemory_StoreError(t *testing.T) {
+func TestMemoryServer_AddMemory_NoJobStore(t *testing.T) {
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
+	_, err := srv.AddMemory(authedCtx("user:alice"), &pb.AddMemoryRequest{Content: "c"})
+	assertCode(t, err, codes.FailedPrecondition)
+}
+
+func TestMemoryServer_AddMemory_JobCreationError(t *testing.T) {
 	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
 		return &mockRow{err: errors.New("db error")}
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, store.NewJobStore(db))
 	_, err := srv.AddMemory(authedCtx("user:alice"), &pb.AddMemoryRequest{Content: "c"})
 	assertCode(t, err, codes.Internal)
 }
 
-func TestMemoryServer_AddMemory_DefaultScope(t *testing.T) {
-	// Verify default scope is set when not provided.
-	var capturedScope string
-	db := &mockDBTX{queryRowFn: func(_ context.Context, sql string, args ...any) pgx.Row {
-		capturedScope = args[1].(string)
-		return &mockRow{err: errors.New("stop")}
+func TestMemoryServer_AddMemory_Success(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, args ...any) pgx.Row {
+		return &jobRow{id: "job-1"}
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
-	_, _ = srv.AddMemory(authedCtx("user:alice"), &pb.AddMemoryRequest{Content: "c"})
-	if capturedScope != "default" {
-		t.Fatalf("expected default scope, got %q", capturedScope)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, store.NewJobStore(db))
+	resp, err := srv.AddMemory(authedCtx("user:alice"), &pb.AddMemoryRequest{Content: "c", Scope: "fishing"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.GetJobId() != "job-1" {
+		t.Fatalf("expected job ID 'job-1', got %q", resp.GetJobId())
+	}
+}
+
+func TestMemoryServer_AddMemory_DefaultScope(t *testing.T) {
+	var capturedProgress []byte
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, args ...any) pgx.Row {
+		// CreateDocless: args are jobType, progressJSON
+		if len(args) >= 2 {
+			if b, ok := args[1].([]byte); ok {
+				capturedProgress = b
+			}
+		}
+		return &jobRow{id: "job-1"}
+	}}
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, store.NewJobStore(db))
+	_, err := srv.AddMemory(authedCtx("user:alice"), &pb.AddMemoryRequest{Content: "c"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if capturedProgress != nil {
+		var progress map[string]any
+		_ = json.Unmarshal(capturedProgress, &progress)
+		if progress["scope"] != "default" {
+			t.Fatalf("expected default scope in progress, got %q", progress["scope"])
+		}
 	}
 }
 
 func TestMemoryServer_AddMemory_WithTriple(t *testing.T) {
-	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
-		return &mockRow{err: errors.New("stop")}
+	var capturedProgress []byte
+	db := &mockDBTX{queryRowFn: func(_ context.Context, sql string, args ...any) pgx.Row {
+		for _, arg := range args {
+			if b, ok := arg.([]byte); ok {
+				capturedProgress = b
+			}
+		}
+		return &jobRow{id: "job-1"}
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, store.NewJobStore(db))
 	_, err := srv.AddMemory(authedCtx("user:alice"), &pb.AddMemoryRequest{
-		Content:   "c",
+		Content:   "User likes fly fishing",
+		Scope:     "prefs",
 		Subject:   "user",
 		Predicate: "likes",
-		Object:    "fishing",
+		Object:    "fly fishing",
 	})
-	// Error from mock is expected
-	assertCode(t, err, codes.Internal)
-}
-
-func TestMemoryServer_AddMemory_WithMetadata(t *testing.T) {
-	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
-		return &mockRow{err: errors.New("stop")}
-	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
-	meta, _ := structpb.NewStruct(map[string]any{"key": "value"})
-	_, err := srv.AddMemory(authedCtx("user:alice"), &pb.AddMemoryRequest{
-		Content:  "c",
-		Metadata: meta,
-	})
-	assertCode(t, err, codes.Internal)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if capturedProgress == nil {
+		t.Fatal("expected progress to be captured")
+	}
+	var progress map[string]any
+	_ = json.Unmarshal(capturedProgress, &progress)
+	if progress["subject"] != "user" {
+		t.Fatalf("expected subject 'user', got %q", progress["subject"])
+	}
+	if progress["predicate"] != "likes" {
+		t.Fatalf("expected predicate 'likes', got %q", progress["predicate"])
+	}
+	if progress["object"] != "fly fishing" {
+		t.Fatalf("expected object 'fly fishing', got %q", progress["object"])
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -273,13 +313,13 @@ func TestMemoryServer_AddMemory_WithMetadata(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMemoryServer_UpdateMemory_Unauthenticated(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.UpdateMemory(context.Background(), &pb.UpdateMemoryRequest{Id: "id"})
 	assertCode(t, err, codes.Unauthenticated)
 }
 
 func TestMemoryServer_UpdateMemory_MissingID(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.UpdateMemory(authedCtx("user:alice"), &pb.UpdateMemoryRequest{})
 	assertCode(t, err, codes.InvalidArgument)
 }
@@ -288,7 +328,7 @@ func TestMemoryServer_UpdateMemory_NotFound(t *testing.T) {
 	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
 		return &mockRow{err: pgx.ErrNoRows}
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	_, err := srv.UpdateMemory(authedCtx("user:alice"), &pb.UpdateMemoryRequest{Id: "id"})
 	assertCode(t, err, codes.NotFound)
 }
@@ -303,7 +343,7 @@ func TestMemoryServer_UpdateMemory_NotOwner(t *testing.T) {
 			Status:    "active",
 		}}
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	_, err := srv.UpdateMemory(authedCtx("user:alice"), &pb.UpdateMemoryRequest{Id: "id", Content: "new"})
 	assertCode(t, err, codes.PermissionDenied)
 }
@@ -323,7 +363,7 @@ func TestMemoryServer_UpdateMemory_StoreError(t *testing.T) {
 		}
 		return &mockRow{err: errors.New("db error")}
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	_, err := srv.UpdateMemory(authedCtx("user:alice"), &pb.UpdateMemoryRequest{Id: "id", Content: "new"})
 	assertCode(t, err, codes.Internal)
 }
@@ -333,13 +373,13 @@ func TestMemoryServer_UpdateMemory_StoreError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMemoryServer_DeleteMemory_Unauthenticated(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.DeleteMemory(context.Background(), &pb.DeleteMemoryRequest{Id: "id"})
 	assertCode(t, err, codes.Unauthenticated)
 }
 
 func TestMemoryServer_DeleteMemory_MissingID(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.DeleteMemory(authedCtx("user:alice"), &pb.DeleteMemoryRequest{})
 	assertCode(t, err, codes.InvalidArgument)
 }
@@ -348,7 +388,7 @@ func TestMemoryServer_DeleteMemory_NotFound(t *testing.T) {
 	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
 		return &mockRow{err: pgx.ErrNoRows}
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	_, err := srv.DeleteMemory(authedCtx("user:alice"), &pb.DeleteMemoryRequest{Id: "id"})
 	assertCode(t, err, codes.NotFound)
 }
@@ -363,7 +403,7 @@ func TestMemoryServer_DeleteMemory_NotOwner(t *testing.T) {
 			Status:    "active",
 		}}
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	_, err := srv.DeleteMemory(authedCtx("user:alice"), &pb.DeleteMemoryRequest{Id: "id"})
 	assertCode(t, err, codes.PermissionDenied)
 }
@@ -385,7 +425,7 @@ func TestMemoryServer_DeleteMemory_InvalidateError(t *testing.T) {
 			return pgconn.NewCommandTag(""), errors.New("db error")
 		},
 	}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	_, err := srv.DeleteMemory(authedCtx("user:alice"), &pb.DeleteMemoryRequest{Id: "id"})
 	assertCode(t, err, codes.Internal)
 }
@@ -395,13 +435,13 @@ func TestMemoryServer_DeleteMemory_InvalidateError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMemoryServer_ListMemories_Unauthenticated(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.ListMemories(context.Background(), &pb.ListMemoriesRequest{Scope: "s"})
 	assertCode(t, err, codes.Unauthenticated)
 }
 
 func TestMemoryServer_ListMemories_MissingScope(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.ListMemories(authedCtx("user:alice"), &pb.ListMemoriesRequest{})
 	assertCode(t, err, codes.InvalidArgument)
 }
@@ -410,7 +450,7 @@ func TestMemoryServer_ListMemories_StoreError(t *testing.T) {
 	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 		return nil, errors.New("db error")
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	_, err := srv.ListMemories(authedCtx("user:alice"), &pb.ListMemoriesRequest{Scope: "s"})
 	assertCode(t, err, codes.Internal)
 }
@@ -420,7 +460,7 @@ func TestMemoryServer_ListMemories_StoreError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestMemoryServer_ListScopes_Unauthenticated(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), &mockBackend{}, nil, nil)
 	_, err := srv.ListScopes(context.Background(), &pb.ListScopesRequest{})
 	assertCode(t, err, codes.Unauthenticated)
 }
@@ -429,91 +469,32 @@ func TestMemoryServer_ListScopes_StoreError(t *testing.T) {
 	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 		return nil, errors.New("db error")
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	_, err := srv.ListScopes(authedCtx("user:alice"), &pb.ListScopesRequest{})
 	assertCode(t, err, codes.Internal)
 }
 
 // ---------------------------------------------------------------------------
-// AddMemory embedding tests
+// jobRow mock for AddMemory tests (scans a processing job from CreateDocless)
 // ---------------------------------------------------------------------------
 
-func TestMemoryServer_AddMemory_WithEmbedding(t *testing.T) {
-	// Need a mock store that succeeds on Create, then SetEmbeddingID.
-	callCount := 0
-	db := &mockDBTX{
-		queryRowFn: func(_ context.Context, _ string, args ...any) pgx.Row {
-			callCount++
-			return &memoryRow{mem: store.Memory{
-				ID:        "mem-id",
-				Principal: "user:alice",
-				Scope:     "s",
-				Content:   "c",
-				Status:    "active",
-			}}
-		},
-		execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
-			return pgconn.NewCommandTag("UPDATE 1"), nil
-		},
-	}
-	embedder := &mockEmbedder{embedding: []float64{1.0, 2.0, 3.0}}
-	backend := &mockBackend{}
-	srv := NewMemoryServer(store.NewMemoryStore(db), backend, embedder)
-	resp, err := srv.AddMemory(authedCtx("user:alice"), &pb.AddMemoryRequest{Content: "c"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp.GetId() != "mem-id" {
-		t.Fatalf("expected ID 'mem-id', got %q", resp.GetId())
-	}
+// jobRow implements pgx.Row returning a minimal ProcessingJob for scanJob.
+type jobRow struct {
+	id string
 }
 
-func TestMemoryServer_AddMemory_EmbedError_StillSucceeds(t *testing.T) {
-	db := &mockDBTX{
-		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
-			return &memoryRow{mem: store.Memory{
-				ID:        "mem-id",
-				Principal: "user:alice",
-				Scope:     "s",
-				Content:   "c",
-				Status:    "active",
-			}}
-		},
-	}
-	embedder := &mockEmbedder{err: errors.New("embed error")}
-	backend := &mockBackend{}
-	srv := NewMemoryServer(store.NewMemoryStore(db), backend, embedder)
-	resp, err := srv.AddMemory(authedCtx("user:alice"), &pb.AddMemoryRequest{Content: "c"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp.GetId() != "mem-id" {
-		t.Fatalf("expected ID 'mem-id', got %q", resp.GetId())
-	}
-}
-
-func TestMemoryServer_AddMemory_BackendStoreError_StillSucceeds(t *testing.T) {
-	db := &mockDBTX{
-		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
-			return &memoryRow{mem: store.Memory{
-				ID:        "mem-id",
-				Principal: "user:alice",
-				Scope:     "s",
-				Content:   "c",
-				Status:    "active",
-			}}
-		},
-	}
-	embedder := &mockEmbedder{embedding: []float64{1.0, 2.0}}
-	backend := &mockBackend{storeErr: errors.New("store error")}
-	srv := NewMemoryServer(store.NewMemoryStore(db), backend, embedder)
-	resp, err := srv.AddMemory(authedCtx("user:alice"), &pb.AddMemoryRequest{Content: "c"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp.GetId() != "mem-id" {
-		t.Fatalf("expected ID 'mem-id', got %q", resp.GetId())
-	}
+func (r *jobRow) Scan(dest ...any) error {
+	// scanJob expects: id, docID(*string), jobType, status, progressBytes, error, startedAt, completedAt, createdAt
+	*dest[0].(*string) = r.id
+	*dest[1].(**string) = nil // document_id is NULL
+	*dest[2].(*string) = "memory_maintenance"
+	*dest[3].(*string) = "queued"
+	*dest[4].(*[]byte) = []byte("{}")
+	*dest[5].(**string) = nil
+	*dest[6].(**time.Time) = nil
+	*dest[7].(**time.Time) = nil
+	*dest[8].(*time.Time) = time.Now()
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -533,7 +514,7 @@ func TestMemoryServer_UpdateMemory_PreservesContentWhenEmpty(t *testing.T) {
 			Metadata:  map[string]any{"key": "val"},
 		}}
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, nil, nil)
 	// Empty content should preserve existing content
 	resp, err := srv.UpdateMemory(authedCtx("user:alice"), &pb.UpdateMemoryRequest{Id: "id"})
 	if err != nil {
@@ -572,7 +553,7 @@ func TestMemoryServer_UpdateMemory_WithEmbedding(t *testing.T) {
 	}
 	embedder := &mockEmbedder{embedding: []float64{1.0, 2.0}}
 	backend := &mockBackend{}
-	srv := NewMemoryServer(store.NewMemoryStore(db), backend, embedder)
+	srv := NewMemoryServer(store.NewMemoryStore(db), backend, embedder, nil)
 	resp, err := srv.UpdateMemory(authedCtx("user:alice"), &pb.UpdateMemoryRequest{
 		Id:      "id",
 		Content: "new content",
@@ -607,7 +588,7 @@ func TestMemoryServer_UpdateMemory_EmbedError_StillSucceeds(t *testing.T) {
 		}}
 	}}
 	embedder := &mockEmbedder{err: errors.New("embed error")}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, embedder)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, embedder, nil)
 	resp, err := srv.UpdateMemory(authedCtx("user:alice"), &pb.UpdateMemoryRequest{
 		Id:      "id",
 		Content: "new content",
@@ -643,7 +624,7 @@ func TestMemoryServer_UpdateMemory_BackendStoreError_StillSucceeds(t *testing.T)
 	}}
 	embedder := &mockEmbedder{embedding: []float64{1.0}}
 	backend := &mockBackend{storeErr: errors.New("store error")}
-	srv := NewMemoryServer(store.NewMemoryStore(db), backend, embedder)
+	srv := NewMemoryServer(store.NewMemoryStore(db), backend, embedder, nil)
 	resp, err := srv.UpdateMemory(authedCtx("user:alice"), &pb.UpdateMemoryRequest{
 		Id:      "id",
 		Content: "new content",
@@ -680,7 +661,7 @@ func TestMemoryServer_SearchMemories_SuccessfulSearch(t *testing.T) {
 		}}}, nil
 	}}
 	backend := &mockBackend{searchResults: []vector.SearchResult{{ChunkID: "emb_1", Score: 0.95}}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), backend, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), backend, nil, nil)
 	resp, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope:          "s",
 		QueryEmbedding: []float64{1.0, 2.0},
@@ -707,7 +688,7 @@ func TestMemoryServer_SearchMemories_MissingMemoryForResult(t *testing.T) {
 		return &memoryRows{}, nil
 	}}
 	backend := &mockBackend{searchResults: []vector.SearchResult{{ChunkID: "emb_1", Score: 0.9}}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), backend, nil)
+	srv := NewMemoryServer(store.NewMemoryStore(db), backend, nil, nil)
 	resp, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope:          "s",
 		QueryEmbedding: []float64{1.0, 2.0},
@@ -728,7 +709,7 @@ func TestMemoryServer_SearchMemories_WithQueryText(t *testing.T) {
 		return &emptyRows{}, nil
 	}}
 	embedder := &mockEmbedder{embedding: []float64{1.0, 2.0}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, embedder)
+	srv := NewMemoryServer(store.NewMemoryStore(db), &mockBackend{}, embedder, nil)
 	resp, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{
 		Scope:     "s",
 		QueryText: "hello",

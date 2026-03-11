@@ -218,6 +218,10 @@ export interface AddMemoryRequest {
   metadata?: Record<string, string>;
 }
 
+export interface AddMemoryResponse {
+  job_id: string;
+}
+
 export interface UpdateMemoryRequest {
   content?: string;
   metadata?: Record<string, string>;

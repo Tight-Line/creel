@@ -86,6 +86,8 @@ LLM responses are streamed to the terminal as tokens arrive. Both OpenAI and Ant
 
 At session start (and on resume), creel-chat fetches per-principal memories from the configured scope and includes them in the system prompt as a "What I know about you" section. This gives the LLM persistent knowledge about the user across sessions.
 
+When creel-chat creates a new topic (via `ensureTopic`), it sets `memory_enabled = true` so that memory extraction workers automatically process conversation chunks for that topic. This means memories are extracted from conversations without any extra client configuration.
+
 Use `--memory-scope` to control which scope is used. The default scope is `default`.
 
 ## REPL commands
@@ -93,7 +95,7 @@ Use `--memory-scope` to control which scope is used. The default scope is `defau
 In addition to normal conversation, creel-chat supports slash commands:
 
 - `/upload <filepath>` uploads a local file to Creel for processing via the managed document pipeline. Displays the document ID and job ID. Processing (extraction, chunking, embedding) runs in the background.
-- `/remember <text>` adds a memory fact to the current scope. The LLM will see this fact in future sessions.
+- `/remember <text>` queues a memory fact for processing in the current scope. The fact goes through LLM-based deduplication before being stored. The LLM will see this fact in future sessions.
 - `/forget <text>` searches for the best-matching memory and deletes it. Prints what was forgotten.
 
 ## Cross-topic RAG

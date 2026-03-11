@@ -172,7 +172,7 @@ func run() error {
 	configServer := server.NewConfigServer(apiKeyConfigStore, llmConfigStore, embeddingConfigStore, extractionPromptConfigStore, vectorBackendConfigStore)
 	jobServer := server.NewJobServer(jobStore, docStore, authorizer)
 	linkServer := server.NewLinkServer(linkStore, chunkStore, authorizer)
-	memoryServer := server.NewMemoryServer(memoryStore, vectorBackend, singleEmbedder)
+	memoryServer := server.NewMemoryServer(memoryStore, vectorBackend, singleEmbedder, jobStore)
 	pb.RegisterAdminServiceServer(srv.GRPCServer(), adminServer)
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), topicServer)
 	pb.RegisterDocumentServiceServer(srv.GRPCServer(), docServer)

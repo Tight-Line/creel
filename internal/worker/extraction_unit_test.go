@@ -77,7 +77,8 @@ func (r *mockJobRow) Scan(dest ...any) error {
 	// Scans: id, document_id, job_type, status, progress, error, started_at, completed_at, created_at
 	if len(dest) >= 9 {
 		*dest[0].(*string) = "job-1"
-		*dest[1].(*string) = "doc-1"
+		docID := "doc-1"
+		*dest[1].(**string) = &docID
 		*dest[2].(*string) = "chunking"
 		*dest[3].(*string) = "queued"
 		*dest[4].(*[]byte) = nil

@@ -1,6 +1,7 @@
 import { CreelError } from "./errors";
 import type {
   AddMemoryRequest,
+  AddMemoryResponse,
   Chunk,
   CompactRequest,
   CompactResponse,
@@ -311,8 +312,8 @@ export class CreelClient {
     );
   }
 
-  async addMemory(req: AddMemoryRequest): Promise<Memory> {
-    return this.request<Memory>("POST", "/v1/memories", req);
+  async addMemory(req: AddMemoryRequest): Promise<AddMemoryResponse> {
+    return this.request<AddMemoryResponse>("POST", "/v1/memories", req);
   }
 
   async updateMemory(id: string, req: UpdateMemoryRequest): Promise<Memory> {
