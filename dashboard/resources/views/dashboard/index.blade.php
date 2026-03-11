@@ -36,12 +36,12 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         @php
             $cards = [
-                ['label' => 'API Keys', 'count' => $apiKeyCount ?? 0, 'route' => 'config.apikey.index'],
-                ['label' => 'LLM Configs', 'count' => $llmCount ?? 0, 'route' => 'config.llm.index'],
-                ['label' => 'Embedding Configs', 'count' => $embeddingCount ?? 0, 'route' => 'config.embedding.index'],
-                ['label' => 'Extraction Prompts', 'count' => $promptCount ?? 0, 'route' => 'config.prompt.index'],
-                ['label' => 'Topics', 'count' => $topicCount ?? 0, 'route' => 'topics.index'],
-                ['label' => 'System Accounts', 'count' => $accountCount ?? 0, 'route' => 'accounts.index'],
+                ['label' => 'API Keys', 'count' => $counts['api_key_configs'] ?? 0, 'route' => 'config.apikey.index'],
+                ['label' => 'LLM Configs', 'count' => $counts['llm_configs'] ?? 0, 'route' => 'config.llm.index'],
+                ['label' => 'Embedding Configs', 'count' => $counts['embedding_configs'] ?? 0, 'route' => 'config.embedding.index'],
+                ['label' => 'Extraction Prompts', 'count' => $counts['prompt_configs'] ?? 0, 'route' => 'config.prompt.index'],
+                ['label' => 'Topics', 'count' => $counts['topics'] ?? 0, 'route' => 'topics.index'],
+                ['label' => 'System Accounts', 'count' => $counts['system_accounts'] ?? 0, 'route' => 'accounts.index'],
             ];
         @endphp
 
