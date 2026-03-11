@@ -156,7 +156,7 @@ func (w *EmbeddingWorker) Process(ctx context.Context, job *store.ProcessingJob)
 	items := make([]vector.StoreItem, len(needsEmbedding))
 	for i, c := range needsEmbedding {
 		meta := make(map[string]any, len(c.Metadata)+1) // coverage:ignore - happy path; tested via integration
-		for k, v := range c.Metadata {                   // coverage:ignore - happy path; tested via integration
+		for k, v := range c.Metadata {                  // coverage:ignore - happy path; tested via integration
 			meta[k] = v
 		}
 		if modelName != "" { // coverage:ignore - happy path; tested via integration
