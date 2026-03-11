@@ -1407,6 +1407,29 @@ creel/
 - [ ] Dashboard memory scope view: show principal + scope + memory count (requires admin-capable `ListScopes` variant that spans principals)
 - [ ] `GetJob` detail view for documentless jobs in dashboard (memory maintenance jobs have no document to link to)
 
+### Phase 11: Provider Endpoints
+
+Add an optional `endpoint` field to LLM and embedding configs, enabling OpenAI-compatible APIs (Azure OpenAI, Ollama, vLLM, LiteLLM, Together AI, Groq, etc.). When NULL, providers use their default base URL (`https://api.openai.com`); when set, they use the custom endpoint.
+
+- [ ] Migration: add nullable `endpoint TEXT` column to `llm_configs` and `embedding_configs`
+- [ ] Store structs: add `Endpoint *string` to `LLMConfig` and `EmbeddingConfig`; update all Scan/Insert/Update queries
+- [ ] Proto: add `string endpoint` field to `LLMConfig`, `EmbeddingConfig`, and their Create/Update request messages
+- [ ] Config server: wire endpoint through Create/Update RPCs
+- [ ] Provider constructors: accept optional endpoint; use default base URL when empty
+- [ ] Dynamic providers in `main.go`: pass config endpoint to provider constructors
+- [ ] Dashboard: add endpoint field to LLM and embedding config create/edit forms
+- [ ] SDKs, tool schemas, and docs updated for new field
+
+### Phase 12: Medical Journal Demo
+
+Web UI demonstrating Creel's full value proposition for Internet Brands: RAG with automatic memory. A doctor searches medical journals; Creel remembers they're an oncologist and tailors future results. All powered by standard SDK calls with no special memory plumbing in the client.
+
+- [ ] Medical journal topics with automatically downloaded papers (PubMed open access)
+- [ ] Web chat UI with turn-based conversation
+- [ ] RAG search with proper citations for medical professionals
+- [ ] Automatic memory extraction from conversation turns (user specialty, interests, prior queries)
+- [ ] Standard Creel SDK integration; memory emerges as a side effect of normal usage
+
 ## 11. Verification
 
 - **Unit tests**: each internal package has tests; vector backend interface has a conformance test suite that all implementations must pass

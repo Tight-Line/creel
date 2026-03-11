@@ -38,9 +38,10 @@ export type {
 
   // Memory
   Memory,
-  GetMemoryResponse,
-  SearchMemoriesRequest,
-  SearchMemoriesResponse,
+  GetMemoriesRequest,
+  GetMemoriesResponse,
+  AddMessagesRequest,
+  AddMessagesResponse,
   AddMemoryRequest,
   AddMemoryResponse,
   UpdateMemoryRequest,

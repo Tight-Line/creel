@@ -483,33 +483,33 @@ rpc GetCompactionHistory(GetCompactionHistoryRequest) returns (GetCompactionHist
 
 Memories are per-principal, scoped key-value observations that persist across sessions. Each memory belongs to the calling principal and a named scope. Only the owning principal can access their own memories.
 
-### GetMemory
+### GetMemories
 
 ```
-rpc GetMemory(GetMemoryRequest) returns (GetMemoryResponse)
+rpc GetMemories(GetMemoriesRequest) returns (GetMemoriesResponse)
 ```
 
-| REST | `GET /v1/memories/{scope}` |
-|------|----------------------------|
+| REST | `GET /v1/memories` |
+|------|---------------------|
 
-**Request**: `{scope}`
+**Request**: `{scopes[]}`
 **Response**: `{memories[]}`
 **Permission**: authenticated
-**Behavior**: Returns all active memories for the calling principal in the given scope.
+**Behavior**: Returns all active memories for the calling principal. The optional `scopes` field is a repeated string; if provided, only memories in those scopes are returned. If omitted or empty, memories from all scopes are returned.
 
-### SearchMemories
+### AddMessages
 
 ```
-rpc SearchMemories(SearchMemoriesRequest) returns (SearchMemoriesResponse)
+rpc AddMessages(AddMessagesRequest) returns (AddMessagesResponse)
 ```
 
-| REST | `POST /v1/memories:search` |
-|------|----------------------------|
+| REST | `POST /v1/memories:messages` |
+|------|------------------------------|
 
-**Request**: `{scope, query_text, query_embedding, top_k}`
-**Response**: `{memories[]}`
+**Request**: `{scope, messages[{role, content}]}`
+**Response**: `{job_ids[]}`
 **Permission**: authenticated
-**Behavior**: Semantic search within the calling principal's memories in the given scope. Either `query_text` or `query_embedding` must be provided (not both). If `query_text` is provided, the server computes the embedding via the configured provider.
+**Behavior**: Accepts a batch of conversation messages for the calling principal in the given scope. Enqueues `memory_messages` jobs that use the configured LLM to extract facts from the conversation. Each extracted fact triggers a `memory_maintenance` job for deduplication against existing memories. Returns the job IDs so the caller can poll progress via `GetJob`.
 
 ### AddMemory
 
@@ -585,7 +585,7 @@ rpc ListScopes(ListScopesRequest) returns (ListScopesResponse)
 
 ## JobService
 
-Jobs track asynchronous work such as document extraction, chunking, embedding, and memory maintenance. Jobs are created automatically by operations like `UploadDocument` and `AddMemory`. Some jobs (e.g. memory maintenance) are not associated with a document; their `document_id` is null.
+Jobs track asynchronous work such as document extraction, chunking, embedding, memory message processing, and memory maintenance. Jobs are created automatically by operations like `UploadDocument`, `AddMemory`, and `AddMessages`. Some jobs (e.g. memory maintenance, memory messages) are not associated with a document; their `document_id` is null.
 
 ### GetJob
 

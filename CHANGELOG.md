@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `AddMessages` RPC sends conversation messages for automatic memory extraction. The server creates `memory_messages` jobs that use the LLM to extract facts, then feeds them into the existing memory maintenance pipeline for deduplication.
+- `creel-chat` now automatically sends each turn's messages to memory extraction via `AddMessages`. Memories accumulate without explicit `/remember` commands.
+- `creel-chat --memory-read-scopes` flag allows reading memories from multiple scopes while writing to a single `--memory-scope`.
+
 ### Changed
 
 - CLI endpoint is now a URL via `CREEL_GRPC_ENDPOINT` (replaces `CREEL_ENDPOINT`). `https://` enables TLS; `http://host:port` uses plaintext. The separate `--tls` flag is removed.
@@ -14,14 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `CREEL_GRPC_AUTHORITY` option (and `--authority` flag) overrides the `:authority` header and TLS SNI for routing through proxies where the connection hostname differs from the ingress hostname.
 - MCP sidecar deployment template uses `CREEL_GRPC_ENDPOINT` instead of `CREEL_ENDPOINT`.
 - **Breaking:** `AddMemory` now returns `AddMemoryResponse{job_id}` instead of `Memory`. Memories are processed asynchronously through the maintenance worker, which handles LLM-based deduplication (ADD/UPDATE/DELETE/NOOP) before storing. Poll the returned job via `GetJob` to track progress.
+- **Breaking:** `GetMemory` renamed to `GetMemories` with multi-scope support. Pass an optional list of scopes; empty returns all active memories for the principal.
+- **Breaking:** `SearchMemories` removed. Memories are low-cardinality and LLM-managed; use `GetMemories` to fetch them all by scope.
+- **Breaking:** `memory_enabled` removed from topics. Memory is a per-principal behavior driven by the client, not a topic-level setting.
 
 ### Fixed
 
 - gRPC connections no longer hang on macOS split-horizon DNS. All CLI binaries now use the `passthrough:///` resolver scheme so grpc-go delegates name resolution to the OS instead of performing its own TXT/SRV lookups.
-- `creel-chat` now sets `memory_enabled: true` when creating new topics, so memory extraction fires for chat sessions.
 - `GetJob` now handles documentless jobs (e.g. memory maintenance from `AddMemory`) by authorizing via the principal stored in the job's progress data instead of requiring a document.
 - Memory maintenance worker no longer fails with UUID type errors when processing memories. Embedding machinery has been removed from the memory system; memories are fully LLM-managed and returned in bulk by scope.
-- LLM responses wrapped in markdown code fences (`` ```json ... ``` ``) are now correctly parsed by all workers (memory maintenance, memory extraction, semantic chunking).
+- LLM responses wrapped in markdown code fences (`` ```json ... ``` ``) are now correctly parsed by all workers (memory maintenance, memory messages, semantic chunking).
 
 ## [0.7.2] - 2026-03-11
 

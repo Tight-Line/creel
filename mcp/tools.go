@@ -59,8 +59,8 @@ func (h *ToolHandler) Execute(ctx context.Context, name string, args json.RawMes
 		return h.getContext(ctx, args)
 	case "creel_add_memory":
 		return h.addMemory(ctx, args)
-	case "creel_search_memories":
-		return h.searchMemories(ctx, args)
+	case "creel_get_memories":
+		return h.getMemories(ctx, args)
 	case "creel_list_memories":
 		return h.listMemories(ctx, args)
 	case "creel_delete_memory":
@@ -166,23 +166,16 @@ func (h *ToolHandler) addMemory(ctx context.Context, args json.RawMessage) (stri
 	return marshalProto(resp)
 }
 
-func (h *ToolHandler) searchMemories(ctx context.Context, args json.RawMessage) (string, error) {
+func (h *ToolHandler) getMemories(ctx context.Context, args json.RawMessage) (string, error) {
 	var p struct {
-		QueryText string `json:"query_text"`
-		Scope     string `json:"scope"`
-		TopK      int32  `json:"top_k"`
+		Scopes []string `json:"scopes"`
 	}
 	if err := json.Unmarshal(args, &p); err != nil {
 		return "", fmt.Errorf("parsing arguments: %w", err)
 	}
-	if p.TopK == 0 {
-		p.TopK = 10
-	}
 
-	resp, err := h.memory.SearchMemories(ctx, &pb.SearchMemoriesRequest{
-		Scope:     p.Scope,
-		QueryText: p.QueryText,
-		TopK:      p.TopK,
+	resp, err := h.memory.GetMemories(ctx, &pb.GetMemoriesRequest{
+		Scopes: p.Scopes,
 	})
 	if err != nil {
 		return "", err

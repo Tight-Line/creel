@@ -126,7 +126,7 @@ func TestLinkService_Integration_CRUD(t *testing.T) {
 	// Create a topic, document, and two chunks.
 	topic, err := env.topicStore.Create(context.Background(),
 		fmt.Sprintf("link-test-%d", time.Now().UnixNano()),
-		"Link Test", "", "system:link-test", nil, nil, nil, false, nil)
+		"Link Test", "", "system:link-test", nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}

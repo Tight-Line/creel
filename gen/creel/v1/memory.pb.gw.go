@@ -35,69 +35,38 @@ var (
 	_ = metadata.Join
 )
 
-func request_MemoryService_GetMemory_0(ctx context.Context, marshaler runtime.Marshaler, client MemoryServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+var filter_MemoryService_GetMemories_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+
+func request_MemoryService_GetMemories_0(ctx context.Context, marshaler runtime.Marshaler, client MemoryServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var (
-		protoReq GetMemoryRequest
+		protoReq GetMemoriesRequest
 		metadata runtime.ServerMetadata
-		err      error
 	)
 	if req.Body != nil {
 		_, _ = io.Copy(io.Discard, req.Body)
 	}
-	val, ok := pathParams["scope"]
-	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "scope")
-	}
-	protoReq.Scope, err = runtime.String(val)
-	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "scope", err)
-	}
-	msg, err := client.GetMemory(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
-	return msg, metadata, err
-}
-
-func local_request_MemoryService_GetMemory_0(ctx context.Context, marshaler runtime.Marshaler, server MemoryServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var (
-		protoReq GetMemoryRequest
-		metadata runtime.ServerMetadata
-		err      error
-	)
-	val, ok := pathParams["scope"]
-	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "scope")
-	}
-	protoReq.Scope, err = runtime.String(val)
-	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "scope", err)
-	}
-	msg, err := server.GetMemory(ctx, &protoReq)
-	return msg, metadata, err
-}
-
-func request_MemoryService_SearchMemories_0(ctx context.Context, marshaler runtime.Marshaler, client MemoryServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var (
-		protoReq SearchMemoriesRequest
-		metadata runtime.ServerMetadata
-	)
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+	if err := req.ParseForm(); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-	if req.Body != nil {
-		_, _ = io.Copy(io.Discard, req.Body)
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_MemoryService_GetMemories_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-	msg, err := client.SearchMemories(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.GetMemories(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 }
 
-func local_request_MemoryService_SearchMemories_0(ctx context.Context, marshaler runtime.Marshaler, server MemoryServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func local_request_MemoryService_GetMemories_0(ctx context.Context, marshaler runtime.Marshaler, server MemoryServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var (
-		protoReq SearchMemoriesRequest
+		protoReq GetMemoriesRequest
 		metadata runtime.ServerMetadata
 	)
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+	if err := req.ParseForm(); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-	msg, err := server.SearchMemories(ctx, &protoReq)
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_MemoryService_GetMemories_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.GetMemories(ctx, &protoReq)
 	return msg, metadata, err
 }
 
@@ -125,6 +94,33 @@ func local_request_MemoryService_AddMemory_0(ctx context.Context, marshaler runt
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 	msg, err := server.AddMemory(ctx, &protoReq)
+	return msg, metadata, err
+}
+
+func request_MemoryService_AddMessages_0(ctx context.Context, marshaler runtime.Marshaler, client MemoryServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq AddMessagesRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
+	msg, err := client.AddMessages(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_MemoryService_AddMessages_0(ctx context.Context, marshaler runtime.Marshaler, server MemoryServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq AddMessagesRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.AddMessages(ctx, &protoReq)
 	return msg, metadata, err
 }
 
@@ -212,24 +208,15 @@ func local_request_MemoryService_DeleteMemory_0(ctx context.Context, marshaler r
 	return msg, metadata, err
 }
 
-var filter_MemoryService_ListMemories_0 = &utilities.DoubleArray{Encoding: map[string]int{"scope": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
+var filter_MemoryService_ListMemories_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
 
 func request_MemoryService_ListMemories_0(ctx context.Context, marshaler runtime.Marshaler, client MemoryServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var (
 		protoReq ListMemoriesRequest
 		metadata runtime.ServerMetadata
-		err      error
 	)
 	if req.Body != nil {
 		_, _ = io.Copy(io.Discard, req.Body)
-	}
-	val, ok := pathParams["scope"]
-	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "scope")
-	}
-	protoReq.Scope, err = runtime.String(val)
-	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "scope", err)
 	}
 	if err := req.ParseForm(); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
@@ -245,16 +232,7 @@ func local_request_MemoryService_ListMemories_0(ctx context.Context, marshaler r
 	var (
 		protoReq ListMemoriesRequest
 		metadata runtime.ServerMetadata
-		err      error
 	)
-	val, ok := pathParams["scope"]
-	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "scope")
-	}
-	protoReq.Scope, err = runtime.String(val)
-	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "scope", err)
-	}
 	if err := req.ParseForm(); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
@@ -292,45 +270,25 @@ func local_request_MemoryService_ListScopes_0(ctx context.Context, marshaler run
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterMemoryServiceHandlerFromEndpoint instead.
 // GRPC interceptors will not work for this type of registration. To use interceptors, you must use the "runtime.WithMiddlewares" option in the "runtime.NewServeMux" call.
 func RegisterMemoryServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux, server MemoryServiceServer) error {
-	mux.Handle(http.MethodGet, pattern_MemoryService_GetMemory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodGet, pattern_MemoryService_GetMemories_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/creel.v1.MemoryService/GetMemory", runtime.WithHTTPPathPattern("/v1/memories/{scope}"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/creel.v1.MemoryService/GetMemories", runtime.WithHTTPPathPattern("/v1/memories"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_MemoryService_GetMemory_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_MemoryService_GetMemories_0(annotatedContext, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		forward_MemoryService_GetMemory_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-	})
-	mux.Handle(http.MethodPost, pattern_MemoryService_SearchMemories_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
-		defer cancel()
-		var stream runtime.ServerTransportStream
-		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
-		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/creel.v1.MemoryService/SearchMemories", runtime.WithHTTPPathPattern("/v1/memories:search"))
-		if err != nil {
-			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
-			return
-		}
-		resp, md, err := local_request_MemoryService_SearchMemories_0(annotatedContext, inboundMarshaler, server, req, pathParams)
-		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
-		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
-		if err != nil {
-			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
-			return
-		}
-		forward_MemoryService_SearchMemories_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_MemoryService_GetMemories_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
 	mux.Handle(http.MethodPost, pattern_MemoryService_AddMemory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
@@ -351,6 +309,26 @@ func RegisterMemoryServiceHandlerServer(ctx context.Context, mux *runtime.ServeM
 			return
 		}
 		forward_MemoryService_AddMemory_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodPost, pattern_MemoryService_AddMessages_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/creel.v1.MemoryService/AddMessages", runtime.WithHTTPPathPattern("/v1/memories:add-messages"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_MemoryService_AddMessages_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_MemoryService_AddMessages_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
 	mux.Handle(http.MethodPatch, pattern_MemoryService_UpdateMemory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
@@ -398,7 +376,7 @@ func RegisterMemoryServiceHandlerServer(ctx context.Context, mux *runtime.ServeM
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/creel.v1.MemoryService/ListMemories", runtime.WithHTTPPathPattern("/v1/memories/{scope}/list"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/creel.v1.MemoryService/ListMemories", runtime.WithHTTPPathPattern("/v1/memories:list"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -472,39 +450,22 @@ func RegisterMemoryServiceHandler(ctx context.Context, mux *runtime.ServeMux, co
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
 // "MemoryServiceClient" to call the correct interceptors. This client ignores the HTTP middlewares.
 func RegisterMemoryServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client MemoryServiceClient) error {
-	mux.Handle(http.MethodGet, pattern_MemoryService_GetMemory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodGet, pattern_MemoryService_GetMemories_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/creel.v1.MemoryService/GetMemory", runtime.WithHTTPPathPattern("/v1/memories/{scope}"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/creel.v1.MemoryService/GetMemories", runtime.WithHTTPPathPattern("/v1/memories"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_MemoryService_GetMemory_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_MemoryService_GetMemories_0(annotatedContext, inboundMarshaler, client, req, pathParams)
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		forward_MemoryService_GetMemory_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-	})
-	mux.Handle(http.MethodPost, pattern_MemoryService_SearchMemories_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
-		defer cancel()
-		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/creel.v1.MemoryService/SearchMemories", runtime.WithHTTPPathPattern("/v1/memories:search"))
-		if err != nil {
-			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
-			return
-		}
-		resp, md, err := request_MemoryService_SearchMemories_0(annotatedContext, inboundMarshaler, client, req, pathParams)
-		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
-		if err != nil {
-			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
-			return
-		}
-		forward_MemoryService_SearchMemories_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_MemoryService_GetMemories_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
 	mux.Handle(http.MethodPost, pattern_MemoryService_AddMemory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
@@ -522,6 +483,23 @@ func RegisterMemoryServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 			return
 		}
 		forward_MemoryService_AddMemory_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodPost, pattern_MemoryService_AddMessages_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/creel.v1.MemoryService/AddMessages", runtime.WithHTTPPathPattern("/v1/memories:add-messages"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_MemoryService_AddMessages_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_MemoryService_AddMessages_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
 	mux.Handle(http.MethodPatch, pattern_MemoryService_UpdateMemory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
@@ -561,7 +539,7 @@ func RegisterMemoryServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/creel.v1.MemoryService/ListMemories", runtime.WithHTTPPathPattern("/v1/memories/{scope}/list"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/creel.v1.MemoryService/ListMemories", runtime.WithHTTPPathPattern("/v1/memories:list"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -595,21 +573,21 @@ func RegisterMemoryServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 }
 
 var (
-	pattern_MemoryService_GetMemory_0      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "memories", "scope"}, ""))
-	pattern_MemoryService_SearchMemories_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "memories"}, "search"))
-	pattern_MemoryService_AddMemory_0      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "memories"}, ""))
-	pattern_MemoryService_UpdateMemory_0   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "memories", "id"}, ""))
-	pattern_MemoryService_DeleteMemory_0   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "memories", "id"}, ""))
-	pattern_MemoryService_ListMemories_0   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2, 2, 3}, []string{"v1", "memories", "scope", "list"}, ""))
-	pattern_MemoryService_ListScopes_0     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "memories"}, "scopes"))
+	pattern_MemoryService_GetMemories_0  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "memories"}, ""))
+	pattern_MemoryService_AddMemory_0    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "memories"}, ""))
+	pattern_MemoryService_AddMessages_0  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "memories"}, "add-messages"))
+	pattern_MemoryService_UpdateMemory_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "memories", "id"}, ""))
+	pattern_MemoryService_DeleteMemory_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "memories", "id"}, ""))
+	pattern_MemoryService_ListMemories_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "memories"}, "list"))
+	pattern_MemoryService_ListScopes_0   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "memories"}, "scopes"))
 )
 
 var (
-	forward_MemoryService_GetMemory_0      = runtime.ForwardResponseMessage
-	forward_MemoryService_SearchMemories_0 = runtime.ForwardResponseMessage
-	forward_MemoryService_AddMemory_0      = runtime.ForwardResponseMessage
-	forward_MemoryService_UpdateMemory_0   = runtime.ForwardResponseMessage
-	forward_MemoryService_DeleteMemory_0   = runtime.ForwardResponseMessage
-	forward_MemoryService_ListMemories_0   = runtime.ForwardResponseMessage
-	forward_MemoryService_ListScopes_0     = runtime.ForwardResponseMessage
+	forward_MemoryService_GetMemories_0  = runtime.ForwardResponseMessage
+	forward_MemoryService_AddMemory_0    = runtime.ForwardResponseMessage
+	forward_MemoryService_AddMessages_0  = runtime.ForwardResponseMessage
+	forward_MemoryService_UpdateMemory_0 = runtime.ForwardResponseMessage
+	forward_MemoryService_DeleteMemory_0 = runtime.ForwardResponseMessage
+	forward_MemoryService_ListMemories_0 = runtime.ForwardResponseMessage
+	forward_MemoryService_ListScopes_0   = runtime.ForwardResponseMessage
 )

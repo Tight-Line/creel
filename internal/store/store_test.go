@@ -159,7 +159,7 @@ func TestTopicStore_Create_Error(t *testing.T) {
 		return &mockRow{err: errMock}
 	}}
 	s := NewTopicStore(db)
-	_, err := s.Create(ctx(), "slug", "name", "desc", "owner", nil, nil, nil, false, nil)
+	_, err := s.Create(ctx(), "slug", "name", "desc", "owner", nil, nil, nil, nil)
 	expectErr(t, err, "inserting topic")
 }
 
@@ -222,7 +222,7 @@ func TestTopicStore_Update_ErrNoRows(t *testing.T) {
 		return &mockRow{err: pgx.ErrNoRows}
 	}}
 	s := NewTopicStore(db)
-	_, err := s.Update(ctx(), "id", "name", "desc", nil, nil, nil, nil, nil)
+	_, err := s.Update(ctx(), "id", "name", "desc", nil, nil, nil, nil)
 	expectErr(t, err, "topic not found")
 }
 
@@ -231,7 +231,7 @@ func TestTopicStore_Update_OtherError(t *testing.T) {
 		return &mockRow{err: errMock}
 	}}
 	s := NewTopicStore(db)
-	_, err := s.Update(ctx(), "id", "name", "desc", nil, nil, nil, nil, nil)
+	_, err := s.Update(ctx(), "id", "name", "desc", nil, nil, nil, nil)
 	expectErr(t, err, "updating topic")
 }
 

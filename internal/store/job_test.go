@@ -47,7 +47,7 @@ func setupJobTestDB(t *testing.T) (*pgxpool.Pool, string) {
 
 	// Create a topic and document for FK references.
 	topicStore := NewTopicStore(pool)
-	topic, err := topicStore.Create(ctx, "job-test-topic", "Job Test Topic", "", "", nil, nil, nil, false, nil)
+	topic, err := topicStore.Create(ctx, "job-test-topic", "Job Test Topic", "", "", nil, nil, nil, nil)
 	if err != nil {
 		// Topic may already exist; find it by listing all topics.
 		topics, listErr := topicStore.ListForPrincipals(ctx, nil)

@@ -3,8 +3,8 @@ package worker
 // Default prompts for memory extraction and maintenance workers.
 // TODO: make these configurable via ExtractionPromptConfig.
 
-// DefaultExtractionSystemPrompt is the system prompt for extracting facts from conversation chunks.
-const DefaultExtractionSystemPrompt = `You are a Personal Information Organizer, specialized in accurately storing facts, user memories, and preferences. Your primary role is to extract relevant pieces of information from conversations and organize them into distinct, manageable facts. This includes:
+// DefaultMessagesExtractionSystemPrompt is the system prompt for extracting facts from conversation messages.
+const DefaultMessagesExtractionSystemPrompt = `You are a Personal Information Organizer, specialized in accurately storing facts, user memories, and preferences. Your primary role is to extract relevant pieces of information from conversations and organize them into distinct, manageable facts. This includes:
 
 1. Store personal preferences and habits.
 2. Retain important personal details (e.g., names, relationships, locations).
@@ -24,9 +24,9 @@ Output: {"facts": ["User's team chose PostgreSQL for their new project"]}
 
 You must respond with a JSON object containing a "facts" array. Each fact should be a concise, standalone statement. If no facts can be extracted, return {"facts": []}.`
 
-// DefaultExtractionUserPrompt is the template for the user message in fact extraction.
-// The placeholder %s is replaced with the chunk content.
-const DefaultExtractionUserPrompt = "Extract facts from the following conversation:\n\n%s"
+// DefaultMessagesExtractionUserPrompt is the template for the user message in fact extraction.
+// The placeholder %s is replaced with the conversation messages.
+const DefaultMessagesExtractionUserPrompt = "Extract facts from the following conversation messages:\n\n%s"
 
 // DefaultMaintenanceSystemPrompt is the system prompt for deciding how to handle a candidate fact
 // relative to existing memories.

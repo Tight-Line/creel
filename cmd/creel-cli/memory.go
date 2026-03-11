@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -110,11 +108,10 @@ func memoryCmd() *cobra.Command {
 		},
 	}
 
-	var searchScope, queryText string
-	var topK int32
-	searchCmd := &cobra.Command{
-		Use:   "search",
-		Short: "Search memories by embedding or text query",
+	var getScopes []string
+	getCmd := &cobra.Command{
+		Use:   "get",
+		Short: "Get active memories, optionally filtered by scopes",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			conn, err := dial()
 			if err != nil {
@@ -122,23 +119,9 @@ func memoryCmd() *cobra.Command {
 			}
 			defer func() { _ = conn.Close() }()
 
-			req := &pb.SearchMemoriesRequest{
-				Scope:     searchScope,
-				QueryText: queryText,
-				TopK:      topK,
-			}
-
-			// If no query text, try reading embedding from stdin.
-			if queryText == "" {
-				var embedding []float64
-				dec := json.NewDecoder(os.Stdin)
-				if err := dec.Decode(&embedding); err != nil {
-					return fmt.Errorf("reading embedding from stdin (or provide --query): %w", err)
-				}
-				req.QueryEmbedding = embedding
-			}
-
-			resp, err := pb.NewMemoryServiceClient(conn).SearchMemories(authCtx(), req)
+			resp, err := pb.NewMemoryServiceClient(conn).GetMemories(authCtx(), &pb.GetMemoriesRequest{
+				Scopes: getScopes,
+			})
 			if err != nil {
 				return err
 			}
@@ -146,10 +129,8 @@ func memoryCmd() *cobra.Command {
 			return nil
 		},
 	}
-	searchCmd.Flags().StringVar(&searchScope, "scope", "default", "memory scope")
-	searchCmd.Flags().StringVar(&queryText, "query", "", "text query (requires embedding provider)")
-	searchCmd.Flags().Int32Var(&topK, "top-k", 10, "number of results")
+	getCmd.Flags().StringSliceVar(&getScopes, "scope", nil, "memory scope(s) to filter by (repeatable)")
 
-	cmd.AddCommand(listCmd, addCmd, deleteCmd, scopesCmd, searchCmd)
+	cmd.AddCommand(listCmd, addCmd, deleteCmd, scopesCmd, getCmd)
 	return cmd
 }

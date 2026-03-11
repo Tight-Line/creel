@@ -27,7 +27,6 @@ class Topic:
     embedding_config_id: Optional[str] = None
     extraction_prompt_config_id: Optional[str] = None
     chunking_strategy: Optional[ChunkingStrategy] = None
-    memory_enabled: bool = False
 
 
 @dataclass
@@ -166,17 +165,6 @@ class Memory:
 
 
 @dataclass
-class MemorySearchResult:
-    memory: Optional[Memory] = None
-    score: float = 0.0
-
-
-@dataclass
-class SearchMemoriesResponse:
-    results: list[MemorySearchResult] = field(default_factory=list)
-
-
-@dataclass
 class AddMemoryResponse:
     job_id: str = ""
 
@@ -189,6 +177,11 @@ class ListMemoriesResponse:
 @dataclass
 class ListScopesResponse:
     scopes: list[str] = field(default_factory=list)
+
+
+@dataclass
+class AddMessagesResponse:
+    job_ids: list[str] = field(default_factory=list)
 
 
 # -- Links -------------------------------------------------------------------

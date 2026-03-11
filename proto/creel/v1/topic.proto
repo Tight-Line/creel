@@ -63,7 +63,7 @@ message Topic {
   optional string embedding_config_id = 9;
   optional string extraction_prompt_config_id = 10;
   optional ChunkingStrategy chunking_strategy = 11;
-  bool memory_enabled = 12;
+  reserved 12; // was memory_enabled
   optional string vector_backend_config_id = 13;
 }
 
@@ -95,7 +95,7 @@ message CreateTopicRequest {
   optional string llm_config_id = 4;
   optional string embedding_config_id = 5;
   optional string extraction_prompt_config_id = 6;
-  bool memory_enabled = 7;
+  reserved 7; // was memory_enabled
   optional string vector_backend_config_id = 8;
 }
 
@@ -120,7 +120,7 @@ message UpdateTopicRequest {
   optional string llm_config_id = 4;
   optional string embedding_config_id = 5;
   optional string extraction_prompt_config_id = 6;
-  optional bool memory_enabled = 7;
+  reserved 7; // was memory_enabled
   optional string vector_backend_config_id = 8;
 }
 

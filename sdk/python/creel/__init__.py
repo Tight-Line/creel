@@ -4,6 +4,7 @@ from creel.client import CreelClient
 from creel.exceptions import CreelError
 from creel.models import (
     AddMemoryResponse,
+    AddMessagesResponse,
     Chunk,
     ChunkingStrategy,
     CompactResponse,
@@ -23,10 +24,8 @@ from creel.models import (
     ListScopesResponse,
     ListTopicsResponse,
     Memory,
-    MemorySearchResult,
     ProcessingJob,
     RequestCompactionResponse,
-    SearchMemoriesResponse,
     SearchResponse,
     SearchResult,
     Topic,
@@ -37,6 +36,7 @@ from creel.models import (
 
 __all__ = [
     "AddMemoryResponse",
+    "AddMessagesResponse",
     "CreelClient",
     "CreelError",
     "Chunk",
@@ -58,10 +58,8 @@ __all__ = [
     "ListScopesResponse",
     "ListTopicsResponse",
     "Memory",
-    "MemorySearchResult",
     "ProcessingJob",
     "RequestCompactionResponse",
-    "SearchMemoriesResponse",
     "SearchResponse",
     "SearchResult",
     "Topic",

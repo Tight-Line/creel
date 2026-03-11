@@ -16,7 +16,6 @@ export interface Topic {
   slug: string;
   name: string;
   description: string;
-  memory_enabled: boolean;
   embedding_config_id?: string;
   vector_backend_config_id?: string;
   created_at: string;
@@ -27,13 +26,11 @@ export interface CreateTopicRequest {
   slug: string;
   name: string;
   description?: string;
-  memory_enabled?: boolean;
 }
 
 export interface UpdateTopicRequest {
   name?: string;
   description?: string;
-  memory_enabled?: boolean;
 }
 
 export interface ListTopicsResponse {
@@ -194,19 +191,21 @@ export interface Memory {
   updated_at: string;
 }
 
-export interface GetMemoryResponse {
+export interface GetMemoriesRequest {
+  scopes?: string[];
+}
+
+export interface GetMemoriesResponse {
   memories: Memory[];
 }
 
-export interface SearchMemoriesRequest {
-  scope?: string;
-  query_text?: string;
-  top_k?: number;
+export interface AddMessagesRequest {
+  scope: string;
+  messages: { role: string; content: string }[];
 }
 
-export interface SearchMemoriesResponse {
-  memories: Memory[];
-  scores: number[];
+export interface AddMessagesResponse {
+  job_ids: string[];
 }
 
 export interface AddMemoryRequest {

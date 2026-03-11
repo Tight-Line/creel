@@ -69,7 +69,7 @@ func (s *TopicServer) CreateTopic(ctx context.Context, req *pb.CreateTopicReques
 		vbCfgID = &v
 	}
 
-	t, err := s.topicStore.Create(ctx, topicSlug, req.GetName(), req.GetDescription(), p.ID, llmCfgID, embCfgID, promptCfgID, req.GetMemoryEnabled(), vbCfgID)
+	t, err := s.topicStore.Create(ctx, topicSlug, req.GetName(), req.GetDescription(), p.ID, llmCfgID, embCfgID, promptCfgID, vbCfgID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "creating topic: %v", err)
 	}
@@ -193,13 +193,7 @@ func (s *TopicServer) UpdateTopic(ctx context.Context, req *pb.UpdateTopicReques
 		}
 	}
 
-	var memEnabled *bool
-	if req.MemoryEnabled != nil {
-		v := req.GetMemoryEnabled()
-		memEnabled = &v
-	}
-
-	t, err := s.topicStore.Update(ctx, req.GetId(), req.GetName(), req.GetDescription(), llmCfgID, embCfgID, promptCfgID, memEnabled, vbCfgID)
+	t, err := s.topicStore.Update(ctx, req.GetId(), req.GetName(), req.GetDescription(), llmCfgID, embCfgID, promptCfgID, vbCfgID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "updating topic: %v", err)
 	}
@@ -299,14 +293,13 @@ func (s *TopicServer) ListGrants(ctx context.Context, req *pb.ListGrantsRequest)
 
 func storeTopicToProto(t *store.Topic) *pb.Topic {
 	p := &pb.Topic{
-		Id:            t.ID,
-		Slug:          t.Slug,
-		Name:          t.Name,
-		Description:   t.Description,
-		Owner:         t.Owner,
-		CreatedAt:     timestamppb.New(t.CreatedAt),
-		UpdatedAt:     timestamppb.New(t.UpdatedAt),
-		MemoryEnabled: t.MemoryEnabled,
+		Id:          t.ID,
+		Slug:        t.Slug,
+		Name:        t.Name,
+		Description: t.Description,
+		Owner:       t.Owner,
+		CreatedAt:   timestamppb.New(t.CreatedAt),
+		UpdatedAt:   timestamppb.New(t.UpdatedAt),
 	}
 	if t.LLMConfigID != nil {
 		p.LlmConfigId = t.LLMConfigID

@@ -148,8 +148,8 @@ func run() error {
 
 	// Create and register memory workers.
 	memoryStore := store.NewMemoryStore(pool)
-	memExtractionWorker := worker.NewMemoryExtractionWorker(docStore, chunkStore, topicStore, jobStore, llmProvider)
-	workerPool.Register(memExtractionWorker)
+	memMessagesWorker := worker.NewMemoryMessagesWorker(jobStore, llmProvider)
+	workerPool.Register(memMessagesWorker)
 	memMaintenanceWorker := worker.NewMemoryMaintenanceWorker(memoryStore, jobStore, llmProvider)
 	workerPool.Register(memMaintenanceWorker)
 
@@ -164,7 +164,7 @@ func run() error {
 	adminServer := server.NewAdminServer(pool, accountStore, statsStore, version)
 	topicServer := server.NewTopicServer(topicStore, authorizer, embeddingConfigStore)
 	docServer := server.NewDocumentServer(docStore, jobStore, httpFetcher, authorizer)
-	chunkServer := server.NewChunkServer(chunkStore, docStore, topicStore, jobStore, vectorBackend, authorizer)
+	chunkServer := server.NewChunkServer(chunkStore, docStore, jobStore, vectorBackend, authorizer)
 	searcher := retrieval.NewSearcher(chunkStore, docStore, authorizer, vectorBackend)
 	contextFetcher := retrieval.NewContextFetcher(chunkStore, authorizer)
 	singleEmbedder := &singleTextEmbedder{batch: embeddingProvider}

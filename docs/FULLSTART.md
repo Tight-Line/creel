@@ -51,7 +51,7 @@ bin/creel-cli config embedding create \
   --apikey-config "$APIKEY_ID" \
   --default
 
-# Create a default LLM config (used by memory extraction workers)
+# Create a default LLM config (used by memory_messages and memory_maintenance workers)
 bin/creel-cli config llm create \
   --name "openai-llm" \
   --provider openai \
@@ -461,7 +461,7 @@ Now tell the assistant something about yourself:
 you> I'm a fly fishing guide based in Rangeley, Maine. I mostly guide clients on the Kennebago River and Rangeley Lake. I need to keep up with hatch charts and conditions reports so I can plan trips.
 ```
 
-The assistant acknowledges this. Behind the scenes, the memory extraction worker may pick up facts from the conversation (depending on your LLM config). You can also add memories explicitly:
+The assistant acknowledges this. Behind the scenes, creel-chat calls `AddMessages` after each turn, which enqueues `memory_messages` jobs to extract facts from the conversation via the configured LLM. You can also add memories explicitly:
 
 ```
 you> /remember I prefer dry fly fishing over nymphing whenever possible

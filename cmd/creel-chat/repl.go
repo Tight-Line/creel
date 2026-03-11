@@ -32,9 +32,8 @@ func ensureTopic(ctx context.Context, conn *grpc.ClientConn, slug string) (strin
 	}
 
 	topic, err := client.CreateTopic(ctx, &pb.CreateTopicRequest{
-		Slug:          slug,
-		Name:          slug,
-		MemoryEnabled: true,
+		Slug: slug,
+		Name: slug,
 	})
 	if err != nil {
 		return "", fmt.Errorf("creating topic: %w", err)
@@ -98,11 +97,12 @@ func createSessionDoc(ctx context.Context, conn *grpc.ClientConn, topicID string
 	return doc.GetId(), nil
 }
 
-// loadMemories fetches memories for the current principal's scope.
-func loadMemories(ctx context.Context, conn *grpc.ClientConn, scope string) []*pb.Memory {
+// loadMemories fetches memories for the current principal across the given scopes.
+// If scopes is nil or empty, returns all memories for the principal.
+func loadMemories(ctx context.Context, conn *grpc.ClientConn, scopes []string) []*pb.Memory {
 	client := pb.NewMemoryServiceClient(conn)
-	resp, err := client.GetMemory(ctx, &pb.GetMemoryRequest{
-		Scope: scope,
+	resp, err := client.GetMemories(ctx, &pb.GetMemoriesRequest{
+		Scopes: scopes,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not load memories: %v\n", err)
@@ -160,7 +160,7 @@ func handleRemember(ctx context.Context, conn *grpc.ClientConn, scope, text stri
 }
 
 // handleForget processes the /forget command.
-func handleForget(ctx context.Context, conn *grpc.ClientConn, embedder Embedder, scope, text string) { // coverage:ignore - interactive REPL command that requires real gRPC server
+func handleForget(ctx context.Context, conn *grpc.ClientConn, _ Embedder, scope, text string) { // coverage:ignore - interactive REPL command that requires real gRPC server
 	if text == "" {
 		fmt.Fprintln(os.Stderr, "usage: /forget <text>")
 		return
@@ -168,30 +168,29 @@ func handleForget(ctx context.Context, conn *grpc.ClientConn, embedder Embedder,
 
 	client := pb.NewMemoryServiceClient(conn)
 
-	// Embed the query to find the best matching memory.
-	embedding, err := embedder.Embed(ctx, text)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error embedding query: %v\n", err)
-		return
-	}
-
-	searchResp, err := client.SearchMemories(ctx, &pb.SearchMemoriesRequest{
-		Scope:          scope,
-		QueryEmbedding: embedding,
-		QueryText:      text,
-		TopK:           1,
+	// Get all memories in the scope and find the best match by substring.
+	getResp, err := client.GetMemories(ctx, &pb.GetMemoriesRequest{
+		Scopes: []string{scope},
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error searching memories: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error getting memories: %v\n", err)
 		return
 	}
 
-	if len(searchResp.GetResults()) == 0 {
+	lowerText := strings.ToLower(text)
+	var best *pb.Memory
+	for _, m := range getResp.GetMemories() {
+		if strings.Contains(strings.ToLower(m.GetContent()), lowerText) {
+			best = m
+			break
+		}
+	}
+
+	if best == nil {
 		fmt.Println("No matching memory found.")
 		return
 	}
 
-	best := searchResp.GetResults()[0].GetMemory()
 	_, err = client.DeleteMemory(ctx, &pb.DeleteMemoryRequest{
 		Id: best.GetId(),
 	})
@@ -212,9 +211,16 @@ func runLoop(ctx context.Context, conn *grpc.ClientConn, llm LLM, embedder Embed
 
 	chunkClient := pb.NewChunkServiceClient(conn)
 	retrievalClient := pb.NewRetrievalServiceClient(conn)
+	memoryClient := pb.NewMemoryServiceClient(conn)
+
+	// Resolve which scopes to read from. Default to the write scope.
+	readScopes := memoryReadScopes
+	if len(readScopes) == 0 {
+		readScopes = []string{memoryScope}
+	}
 
 	// Load memories at session start.
-	memories := loadMemories(ctx, conn, memoryScope)
+	memories := loadMemories(ctx, conn, readScopes)
 
 	for {
 		fmt.Print("you> ")
@@ -235,12 +241,12 @@ func runLoop(ctx context.Context, conn *grpc.ClientConn, llm LLM, embedder Embed
 		case CmdRemember:
 			handleRemember(ctx, conn, memoryScope, cmd.Arg)
 			// Reload memories after adding.
-			memories = loadMemories(ctx, conn, memoryScope)
+			memories = loadMemories(ctx, conn, readScopes)
 			continue
 		case CmdForget:
 			handleForget(ctx, conn, embedder, memoryScope, cmd.Arg)
 			// Reload memories after deleting.
-			memories = loadMemories(ctx, conn, memoryScope)
+			memories = loadMemories(ctx, conn, readScopes)
 			continue
 		}
 
@@ -337,6 +343,18 @@ func runLoop(ctx context.Context, conn *grpc.ClientConn, llm LLM, embedder Embed
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error ingesting chunks: %v\n", err)
 			continue
+		}
+
+		// Send this turn's messages for automatic memory extraction.
+		_, err = memoryClient.AddMessages(ctx, &pb.AddMessagesRequest{
+			Scope: memoryScope,
+			Messages: []*pb.ConversationMessage{
+				{Role: "user", Content: userInput},
+				{Role: "assistant", Content: assistantReply},
+			},
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not send messages for memory extraction: %v\n", err)
 		}
 	}
 
