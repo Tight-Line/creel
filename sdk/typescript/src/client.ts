@@ -2,6 +2,8 @@ import { CreelError } from "./errors";
 import type {
   AddMemoryRequest,
   AddMemoryResponse,
+  AddMessagesRequest,
+  AddMessagesResponse,
   Chunk,
   CompactRequest,
   CompactResponse,
@@ -13,7 +15,8 @@ import type {
   GetCompactionHistoryResponse,
   GetContextRequest,
   GetContextResponse,
-  GetMemoryResponse,
+  GetMemoriesRequest,
+  GetMemoriesResponse,
   Grant,
   GrantAccessRequest,
   HealthResponse,
@@ -33,8 +36,6 @@ import type {
   PageParams,
   RequestCompactionRequest,
   RequestCompactionResponse,
-  SearchMemoriesRequest,
-  SearchMemoriesResponse,
   SearchRequest,
   SearchResponse,
   Topic,
@@ -295,19 +296,15 @@ export class CreelClient {
   // MemoryService
   // -------------------------------------------------------------------------
 
-  async getMemory(scope: string): Promise<GetMemoryResponse> {
-    return this.request<GetMemoryResponse>(
-      "GET",
-      `/v1/memories/${encodeURIComponent(scope)}`,
-    );
+  async getMemories(req?: GetMemoriesRequest): Promise<GetMemoriesResponse> {
+    const qs = this.queryString({ scopes: req?.scopes?.join(",") });
+    return this.request<GetMemoriesResponse>("GET", `/v1/memories${qs}`);
   }
 
-  async searchMemories(
-    req: SearchMemoriesRequest,
-  ): Promise<SearchMemoriesResponse> {
-    return this.request<SearchMemoriesResponse>(
+  async addMessages(req: AddMessagesRequest): Promise<AddMessagesResponse> {
+    return this.request<AddMessagesResponse>(
       "POST",
-      "/v1/memories:search",
+      "/v1/memories:add-messages",
       req,
     );
   }

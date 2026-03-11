@@ -215,7 +215,7 @@ func TestPgvectorConformance(t *testing.T) {
 	_, _ = pool.Exec(ctx, `TRUNCATE chunk_embeddings`)
 
 	topicStore := store.NewTopicStore(pool)
-	topic, err := topicStore.Create(ctx, "conformance-test", "Conformance", "test", "system:test", nil, nil, nil, false, nil)
+	topic, err := topicStore.Create(ctx, "conformance-test", "Conformance", "test", "system:test", nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("creating topic: %v", err)
 	}

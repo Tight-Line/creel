@@ -23,67 +23,119 @@ func authedCtx(principalID string) context.Context {
 }
 
 // ---------------------------------------------------------------------------
-// GetMemory tests
+// GetMemories tests
 // ---------------------------------------------------------------------------
 
-func TestMemoryServer_GetMemory_Unauthenticated(t *testing.T) {
+func TestMemoryServer_GetMemories_Unauthenticated(t *testing.T) {
 	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), nil)
-	_, err := srv.GetMemory(context.Background(), &pb.GetMemoryRequest{Scope: "s"})
+	_, err := srv.GetMemories(context.Background(), &pb.GetMemoriesRequest{Scopes: []string{"s"}})
 	assertCode(t, err, codes.Unauthenticated)
 }
 
-func TestMemoryServer_GetMemory_MissingScope(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), nil)
-	_, err := srv.GetMemory(authedCtx("user:alice"), &pb.GetMemoryRequest{})
-	assertCode(t, err, codes.InvalidArgument)
-}
-
-func TestMemoryServer_GetMemory_StoreError(t *testing.T) {
+func TestMemoryServer_GetMemories_StoreError(t *testing.T) {
 	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 		return nil, errors.New("db error")
 	}}
 	srv := NewMemoryServer(store.NewMemoryStore(db), nil)
-	_, err := srv.GetMemory(authedCtx("user:alice"), &pb.GetMemoryRequest{Scope: "s"})
+	_, err := srv.GetMemories(authedCtx("user:alice"), &pb.GetMemoriesRequest{Scopes: []string{"s"}})
 	assertCode(t, err, codes.Internal)
 }
 
-// ---------------------------------------------------------------------------
-// SearchMemories tests
-// ---------------------------------------------------------------------------
-
-func TestMemoryServer_SearchMemories_Unauthenticated(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), nil)
-	_, err := srv.SearchMemories(context.Background(), &pb.SearchMemoriesRequest{Scope: "s"})
-	assertCode(t, err, codes.Unauthenticated)
-}
-
-func TestMemoryServer_SearchMemories_MissingScope(t *testing.T) {
-	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), nil)
-	_, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{})
-	assertCode(t, err, codes.InvalidArgument)
-}
-
-func TestMemoryServer_SearchMemories_Success(t *testing.T) {
+func TestMemoryServer_GetMemories_EmptyScopes(t *testing.T) {
 	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 		return &emptyRows{}, nil
 	}}
 	srv := NewMemoryServer(store.NewMemoryStore(db), nil)
-	resp, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{Scope: "s"})
+	resp, err := srv.GetMemories(authedCtx("user:alice"), &pb.GetMemoriesRequest{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(resp.GetResults()) != 0 {
-		t.Fatalf("expected 0 results, got %d", len(resp.GetResults()))
+	if len(resp.GetMemories()) != 0 {
+		t.Fatalf("expected 0 memories, got %d", len(resp.GetMemories()))
 	}
 }
 
-func TestMemoryServer_SearchMemories_StoreError(t *testing.T) {
-	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
-		return nil, errors.New("db error")
+// ---------------------------------------------------------------------------
+// AddMessages tests
+// ---------------------------------------------------------------------------
+
+func TestMemoryServer_AddMessages_Unauthenticated(t *testing.T) {
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), store.NewJobStore(&mockDBTX{}))
+	_, err := srv.AddMessages(context.Background(), &pb.AddMessagesRequest{
+		Messages: []*pb.ConversationMessage{{Role: "user", Content: "hi"}},
+	})
+	assertCode(t, err, codes.Unauthenticated)
+}
+
+func TestMemoryServer_AddMessages_MissingMessages(t *testing.T) {
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), store.NewJobStore(&mockDBTX{}))
+	_, err := srv.AddMessages(authedCtx("user:alice"), &pb.AddMessagesRequest{})
+	assertCode(t, err, codes.InvalidArgument)
+}
+
+func TestMemoryServer_AddMessages_NoJobStore(t *testing.T) {
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), nil)
+	_, err := srv.AddMessages(authedCtx("user:alice"), &pb.AddMessagesRequest{
+		Messages: []*pb.ConversationMessage{{Role: "user", Content: "hi"}},
+	})
+	assertCode(t, err, codes.FailedPrecondition)
+}
+
+func TestMemoryServer_AddMessages_JobCreationError(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+		return &mockRow{err: errors.New("db error")}
 	}}
-	srv := NewMemoryServer(store.NewMemoryStore(db), nil)
-	_, err := srv.SearchMemories(authedCtx("user:alice"), &pb.SearchMemoriesRequest{Scope: "s"})
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), store.NewJobStore(db))
+	_, err := srv.AddMessages(authedCtx("user:alice"), &pb.AddMessagesRequest{
+		Messages: []*pb.ConversationMessage{{Role: "user", Content: "hi"}},
+	})
 	assertCode(t, err, codes.Internal)
+}
+
+func TestMemoryServer_AddMessages_Success(t *testing.T) {
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, args ...any) pgx.Row {
+		return &jobRow{id: "job-1"}
+	}}
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), store.NewJobStore(db))
+	resp, err := srv.AddMessages(authedCtx("user:alice"), &pb.AddMessagesRequest{
+		Scope: "fishing",
+		Messages: []*pb.ConversationMessage{
+			{Role: "user", Content: "I love fly fishing"},
+			{Role: "assistant", Content: "That sounds great!"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.GetJobIds()) != 1 || resp.GetJobIds()[0] != "job-1" {
+		t.Fatalf("expected job IDs ['job-1'], got %v", resp.GetJobIds())
+	}
+}
+
+func TestMemoryServer_AddMessages_DefaultScope(t *testing.T) {
+	var capturedProgress []byte
+	db := &mockDBTX{queryRowFn: func(_ context.Context, _ string, args ...any) pgx.Row {
+		if len(args) >= 2 {
+			if b, ok := args[1].([]byte); ok {
+				capturedProgress = b
+			}
+		}
+		return &jobRow{id: "job-1"}
+	}}
+	srv := NewMemoryServer(store.NewMemoryStore(&mockDBTX{}), store.NewJobStore(db))
+	_, err := srv.AddMessages(authedCtx("user:alice"), &pb.AddMessagesRequest{
+		Messages: []*pb.ConversationMessage{{Role: "user", Content: "hi"}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if capturedProgress != nil {
+		var progress map[string]any
+		_ = json.Unmarshal(capturedProgress, &progress)
+		if progress["scope"] != "default" {
+			t.Fatalf("expected default scope in progress, got %q", progress["scope"])
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------

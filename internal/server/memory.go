@@ -28,50 +28,19 @@ func NewMemoryServer(memStore *store.MemoryStore, jobStore *store.JobStore) *Mem
 	}
 }
 
-// GetMemory returns all active memories for the calling principal in a scope.
-func (s *MemoryServer) GetMemory(ctx context.Context, req *pb.GetMemoryRequest) (*pb.GetMemoryResponse, error) {
+// GetMemories returns all active memories for the calling principal, optionally filtered by scopes.
+func (s *MemoryServer) GetMemories(ctx context.Context, req *pb.GetMemoriesRequest) (*pb.GetMemoriesResponse, error) {
 	p := auth.PrincipalFromContext(ctx)
 	if p == nil {
 		return nil, status.Error(codes.Unauthenticated, "not authenticated")
 	}
-	if req.GetScope() == "" {
-		return nil, status.Error(codes.InvalidArgument, "scope is required")
-	}
 
-	memories, err := s.memStore.GetByScope(ctx, p.ID, req.GetScope())
+	memories, err := s.memStore.GetByScopes(ctx, p.ID, req.GetScopes())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "getting memories: %v", err)
 	}
 
-	return &pb.GetMemoryResponse{Memories: storeMemoriesToProto(memories)}, nil
-}
-
-// SearchMemories returns all active memories in a principal's scope.
-// Embedding-based search has been removed; memories are small and LLM-managed,
-// so returning all memories in the scope is the correct approach.
-func (s *MemoryServer) SearchMemories(ctx context.Context, req *pb.SearchMemoriesRequest) (*pb.SearchMemoriesResponse, error) {
-	p := auth.PrincipalFromContext(ctx)
-	if p == nil {
-		return nil, status.Error(codes.Unauthenticated, "not authenticated")
-	}
-	if req.GetScope() == "" {
-		return nil, status.Error(codes.InvalidArgument, "scope is required")
-	}
-
-	memories, err := s.memStore.GetByScope(ctx, p.ID, req.GetScope())
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "listing memories: %v", err)
-	}
-
-	results := make([]*pb.MemorySearchResult, len(memories))
-	for i, m := range memories {
-		results[i] = &pb.MemorySearchResult{
-			Memory: storeMemoryToProto(m),
-			Score:  0,
-		}
-	}
-
-	return &pb.SearchMemoriesResponse{Results: results}, nil
+	return &pb.GetMemoriesResponse{Memories: storeMemoriesToProto(memories)}, nil
 }
 
 // AddMemory queues a memory for creation via the maintenance worker, which
@@ -114,6 +83,48 @@ func (s *MemoryServer) AddMemory(ctx context.Context, req *pb.AddMemoryRequest) 
 	}
 
 	return &pb.AddMemoryResponse{JobId: job.ID}, nil
+}
+
+// AddMessages queues conversation messages for memory extraction via a worker.
+// Returns a job ID for tracking.
+func (s *MemoryServer) AddMessages(ctx context.Context, req *pb.AddMessagesRequest) (*pb.AddMessagesResponse, error) {
+	p := auth.PrincipalFromContext(ctx)
+	if p == nil {
+		return nil, status.Error(codes.Unauthenticated, "not authenticated")
+	}
+	if len(req.GetMessages()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "messages are required")
+	}
+	if s.jobStore == nil {
+		return nil, status.Error(codes.FailedPrecondition, "job store not configured")
+	}
+
+	scope := req.GetScope()
+	if scope == "" {
+		scope = "default"
+	}
+
+	// Serialize messages for the worker.
+	var messagesData []map[string]string
+	for _, m := range req.GetMessages() {
+		messagesData = append(messagesData, map[string]string{
+			"role":    m.GetRole(),
+			"content": m.GetContent(),
+		})
+	}
+
+	progress := map[string]any{
+		"messages":  messagesData,
+		"principal": p.ID,
+		"scope":     scope,
+	}
+
+	job, err := s.jobStore.CreateDocless(ctx, "memory_messages", progress)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "creating messages job: %v", err)
+	}
+
+	return &pb.AddMessagesResponse{JobIds: []string{job.ID}}, nil
 }
 
 // UpdateMemory updates a memory's content and metadata.

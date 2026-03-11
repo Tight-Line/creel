@@ -19,22 +19,22 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MemoryService_GetMemory_FullMethodName      = "/creel.v1.MemoryService/GetMemory"
-	MemoryService_SearchMemories_FullMethodName = "/creel.v1.MemoryService/SearchMemories"
-	MemoryService_AddMemory_FullMethodName      = "/creel.v1.MemoryService/AddMemory"
-	MemoryService_UpdateMemory_FullMethodName   = "/creel.v1.MemoryService/UpdateMemory"
-	MemoryService_DeleteMemory_FullMethodName   = "/creel.v1.MemoryService/DeleteMemory"
-	MemoryService_ListMemories_FullMethodName   = "/creel.v1.MemoryService/ListMemories"
-	MemoryService_ListScopes_FullMethodName     = "/creel.v1.MemoryService/ListScopes"
+	MemoryService_GetMemories_FullMethodName  = "/creel.v1.MemoryService/GetMemories"
+	MemoryService_AddMemory_FullMethodName    = "/creel.v1.MemoryService/AddMemory"
+	MemoryService_AddMessages_FullMethodName  = "/creel.v1.MemoryService/AddMessages"
+	MemoryService_UpdateMemory_FullMethodName = "/creel.v1.MemoryService/UpdateMemory"
+	MemoryService_DeleteMemory_FullMethodName = "/creel.v1.MemoryService/DeleteMemory"
+	MemoryService_ListMemories_FullMethodName = "/creel.v1.MemoryService/ListMemories"
+	MemoryService_ListScopes_FullMethodName   = "/creel.v1.MemoryService/ListScopes"
 )
 
 // MemoryServiceClient is the client API for MemoryService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MemoryServiceClient interface {
-	GetMemory(ctx context.Context, in *GetMemoryRequest, opts ...grpc.CallOption) (*GetMemoryResponse, error)
-	SearchMemories(ctx context.Context, in *SearchMemoriesRequest, opts ...grpc.CallOption) (*SearchMemoriesResponse, error)
+	GetMemories(ctx context.Context, in *GetMemoriesRequest, opts ...grpc.CallOption) (*GetMemoriesResponse, error)
 	AddMemory(ctx context.Context, in *AddMemoryRequest, opts ...grpc.CallOption) (*AddMemoryResponse, error)
+	AddMessages(ctx context.Context, in *AddMessagesRequest, opts ...grpc.CallOption) (*AddMessagesResponse, error)
 	UpdateMemory(ctx context.Context, in *UpdateMemoryRequest, opts ...grpc.CallOption) (*Memory, error)
 	DeleteMemory(ctx context.Context, in *DeleteMemoryRequest, opts ...grpc.CallOption) (*DeleteMemoryResponse, error)
 	ListMemories(ctx context.Context, in *ListMemoriesRequest, opts ...grpc.CallOption) (*ListMemoriesResponse, error)
@@ -49,20 +49,10 @@ func NewMemoryServiceClient(cc grpc.ClientConnInterface) MemoryServiceClient {
 	return &memoryServiceClient{cc}
 }
 
-func (c *memoryServiceClient) GetMemory(ctx context.Context, in *GetMemoryRequest, opts ...grpc.CallOption) (*GetMemoryResponse, error) {
+func (c *memoryServiceClient) GetMemories(ctx context.Context, in *GetMemoriesRequest, opts ...grpc.CallOption) (*GetMemoriesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetMemoryResponse)
-	err := c.cc.Invoke(ctx, MemoryService_GetMemory_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *memoryServiceClient) SearchMemories(ctx context.Context, in *SearchMemoriesRequest, opts ...grpc.CallOption) (*SearchMemoriesResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SearchMemoriesResponse)
-	err := c.cc.Invoke(ctx, MemoryService_SearchMemories_FullMethodName, in, out, cOpts...)
+	out := new(GetMemoriesResponse)
+	err := c.cc.Invoke(ctx, MemoryService_GetMemories_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -73,6 +63,16 @@ func (c *memoryServiceClient) AddMemory(ctx context.Context, in *AddMemoryReques
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AddMemoryResponse)
 	err := c.cc.Invoke(ctx, MemoryService_AddMemory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) AddMessages(ctx context.Context, in *AddMessagesRequest, opts ...grpc.CallOption) (*AddMessagesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddMessagesResponse)
+	err := c.cc.Invoke(ctx, MemoryService_AddMessages_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -123,9 +123,9 @@ func (c *memoryServiceClient) ListScopes(ctx context.Context, in *ListScopesRequ
 // All implementations must embed UnimplementedMemoryServiceServer
 // for forward compatibility.
 type MemoryServiceServer interface {
-	GetMemory(context.Context, *GetMemoryRequest) (*GetMemoryResponse, error)
-	SearchMemories(context.Context, *SearchMemoriesRequest) (*SearchMemoriesResponse, error)
+	GetMemories(context.Context, *GetMemoriesRequest) (*GetMemoriesResponse, error)
 	AddMemory(context.Context, *AddMemoryRequest) (*AddMemoryResponse, error)
+	AddMessages(context.Context, *AddMessagesRequest) (*AddMessagesResponse, error)
 	UpdateMemory(context.Context, *UpdateMemoryRequest) (*Memory, error)
 	DeleteMemory(context.Context, *DeleteMemoryRequest) (*DeleteMemoryResponse, error)
 	ListMemories(context.Context, *ListMemoriesRequest) (*ListMemoriesResponse, error)
@@ -140,14 +140,14 @@ type MemoryServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedMemoryServiceServer struct{}
 
-func (UnimplementedMemoryServiceServer) GetMemory(context.Context, *GetMemoryRequest) (*GetMemoryResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetMemory not implemented")
-}
-func (UnimplementedMemoryServiceServer) SearchMemories(context.Context, *SearchMemoriesRequest) (*SearchMemoriesResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SearchMemories not implemented")
+func (UnimplementedMemoryServiceServer) GetMemories(context.Context, *GetMemoriesRequest) (*GetMemoriesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetMemories not implemented")
 }
 func (UnimplementedMemoryServiceServer) AddMemory(context.Context, *AddMemoryRequest) (*AddMemoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddMemory not implemented")
+}
+func (UnimplementedMemoryServiceServer) AddMessages(context.Context, *AddMessagesRequest) (*AddMessagesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddMessages not implemented")
 }
 func (UnimplementedMemoryServiceServer) UpdateMemory(context.Context, *UpdateMemoryRequest) (*Memory, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateMemory not implemented")
@@ -182,38 +182,20 @@ func RegisterMemoryServiceServer(s grpc.ServiceRegistrar, srv MemoryServiceServe
 	s.RegisterService(&MemoryService_ServiceDesc, srv)
 }
 
-func _MemoryService_GetMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetMemoryRequest)
+func _MemoryService_GetMemories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMemoriesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MemoryServiceServer).GetMemory(ctx, in)
+		return srv.(MemoryServiceServer).GetMemories(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: MemoryService_GetMemory_FullMethodName,
+		FullMethod: MemoryService_GetMemories_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemoryServiceServer).GetMemory(ctx, req.(*GetMemoryRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MemoryService_SearchMemories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SearchMemoriesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MemoryServiceServer).SearchMemories(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MemoryService_SearchMemories_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemoryServiceServer).SearchMemories(ctx, req.(*SearchMemoriesRequest))
+		return srv.(MemoryServiceServer).GetMemories(ctx, req.(*GetMemoriesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -232,6 +214,24 @@ func _MemoryService_AddMemory_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MemoryServiceServer).AddMemory(ctx, req.(*AddMemoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_AddMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).AddMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_AddMessages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).AddMessages(ctx, req.(*AddMessagesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -316,16 +316,16 @@ var MemoryService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*MemoryServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetMemory",
-			Handler:    _MemoryService_GetMemory_Handler,
-		},
-		{
-			MethodName: "SearchMemories",
-			Handler:    _MemoryService_SearchMemories_Handler,
+			MethodName: "GetMemories",
+			Handler:    _MemoryService_GetMemories_Handler,
 		},
 		{
 			MethodName: "AddMemory",
 			Handler:    _MemoryService_AddMemory_Handler,
+		},
+		{
+			MethodName: "AddMessages",
+			Handler:    _MemoryService_AddMessages_Handler,
 		},
 		{
 			MethodName: "UpdateMemory",

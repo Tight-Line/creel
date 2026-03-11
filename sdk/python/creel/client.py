@@ -10,6 +10,7 @@ import httpx
 from creel.exceptions import CreelError
 from creel.models import (
     AddMemoryResponse,
+    AddMessagesResponse,
     Chunk,
     ChunkingStrategy,
     CompactResponse,
@@ -29,10 +30,8 @@ from creel.models import (
     ListScopesResponse,
     ListTopicsResponse,
     Memory,
-    MemorySearchResult,
     ProcessingJob,
     RequestCompactionResponse,
-    SearchMemoriesResponse,
     SearchResponse,
     SearchResult,
     Topic,
@@ -129,7 +128,6 @@ class CreelClient:
                 if cs
                 else None
             ),
-            memory_enabled=data.get("memory_enabled", False),
         )
 
     @staticmethod
@@ -268,7 +266,6 @@ class CreelClient:
         name: str,
         description: str = "",
         *,
-        memory_enabled: bool = False,
         llm_config_id: Optional[str] = None,
         embedding_config_id: Optional[str] = None,
         extraction_prompt_config_id: Optional[str] = None,
@@ -277,7 +274,6 @@ class CreelClient:
             "slug": slug,
             "name": name,
             "description": description,
-            "memory_enabled": memory_enabled,
         }
         if llm_config_id is not None:
             body["llm_config_id"] = llm_config_id
@@ -312,7 +308,6 @@ class CreelClient:
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
-        memory_enabled: Optional[bool] = None,
         llm_config_id: Optional[str] = None,
         embedding_config_id: Optional[str] = None,
         extraction_prompt_config_id: Optional[str] = None,
@@ -322,8 +317,6 @@ class CreelClient:
             body["name"] = name
         if description is not None:
             body["description"] = description
-        if memory_enabled is not None:
-            body["memory_enabled"] = memory_enabled
         if llm_config_id is not None:
             body["llm_config_id"] = llm_config_id
         if embedding_config_id is not None:
@@ -580,35 +573,34 @@ class CreelClient:
     # MemoryService
     # ========================================================================
 
-    def get_memory(self, scope: str) -> list[Memory]:
-        data = self._request("GET", f"/v1/memories/{scope}")
-        return [self._parse_memory(m) for m in data.get("memories", [])]
-
-    def search_memories(
+    def get_memories(
         self,
         *,
-        scope: Optional[str] = None,
-        query_text: Optional[str] = None,
-        top_k: Optional[int] = None,
-    ) -> SearchMemoriesResponse:
-        body: dict[str, Any] = {}
-        if scope is not None:
-            body["scope"] = scope
-        if query_text is not None:
-            body["query_text"] = query_text
-        if top_k is not None:
-            body["top_k"] = top_k
-        data = self._request("POST", "/v1/memories:search", json=body)
-        results: list[MemorySearchResult] = []
-        for r in data.get("results", []):
-            mem_data = r.get("memory")
-            results.append(
-                MemorySearchResult(
-                    memory=self._parse_memory(mem_data) if mem_data else None,
-                    score=r.get("score", 0.0),
-                )
-            )
-        return SearchMemoriesResponse(results=results)
+        scopes: Optional[list[str]] = None,
+    ) -> list[Memory]:
+        """Retrieve memories, optionally filtered by scopes.
+
+        If ``scopes`` is empty or None, returns memories across all scopes.
+        """
+        params: dict[str, Any] = {}
+        if scopes:
+            params["scopes"] = ",".join(scopes)
+        data = self._request("GET", "/v1/memories", params=params)
+        return [self._parse_memory(m) for m in data.get("memories", [])]
+
+    def add_messages(
+        self,
+        scope: str,
+        messages: list[dict[str, str]],
+    ) -> AddMessagesResponse:
+        """Send conversation messages for automatic fact extraction.
+
+        Each item in ``messages`` should be a dict with ``role`` and
+        ``content`` keys.  Returns job IDs for the extraction jobs.
+        """
+        body: dict[str, Any] = {"scope": scope, "messages": messages}
+        data = self._request("POST", "/v1/memories:add-messages", json=body)
+        return AddMessagesResponse(job_ids=data.get("job_ids", []))
 
     def add_memory(
         self,

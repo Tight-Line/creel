@@ -158,10 +158,10 @@ func TestMemoryService_Integration_CRUD(t *testing.T) {
 	// Insert a memory directly for CRUD testing.
 	mem := env.insertMemory(t, "test-scope", "User prefers concise answers")
 
-	// GetMemory
-	getResp, err := env.memory.GetMemory(ctx, &pb.GetMemoryRequest{Scope: "test-scope"})
+	// GetMemories
+	getResp, err := env.memory.GetMemories(ctx, &pb.GetMemoriesRequest{Scopes: []string{"test-scope"}})
 	if err != nil {
-		t.Fatalf("GetMemory: %v", err)
+		t.Fatalf("GetMemories: %v", err)
 	}
 	if len(getResp.GetMemories()) != 1 {
 		t.Fatalf("expected 1 memory, got %d", len(getResp.GetMemories()))
@@ -247,23 +247,52 @@ func TestMemoryService_Integration_DefaultScope(t *testing.T) {
 	}
 }
 
-func TestMemoryService_Integration_SearchFallback(t *testing.T) {
+func TestMemoryService_Integration_GetMemories_AllScopes(t *testing.T) {
 	env := setupMemoryTestEnv(t)
 	ctx := env.authCtx()
 
-	// Insert memories directly.
-	env.insertMemory(t, "search-test", "Memory one")
-	env.insertMemory(t, "search-test", "Memory two")
+	// Insert memories in multiple scopes.
+	env.insertMemory(t, "scope-a", "Memory A")
+	env.insertMemory(t, "scope-b", "Memory B")
 
-	// Search without embedding should fall back to returning all memories.
-	resp, err := env.memory.SearchMemories(ctx, &pb.SearchMemoriesRequest{
-		Scope: "search-test",
+	// GetMemories with no scopes should return all.
+	resp, err := env.memory.GetMemories(ctx, &pb.GetMemoriesRequest{})
+	if err != nil {
+		t.Fatalf("GetMemories: %v", err)
+	}
+	if len(resp.GetMemories()) < 2 {
+		t.Fatalf("expected at least 2 memories, got %d", len(resp.GetMemories()))
+	}
+
+	// GetMemories with specific scope filter.
+	resp2, err := env.memory.GetMemories(ctx, &pb.GetMemoriesRequest{Scopes: []string{"scope-a"}})
+	if err != nil {
+		t.Fatalf("GetMemories (filtered): %v", err)
+	}
+	if len(resp2.GetMemories()) != 1 {
+		t.Fatalf("expected 1 memory, got %d", len(resp2.GetMemories()))
+	}
+}
+
+func TestMemoryService_Integration_AddMessages(t *testing.T) {
+	env := setupMemoryTestEnv(t)
+	ctx := env.authCtx()
+
+	resp, err := env.memory.AddMessages(ctx, &pb.AddMessagesRequest{
+		Scope: "chat-test",
+		Messages: []*pb.ConversationMessage{
+			{Role: "user", Content: "I love fly fishing"},
+			{Role: "assistant", Content: "That sounds great!"},
+		},
 	})
 	if err != nil {
-		t.Fatalf("SearchMemories: %v", err)
+		t.Fatalf("AddMessages: %v", err)
 	}
-	if len(resp.GetResults()) != 2 {
-		t.Fatalf("expected 2 results in fallback, got %d", len(resp.GetResults()))
+	if len(resp.GetJobIds()) != 1 {
+		t.Fatalf("expected 1 job ID, got %d", len(resp.GetJobIds()))
+	}
+	if resp.GetJobIds()[0] == "" {
+		t.Fatal("expected non-empty job ID")
 	}
 }
 

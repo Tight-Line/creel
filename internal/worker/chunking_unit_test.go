@@ -41,12 +41,11 @@ func (m *mockTopicDBTX) Begin(_ context.Context) (pgx.Tx, error) {
 // mockTopicRow returns a valid Topic scan result.
 type mockTopicRow struct {
 	chunkingStrategy []byte
-	memoryEnabled    bool
 }
 
 func (r *mockTopicRow) Scan(dest ...any) error {
 	// id, slug, name, description, owner, created_at, updated_at,
-	// llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy, memory_enabled
+	// llm_config_id, embedding_config_id, extraction_prompt_config_id, chunking_strategy, vector_backend_config_id
 	if len(dest) >= 12 {
 		*dest[0].(*string) = "topic-1"
 		*dest[1].(*string) = "test-topic"
@@ -59,7 +58,7 @@ func (r *mockTopicRow) Scan(dest ...any) error {
 		*dest[8].(**string) = nil
 		*dest[9].(**string) = nil
 		*dest[10].(*[]byte) = r.chunkingStrategy
-		*dest[11].(*bool) = r.memoryEnabled
+		*dest[11].(**string) = nil // vector_backend_config_id
 	}
 	return nil
 }

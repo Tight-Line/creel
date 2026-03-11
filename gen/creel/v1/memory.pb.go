@@ -164,27 +164,27 @@ func (x *Memory) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-type GetMemoryRequest struct {
+type GetMemoriesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Scope         string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	Scopes        []string               `protobuf:"bytes,1,rep,name=scopes,proto3" json:"scopes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetMemoryRequest) Reset() {
-	*x = GetMemoryRequest{}
+func (x *GetMemoriesRequest) Reset() {
+	*x = GetMemoriesRequest{}
 	mi := &file_creel_v1_memory_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetMemoryRequest) String() string {
+func (x *GetMemoriesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetMemoryRequest) ProtoMessage() {}
+func (*GetMemoriesRequest) ProtoMessage() {}
 
-func (x *GetMemoryRequest) ProtoReflect() protoreflect.Message {
+func (x *GetMemoriesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_creel_v1_memory_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -196,39 +196,39 @@ func (x *GetMemoryRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetMemoryRequest.ProtoReflect.Descriptor instead.
-func (*GetMemoryRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetMemoriesRequest.ProtoReflect.Descriptor instead.
+func (*GetMemoriesRequest) Descriptor() ([]byte, []int) {
 	return file_creel_v1_memory_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetMemoryRequest) GetScope() string {
+func (x *GetMemoriesRequest) GetScopes() []string {
 	if x != nil {
-		return x.Scope
+		return x.Scopes
 	}
-	return ""
+	return nil
 }
 
-type GetMemoryResponse struct {
+type GetMemoriesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Memories      []*Memory              `protobuf:"bytes,1,rep,name=memories,proto3" json:"memories,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetMemoryResponse) Reset() {
-	*x = GetMemoryResponse{}
+func (x *GetMemoriesResponse) Reset() {
+	*x = GetMemoriesResponse{}
 	mi := &file_creel_v1_memory_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetMemoryResponse) String() string {
+func (x *GetMemoriesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetMemoryResponse) ProtoMessage() {}
+func (*GetMemoriesResponse) ProtoMessage() {}
 
-func (x *GetMemoryResponse) ProtoReflect() protoreflect.Message {
+func (x *GetMemoriesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_creel_v1_memory_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -240,42 +240,40 @@ func (x *GetMemoryResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetMemoryResponse.ProtoReflect.Descriptor instead.
-func (*GetMemoryResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetMemoriesResponse.ProtoReflect.Descriptor instead.
+func (*GetMemoriesResponse) Descriptor() ([]byte, []int) {
 	return file_creel_v1_memory_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *GetMemoryResponse) GetMemories() []*Memory {
+func (x *GetMemoriesResponse) GetMemories() []*Memory {
 	if x != nil {
 		return x.Memories
 	}
 	return nil
 }
 
-type SearchMemoriesRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Scope          string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
-	QueryEmbedding []float64              `protobuf:"fixed64,2,rep,packed,name=query_embedding,json=queryEmbedding,proto3" json:"query_embedding,omitempty"`
-	QueryText      string                 `protobuf:"bytes,3,opt,name=query_text,json=queryText,proto3" json:"query_text,omitempty"`
-	TopK           int32                  `protobuf:"varint,4,opt,name=top_k,json=topK,proto3" json:"top_k,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+type ConversationMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Role          string                 `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
+	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SearchMemoriesRequest) Reset() {
-	*x = SearchMemoriesRequest{}
+func (x *ConversationMessage) Reset() {
+	*x = ConversationMessage{}
 	mi := &file_creel_v1_memory_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SearchMemoriesRequest) String() string {
+func (x *ConversationMessage) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SearchMemoriesRequest) ProtoMessage() {}
+func (*ConversationMessage) ProtoMessage() {}
 
-func (x *SearchMemoriesRequest) ProtoReflect() protoreflect.Message {
+func (x *ConversationMessage) ProtoReflect() protoreflect.Message {
 	mi := &file_creel_v1_memory_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -287,105 +285,98 @@ func (x *SearchMemoriesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SearchMemoriesRequest.ProtoReflect.Descriptor instead.
-func (*SearchMemoriesRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ConversationMessage.ProtoReflect.Descriptor instead.
+func (*ConversationMessage) Descriptor() ([]byte, []int) {
 	return file_creel_v1_memory_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *SearchMemoriesRequest) GetScope() string {
+func (x *ConversationMessage) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *ConversationMessage) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+type AddMessagesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Scope         string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	Messages      []*ConversationMessage `protobuf:"bytes,2,rep,name=messages,proto3" json:"messages,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddMessagesRequest) Reset() {
+	*x = AddMessagesRequest{}
+	mi := &file_creel_v1_memory_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddMessagesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddMessagesRequest) ProtoMessage() {}
+
+func (x *AddMessagesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_creel_v1_memory_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddMessagesRequest.ProtoReflect.Descriptor instead.
+func (*AddMessagesRequest) Descriptor() ([]byte, []int) {
+	return file_creel_v1_memory_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AddMessagesRequest) GetScope() string {
 	if x != nil {
 		return x.Scope
 	}
 	return ""
 }
 
-func (x *SearchMemoriesRequest) GetQueryEmbedding() []float64 {
+func (x *AddMessagesRequest) GetMessages() []*ConversationMessage {
 	if x != nil {
-		return x.QueryEmbedding
+		return x.Messages
 	}
 	return nil
 }
 
-func (x *SearchMemoriesRequest) GetQueryText() string {
-	if x != nil {
-		return x.QueryText
-	}
-	return ""
-}
-
-func (x *SearchMemoriesRequest) GetTopK() int32 {
-	if x != nil {
-		return x.TopK
-	}
-	return 0
-}
-
-type SearchMemoriesResponse struct {
+type AddMessagesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Results       []*MemorySearchResult  `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	JobIds        []string               `protobuf:"bytes,1,rep,name=job_ids,json=jobIds,proto3" json:"job_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SearchMemoriesResponse) Reset() {
-	*x = SearchMemoriesResponse{}
-	mi := &file_creel_v1_memory_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SearchMemoriesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SearchMemoriesResponse) ProtoMessage() {}
-
-func (x *SearchMemoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_creel_v1_memory_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SearchMemoriesResponse.ProtoReflect.Descriptor instead.
-func (*SearchMemoriesResponse) Descriptor() ([]byte, []int) {
-	return file_creel_v1_memory_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *SearchMemoriesResponse) GetResults() []*MemorySearchResult {
-	if x != nil {
-		return x.Results
-	}
-	return nil
-}
-
-type MemorySearchResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Memory        *Memory                `protobuf:"bytes,1,opt,name=memory,proto3" json:"memory,omitempty"`
-	Score         float64                `protobuf:"fixed64,2,opt,name=score,proto3" json:"score,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *MemorySearchResult) Reset() {
-	*x = MemorySearchResult{}
+func (x *AddMessagesResponse) Reset() {
+	*x = AddMessagesResponse{}
 	mi := &file_creel_v1_memory_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *MemorySearchResult) String() string {
+func (x *AddMessagesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*MemorySearchResult) ProtoMessage() {}
+func (*AddMessagesResponse) ProtoMessage() {}
 
-func (x *MemorySearchResult) ProtoReflect() protoreflect.Message {
+func (x *AddMessagesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_creel_v1_memory_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -397,23 +388,16 @@ func (x *MemorySearchResult) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MemorySearchResult.ProtoReflect.Descriptor instead.
-func (*MemorySearchResult) Descriptor() ([]byte, []int) {
+// Deprecated: Use AddMessagesResponse.ProtoReflect.Descriptor instead.
+func (*AddMessagesResponse) Descriptor() ([]byte, []int) {
 	return file_creel_v1_memory_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *MemorySearchResult) GetMemory() *Memory {
+func (x *AddMessagesResponse) GetJobIds() []string {
 	if x != nil {
-		return x.Memory
+		return x.JobIds
 	}
 	return nil
-}
-
-func (x *MemorySearchResult) GetScore() float64 {
-	if x != nil {
-		return x.Score
-	}
-	return 0
 }
 
 type AddMemoryRequest struct {
@@ -881,22 +865,19 @@ const file_creel_v1_memory_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"(\n" +
-	"\x10GetMemoryRequest\x12\x14\n" +
-	"\x05scope\x18\x01 \x01(\tR\x05scope\"A\n" +
-	"\x11GetMemoryResponse\x12,\n" +
-	"\bmemories\x18\x01 \x03(\v2\x10.creel.v1.MemoryR\bmemories\"\x8a\x01\n" +
-	"\x15SearchMemoriesRequest\x12\x14\n" +
-	"\x05scope\x18\x01 \x01(\tR\x05scope\x12'\n" +
-	"\x0fquery_embedding\x18\x02 \x03(\x01R\x0equeryEmbedding\x12\x1d\n" +
-	"\n" +
-	"query_text\x18\x03 \x01(\tR\tqueryText\x12\x13\n" +
-	"\x05top_k\x18\x04 \x01(\x05R\x04topK\"P\n" +
-	"\x16SearchMemoriesResponse\x126\n" +
-	"\aresults\x18\x01 \x03(\v2\x1c.creel.v1.MemorySearchResultR\aresults\"T\n" +
-	"\x12MemorySearchResult\x12(\n" +
-	"\x06memory\x18\x01 \x01(\v2\x10.creel.v1.MemoryR\x06memory\x12\x14\n" +
-	"\x05score\x18\x02 \x01(\x01R\x05score\"\xc7\x01\n" +
+	"updated_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\",\n" +
+	"\x12GetMemoriesRequest\x12\x16\n" +
+	"\x06scopes\x18\x01 \x03(\tR\x06scopes\"C\n" +
+	"\x13GetMemoriesResponse\x12,\n" +
+	"\bmemories\x18\x01 \x03(\v2\x10.creel.v1.MemoryR\bmemories\"C\n" +
+	"\x13ConversationMessage\x12\x12\n" +
+	"\x04role\x18\x01 \x01(\tR\x04role\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent\"e\n" +
+	"\x12AddMessagesRequest\x12\x14\n" +
+	"\x05scope\x18\x01 \x01(\tR\x05scope\x129\n" +
+	"\bmessages\x18\x02 \x03(\v2\x1d.creel.v1.ConversationMessageR\bmessages\".\n" +
+	"\x13AddMessagesResponse\x12\x17\n" +
+	"\ajob_ids\x18\x01 \x03(\tR\x06jobIds\"\xc7\x01\n" +
 	"\x10AddMemoryRequest\x12\x14\n" +
 	"\x05scope\x18\x01 \x01(\tR\x05scope\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x18\n" +
@@ -920,14 +901,14 @@ const file_creel_v1_memory_proto_rawDesc = "" +
 	"\bmemories\x18\x01 \x03(\v2\x10.creel.v1.MemoryR\bmemories\"\x13\n" +
 	"\x11ListScopesRequest\",\n" +
 	"\x12ListScopesResponse\x12\x16\n" +
-	"\x06scopes\x18\x01 \x03(\tR\x06scopes2\xe8\x05\n" +
-	"\rMemoryService\x12b\n" +
-	"\tGetMemory\x12\x1a.creel.v1.GetMemoryRequest\x1a\x1b.creel.v1.GetMemoryResponse\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/v1/memories/{scope}\x12s\n" +
-	"\x0eSearchMemories\x12\x1f.creel.v1.SearchMemoriesRequest\x1a .creel.v1.SearchMemoriesResponse\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/v1/memories:search\x12]\n" +
-	"\tAddMemory\x12\x1a.creel.v1.AddMemoryRequest\x1a\x1b.creel.v1.AddMemoryResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/memories\x12]\n" +
+	"\x06scopes\x18\x01 \x03(\tR\x06scopes2\xdb\x05\n" +
+	"\rMemoryService\x12`\n" +
+	"\vGetMemories\x12\x1c.creel.v1.GetMemoriesRequest\x1a\x1d.creel.v1.GetMemoriesResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/memories\x12]\n" +
+	"\tAddMemory\x12\x1a.creel.v1.AddMemoryRequest\x1a\x1b.creel.v1.AddMemoryResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/memories\x12p\n" +
+	"\vAddMessages\x12\x1c.creel.v1.AddMessagesRequest\x1a\x1d.creel.v1.AddMessagesResponse\"$\x82\xd3\xe4\x93\x02\x1e:\x01*\"\x19/v1/memories:add-messages\x12]\n" +
 	"\fUpdateMemory\x12\x1d.creel.v1.UpdateMemoryRequest\x1a\x10.creel.v1.Memory\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*2\x11/v1/memories/{id}\x12h\n" +
-	"\fDeleteMemory\x12\x1d.creel.v1.DeleteMemoryRequest\x1a\x1e.creel.v1.DeleteMemoryResponse\"\x19\x82\xd3\xe4\x93\x02\x13*\x11/v1/memories/{id}\x12p\n" +
-	"\fListMemories\x12\x1d.creel.v1.ListMemoriesRequest\x1a\x1e.creel.v1.ListMemoriesResponse\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/v1/memories/{scope}/list\x12d\n" +
+	"\fDeleteMemory\x12\x1d.creel.v1.DeleteMemoryRequest\x1a\x1e.creel.v1.DeleteMemoryResponse\"\x19\x82\xd3\xe4\x93\x02\x13*\x11/v1/memories/{id}\x12h\n" +
+	"\fListMemories\x12\x1d.creel.v1.ListMemoriesRequest\x1a\x1e.creel.v1.ListMemoriesResponse\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/v1/memories:list\x12d\n" +
 	"\n" +
 	"ListScopes\x12\x1b.creel.v1.ListScopesRequest\x1a\x1c.creel.v1.ListScopesResponse\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/memories:scopesB\x8e\x01\n" +
 	"\fcom.creel.v1B\vMemoryProtoP\x01Z0github.com/Tight-Line/creel/gen/creel/v1;creelv1\xa2\x02\x03CXX\xaa\x02\bCreel.V1\xca\x02\bCreel\\V1\xe2\x02\x14Creel\\V1\\GPBMetadata\xea\x02\tCreel::V1b\x06proto3"
@@ -946,54 +927,53 @@ func file_creel_v1_memory_proto_rawDescGZIP() []byte {
 
 var file_creel_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_creel_v1_memory_proto_goTypes = []any{
-	(*Memory)(nil),                 // 0: creel.v1.Memory
-	(*GetMemoryRequest)(nil),       // 1: creel.v1.GetMemoryRequest
-	(*GetMemoryResponse)(nil),      // 2: creel.v1.GetMemoryResponse
-	(*SearchMemoriesRequest)(nil),  // 3: creel.v1.SearchMemoriesRequest
-	(*SearchMemoriesResponse)(nil), // 4: creel.v1.SearchMemoriesResponse
-	(*MemorySearchResult)(nil),     // 5: creel.v1.MemorySearchResult
-	(*AddMemoryRequest)(nil),       // 6: creel.v1.AddMemoryRequest
-	(*AddMemoryResponse)(nil),      // 7: creel.v1.AddMemoryResponse
-	(*UpdateMemoryRequest)(nil),    // 8: creel.v1.UpdateMemoryRequest
-	(*DeleteMemoryRequest)(nil),    // 9: creel.v1.DeleteMemoryRequest
-	(*DeleteMemoryResponse)(nil),   // 10: creel.v1.DeleteMemoryResponse
-	(*ListMemoriesRequest)(nil),    // 11: creel.v1.ListMemoriesRequest
-	(*ListMemoriesResponse)(nil),   // 12: creel.v1.ListMemoriesResponse
-	(*ListScopesRequest)(nil),      // 13: creel.v1.ListScopesRequest
-	(*ListScopesResponse)(nil),     // 14: creel.v1.ListScopesResponse
-	(*timestamppb.Timestamp)(nil),  // 15: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),        // 16: google.protobuf.Struct
+	(*Memory)(nil),                // 0: creel.v1.Memory
+	(*GetMemoriesRequest)(nil),    // 1: creel.v1.GetMemoriesRequest
+	(*GetMemoriesResponse)(nil),   // 2: creel.v1.GetMemoriesResponse
+	(*ConversationMessage)(nil),   // 3: creel.v1.ConversationMessage
+	(*AddMessagesRequest)(nil),    // 4: creel.v1.AddMessagesRequest
+	(*AddMessagesResponse)(nil),   // 5: creel.v1.AddMessagesResponse
+	(*AddMemoryRequest)(nil),      // 6: creel.v1.AddMemoryRequest
+	(*AddMemoryResponse)(nil),     // 7: creel.v1.AddMemoryResponse
+	(*UpdateMemoryRequest)(nil),   // 8: creel.v1.UpdateMemoryRequest
+	(*DeleteMemoryRequest)(nil),   // 9: creel.v1.DeleteMemoryRequest
+	(*DeleteMemoryResponse)(nil),  // 10: creel.v1.DeleteMemoryResponse
+	(*ListMemoriesRequest)(nil),   // 11: creel.v1.ListMemoriesRequest
+	(*ListMemoriesResponse)(nil),  // 12: creel.v1.ListMemoriesResponse
+	(*ListScopesRequest)(nil),     // 13: creel.v1.ListScopesRequest
+	(*ListScopesResponse)(nil),    // 14: creel.v1.ListScopesResponse
+	(*timestamppb.Timestamp)(nil), // 15: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),       // 16: google.protobuf.Struct
 }
 var file_creel_v1_memory_proto_depIdxs = []int32{
 	15, // 0: creel.v1.Memory.invalidated_at:type_name -> google.protobuf.Timestamp
 	16, // 1: creel.v1.Memory.metadata:type_name -> google.protobuf.Struct
 	15, // 2: creel.v1.Memory.created_at:type_name -> google.protobuf.Timestamp
 	15, // 3: creel.v1.Memory.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 4: creel.v1.GetMemoryResponse.memories:type_name -> creel.v1.Memory
-	5,  // 5: creel.v1.SearchMemoriesResponse.results:type_name -> creel.v1.MemorySearchResult
-	0,  // 6: creel.v1.MemorySearchResult.memory:type_name -> creel.v1.Memory
-	16, // 7: creel.v1.AddMemoryRequest.metadata:type_name -> google.protobuf.Struct
-	16, // 8: creel.v1.UpdateMemoryRequest.metadata:type_name -> google.protobuf.Struct
-	0,  // 9: creel.v1.ListMemoriesResponse.memories:type_name -> creel.v1.Memory
-	1,  // 10: creel.v1.MemoryService.GetMemory:input_type -> creel.v1.GetMemoryRequest
-	3,  // 11: creel.v1.MemoryService.SearchMemories:input_type -> creel.v1.SearchMemoriesRequest
-	6,  // 12: creel.v1.MemoryService.AddMemory:input_type -> creel.v1.AddMemoryRequest
-	8,  // 13: creel.v1.MemoryService.UpdateMemory:input_type -> creel.v1.UpdateMemoryRequest
-	9,  // 14: creel.v1.MemoryService.DeleteMemory:input_type -> creel.v1.DeleteMemoryRequest
-	11, // 15: creel.v1.MemoryService.ListMemories:input_type -> creel.v1.ListMemoriesRequest
-	13, // 16: creel.v1.MemoryService.ListScopes:input_type -> creel.v1.ListScopesRequest
-	2,  // 17: creel.v1.MemoryService.GetMemory:output_type -> creel.v1.GetMemoryResponse
-	4,  // 18: creel.v1.MemoryService.SearchMemories:output_type -> creel.v1.SearchMemoriesResponse
-	7,  // 19: creel.v1.MemoryService.AddMemory:output_type -> creel.v1.AddMemoryResponse
-	0,  // 20: creel.v1.MemoryService.UpdateMemory:output_type -> creel.v1.Memory
-	10, // 21: creel.v1.MemoryService.DeleteMemory:output_type -> creel.v1.DeleteMemoryResponse
-	12, // 22: creel.v1.MemoryService.ListMemories:output_type -> creel.v1.ListMemoriesResponse
-	14, // 23: creel.v1.MemoryService.ListScopes:output_type -> creel.v1.ListScopesResponse
-	17, // [17:24] is the sub-list for method output_type
-	10, // [10:17] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	0,  // 4: creel.v1.GetMemoriesResponse.memories:type_name -> creel.v1.Memory
+	3,  // 5: creel.v1.AddMessagesRequest.messages:type_name -> creel.v1.ConversationMessage
+	16, // 6: creel.v1.AddMemoryRequest.metadata:type_name -> google.protobuf.Struct
+	16, // 7: creel.v1.UpdateMemoryRequest.metadata:type_name -> google.protobuf.Struct
+	0,  // 8: creel.v1.ListMemoriesResponse.memories:type_name -> creel.v1.Memory
+	1,  // 9: creel.v1.MemoryService.GetMemories:input_type -> creel.v1.GetMemoriesRequest
+	6,  // 10: creel.v1.MemoryService.AddMemory:input_type -> creel.v1.AddMemoryRequest
+	4,  // 11: creel.v1.MemoryService.AddMessages:input_type -> creel.v1.AddMessagesRequest
+	8,  // 12: creel.v1.MemoryService.UpdateMemory:input_type -> creel.v1.UpdateMemoryRequest
+	9,  // 13: creel.v1.MemoryService.DeleteMemory:input_type -> creel.v1.DeleteMemoryRequest
+	11, // 14: creel.v1.MemoryService.ListMemories:input_type -> creel.v1.ListMemoriesRequest
+	13, // 15: creel.v1.MemoryService.ListScopes:input_type -> creel.v1.ListScopesRequest
+	2,  // 16: creel.v1.MemoryService.GetMemories:output_type -> creel.v1.GetMemoriesResponse
+	7,  // 17: creel.v1.MemoryService.AddMemory:output_type -> creel.v1.AddMemoryResponse
+	5,  // 18: creel.v1.MemoryService.AddMessages:output_type -> creel.v1.AddMessagesResponse
+	0,  // 19: creel.v1.MemoryService.UpdateMemory:output_type -> creel.v1.Memory
+	10, // 20: creel.v1.MemoryService.DeleteMemory:output_type -> creel.v1.DeleteMemoryResponse
+	12, // 21: creel.v1.MemoryService.ListMemories:output_type -> creel.v1.ListMemoriesResponse
+	14, // 22: creel.v1.MemoryService.ListScopes:output_type -> creel.v1.ListScopesResponse
+	16, // [16:23] is the sub-list for method output_type
+	9,  // [9:16] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_creel_v1_memory_proto_init() }

@@ -36,7 +36,8 @@ Every message is persisted. Conversations can be resumed later by document ID.
 | `--topic` | | `creel-chat` | Topic slug for conversation storage |
 | `--top-k` | | `5` | Number of RAG context chunks to retrieve |
 | `--resume` | | | Resume previous session by document ID |
-| `--memory-scope` | | `default` | Memory scope for per-principal memories |
+| `--memory-scope` | | `default` | Memory scope for writing new memories (used by `AddMessages` and `/remember`) |
+| `--memory-read-scopes` | | (all scopes) | Comma-separated list of scopes to read at session start. If omitted, all scopes are fetched. |
 | `--cross-topic` | | `false` | Search across all accessible topics instead of just the current one |
 
 ## Provider setup
@@ -84,11 +85,11 @@ LLM responses are streamed to the terminal as tokens arrive. Both OpenAI and Ant
 
 ## Memory integration
 
-At session start (and on resume), creel-chat fetches per-principal memories from the configured scope and includes them in the system prompt as a "What I know about you" section. This gives the LLM persistent knowledge about the user across sessions.
+At session start (and on resume), creel-chat fetches per-principal memories via `GetMemories` and includes them in the system prompt as a "What I know about you" section. This gives the LLM persistent knowledge about the user across sessions. By default, all scopes are fetched. Use `--memory-read-scopes` to restrict which scopes are included (e.g., `--memory-read-scopes fishing,skiing`).
 
-When creel-chat creates a new topic (via `ensureTopic`), it sets `memory_enabled = true` so that memory extraction workers automatically process conversation chunks for that topic. This means memories are extracted from conversations without any extra client configuration.
+After each conversation turn, creel-chat automatically calls `AddMessages` with the user message and assistant response. The server enqueues `memory_messages` jobs that extract facts from the conversation via the configured LLM, then creates `memory_maintenance` jobs to deduplicate against existing memories. No special topic configuration is required; memory extraction is driven entirely by the `AddMessages` call.
 
-Use `--memory-scope` to control which scope is used. The default scope is `default`.
+Use `--memory-scope` to control which scope new memories are written to. The default scope is `default`.
 
 ## REPL commands
 

@@ -98,8 +98,8 @@ Creel provides a per-principal memory system for maintaining long-term facts abo
 
 - Memory belongs to a principal, not a topic. Each principal can have multiple named scopes (default, work, home, etc.).
 - Memories are natural language fact statements (e.g., "User specializes in thrombosis research") maintained automatically by background workers.
-- When new conversation chunks are ingested in a topic with `memory_enabled = true`, workers extract candidate facts and resolve conflicts with existing memories (ADD new facts, UPDATE existing, DELETE contradictions, or NOOP).
-- Clients fetch memory by scope and include it in system prompts.
+- Clients send conversation messages via `AddMessages`, which enqueues `memory_messages` jobs. These jobs use the configured LLM to extract candidate facts from the conversation, then create `memory_maintenance` jobs that resolve conflicts with existing memories (ADD new facts, UPDATE existing, DELETE contradictions, or NOOP).
+- Clients fetch memories via `GetMemories`, which supports multi-scope retrieval. Pass one or more scope names to filter, or omit scopes to retrieve all memories for the principal. Include the results in the system prompt so the LLM has persistent knowledge about the user.
 - Clients can also explicitly add, update, or delete memories. `AddMemory` queues a `memory_maintenance` job that runs the same LLM-based deduplication as automatic extraction, so explicitly added memories are checked for conflicts with existing facts before being stored.
 
 ## Compaction

@@ -66,21 +66,21 @@ func (m *mockRetrievalClient) GetContext(_ context.Context, _ *pb.GetContextRequ
 
 type mockMemoryClient struct {
 	pb.MemoryServiceClient
-	addResp    *pb.AddMemoryResponse
-	addErr     error
-	searchResp *pb.SearchMemoriesResponse
-	searchErr  error
-	listResp   *pb.ListMemoriesResponse
-	listErr    error
-	deleteErr  error
+	addResp   *pb.AddMemoryResponse
+	addErr    error
+	getResp   *pb.GetMemoriesResponse
+	getErr    error
+	listResp  *pb.ListMemoriesResponse
+	listErr   error
+	deleteErr error
 }
 
 func (m *mockMemoryClient) AddMemory(_ context.Context, _ *pb.AddMemoryRequest, _ ...grpc.CallOption) (*pb.AddMemoryResponse, error) {
 	return m.addResp, m.addErr
 }
 
-func (m *mockMemoryClient) SearchMemories(_ context.Context, _ *pb.SearchMemoriesRequest, _ ...grpc.CallOption) (*pb.SearchMemoriesResponse, error) {
-	return m.searchResp, m.searchErr
+func (m *mockMemoryClient) GetMemories(_ context.Context, _ *pb.GetMemoriesRequest, _ ...grpc.CallOption) (*pb.GetMemoriesResponse, error) {
+	return m.getResp, m.getErr
 }
 
 func (m *mockMemoryClient) ListMemories(_ context.Context, _ *pb.ListMemoriesRequest, _ ...grpc.CallOption) (*pb.ListMemoriesResponse, error) {
@@ -104,9 +104,9 @@ func newTestHandler() (*ToolHandler, *mockRetrievalClient, *mockMemoryClient, *m
 		contextResp: &pb.GetContextResponse{},
 	}
 	memory := &mockMemoryClient{
-		addResp:    &pb.AddMemoryResponse{JobId: "job-1"},
-		searchResp: &pb.SearchMemoriesResponse{},
-		listResp:   &pb.ListMemoriesResponse{},
+		addResp:  &pb.AddMemoryResponse{JobId: "job-1"},
+		getResp:  &pb.GetMemoriesResponse{},
+		listResp: &pb.ListMemoriesResponse{},
 	}
 	docs := &mockDocClient{
 		getResp:    &pb.Document{Id: "d1", Name: "test doc"},
@@ -204,15 +204,15 @@ func TestToolHandler_AddMemory(t *testing.T) {
 	}
 }
 
-func TestToolHandler_SearchMemories(t *testing.T) {
+func TestToolHandler_GetMemories(t *testing.T) {
 	h, _, memory, _, _ := newTestHandler()
-	memory.searchResp = &pb.SearchMemoriesResponse{
-		Results: []*pb.MemorySearchResult{
-			{Memory: &pb.Memory{Id: "m1", Content: "found memory"}, Score: 0.8},
+	memory.getResp = &pb.GetMemoriesResponse{
+		Memories: []*pb.Memory{
+			{Id: "m1", Content: "found memory"},
 		},
 	}
 
-	result, err := h.Execute(context.Background(), "creel_search_memories", json.RawMessage(`{"query_text":"fish"}`))
+	result, err := h.Execute(context.Background(), "creel_get_memories", json.RawMessage(`{"scopes":["prefs"]}`))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -341,18 +341,18 @@ func TestToolHandler_AddMemoryInvalidArgs(t *testing.T) {
 	}
 }
 
-func TestToolHandler_SearchMemoriesError(t *testing.T) {
+func TestToolHandler_GetMemoriesError(t *testing.T) {
 	h, _, memory, _, _ := newTestHandler()
-	memory.searchErr = errors.New("search failed")
-	_, err := h.Execute(context.Background(), "creel_search_memories", json.RawMessage(`{"query_text":"test"}`))
+	memory.getErr = errors.New("get failed")
+	_, err := h.Execute(context.Background(), "creel_get_memories", json.RawMessage(`{"scopes":["test"]}`))
 	if err == nil {
 		t.Fatal("expected error")
 	}
 }
 
-func TestToolHandler_SearchMemoriesInvalidArgs(t *testing.T) {
+func TestToolHandler_GetMemoriesInvalidArgs(t *testing.T) {
 	h, _, _, _, _ := newTestHandler()
-	_, err := h.Execute(context.Background(), "creel_search_memories", json.RawMessage(`invalid`))
+	_, err := h.Execute(context.Background(), "creel_get_memories", json.RawMessage(`invalid`))
 	if err == nil {
 		t.Fatal("expected error")
 	}

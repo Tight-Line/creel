@@ -88,7 +88,6 @@ type Topic struct {
 	EmbeddingConfigId        *string                `protobuf:"bytes,9,opt,name=embedding_config_id,json=embeddingConfigId,proto3,oneof" json:"embedding_config_id,omitempty"`
 	ExtractionPromptConfigId *string                `protobuf:"bytes,10,opt,name=extraction_prompt_config_id,json=extractionPromptConfigId,proto3,oneof" json:"extraction_prompt_config_id,omitempty"`
 	ChunkingStrategy         *ChunkingStrategy      `protobuf:"bytes,11,opt,name=chunking_strategy,json=chunkingStrategy,proto3,oneof" json:"chunking_strategy,omitempty"`
-	MemoryEnabled            bool                   `protobuf:"varint,12,opt,name=memory_enabled,json=memoryEnabled,proto3" json:"memory_enabled,omitempty"`
 	VectorBackendConfigId    *string                `protobuf:"bytes,13,opt,name=vector_backend_config_id,json=vectorBackendConfigId,proto3,oneof" json:"vector_backend_config_id,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
@@ -199,13 +198,6 @@ func (x *Topic) GetChunkingStrategy() *ChunkingStrategy {
 		return x.ChunkingStrategy
 	}
 	return nil
-}
-
-func (x *Topic) GetMemoryEnabled() bool {
-	if x != nil {
-		return x.MemoryEnabled
-	}
-	return false
 }
 
 func (x *Topic) GetVectorBackendConfigId() string {
@@ -359,7 +351,6 @@ type CreateTopicRequest struct {
 	LlmConfigId              *string                `protobuf:"bytes,4,opt,name=llm_config_id,json=llmConfigId,proto3,oneof" json:"llm_config_id,omitempty"`
 	EmbeddingConfigId        *string                `protobuf:"bytes,5,opt,name=embedding_config_id,json=embeddingConfigId,proto3,oneof" json:"embedding_config_id,omitempty"`
 	ExtractionPromptConfigId *string                `protobuf:"bytes,6,opt,name=extraction_prompt_config_id,json=extractionPromptConfigId,proto3,oneof" json:"extraction_prompt_config_id,omitempty"`
-	MemoryEnabled            bool                   `protobuf:"varint,7,opt,name=memory_enabled,json=memoryEnabled,proto3" json:"memory_enabled,omitempty"`
 	VectorBackendConfigId    *string                `protobuf:"bytes,8,opt,name=vector_backend_config_id,json=vectorBackendConfigId,proto3,oneof" json:"vector_backend_config_id,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
@@ -435,13 +426,6 @@ func (x *CreateTopicRequest) GetExtractionPromptConfigId() string {
 		return *x.ExtractionPromptConfigId
 	}
 	return ""
-}
-
-func (x *CreateTopicRequest) GetMemoryEnabled() bool {
-	if x != nil {
-		return x.MemoryEnabled
-	}
-	return false
 }
 
 func (x *CreateTopicRequest) GetVectorBackendConfigId() string {
@@ -607,7 +591,6 @@ type UpdateTopicRequest struct {
 	LlmConfigId              *string                `protobuf:"bytes,4,opt,name=llm_config_id,json=llmConfigId,proto3,oneof" json:"llm_config_id,omitempty"`
 	EmbeddingConfigId        *string                `protobuf:"bytes,5,opt,name=embedding_config_id,json=embeddingConfigId,proto3,oneof" json:"embedding_config_id,omitempty"`
 	ExtractionPromptConfigId *string                `protobuf:"bytes,6,opt,name=extraction_prompt_config_id,json=extractionPromptConfigId,proto3,oneof" json:"extraction_prompt_config_id,omitempty"`
-	MemoryEnabled            *bool                  `protobuf:"varint,7,opt,name=memory_enabled,json=memoryEnabled,proto3,oneof" json:"memory_enabled,omitempty"`
 	VectorBackendConfigId    *string                `protobuf:"bytes,8,opt,name=vector_backend_config_id,json=vectorBackendConfigId,proto3,oneof" json:"vector_backend_config_id,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
@@ -683,13 +666,6 @@ func (x *UpdateTopicRequest) GetExtractionPromptConfigId() string {
 		return *x.ExtractionPromptConfigId
 	}
 	return ""
-}
-
-func (x *UpdateTopicRequest) GetMemoryEnabled() bool {
-	if x != nil && x.MemoryEnabled != nil {
-		return *x.MemoryEnabled
-	}
-	return false
 }
 
 func (x *UpdateTopicRequest) GetVectorBackendConfigId() string {
@@ -1019,7 +995,7 @@ var File_creel_v1_topic_proto protoreflect.FileDescriptor
 
 const file_creel_v1_topic_proto_rawDesc = "" +
 	"\n" +
-	"\x14creel/v1/topic.proto\x12\bcreel.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbf\x05\n" +
+	"\x14creel/v1/topic.proto\x12\bcreel.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9e\x05\n" +
 	"\x05Topic\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04slug\x18\x02 \x01(\tR\x04slug\x12\x12\n" +
@@ -1034,14 +1010,13 @@ const file_creel_v1_topic_proto_rawDesc = "" +
 	"\x13embedding_config_id\x18\t \x01(\tH\x01R\x11embeddingConfigId\x88\x01\x01\x12B\n" +
 	"\x1bextraction_prompt_config_id\x18\n" +
 	" \x01(\tH\x02R\x18extractionPromptConfigId\x88\x01\x01\x12L\n" +
-	"\x11chunking_strategy\x18\v \x01(\v2\x1a.creel.v1.ChunkingStrategyH\x03R\x10chunkingStrategy\x88\x01\x01\x12%\n" +
-	"\x0ememory_enabled\x18\f \x01(\bR\rmemoryEnabled\x12<\n" +
+	"\x11chunking_strategy\x18\v \x01(\v2\x1a.creel.v1.ChunkingStrategyH\x03R\x10chunkingStrategy\x88\x01\x01\x12<\n" +
 	"\x18vector_backend_config_id\x18\r \x01(\tH\x04R\x15vectorBackendConfigId\x88\x01\x01B\x10\n" +
 	"\x0e_llm_config_idB\x16\n" +
 	"\x14_embedding_config_idB\x1e\n" +
 	"\x1c_extraction_prompt_config_idB\x14\n" +
 	"\x12_chunking_strategyB\x1b\n" +
-	"\x19_vector_backend_config_id\"V\n" +
+	"\x19_vector_backend_config_idJ\x04\b\f\x10\r\"V\n" +
 	"\x10ChunkingStrategy\x12\x1d\n" +
 	"\n" +
 	"chunk_size\x18\x01 \x01(\x05R\tchunkSize\x12#\n" +
@@ -1057,20 +1032,19 @@ const file_creel_v1_topic_proto_rawDesc = "" +
 	"\n" +
 	"granted_by\x18\x05 \x01(\tR\tgrantedBy\x129\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xcc\x03\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xab\x03\n" +
 	"\x12CreateTopicRequest\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12'\n" +
 	"\rllm_config_id\x18\x04 \x01(\tH\x00R\vllmConfigId\x88\x01\x01\x123\n" +
 	"\x13embedding_config_id\x18\x05 \x01(\tH\x01R\x11embeddingConfigId\x88\x01\x01\x12B\n" +
-	"\x1bextraction_prompt_config_id\x18\x06 \x01(\tH\x02R\x18extractionPromptConfigId\x88\x01\x01\x12%\n" +
-	"\x0ememory_enabled\x18\a \x01(\bR\rmemoryEnabled\x12<\n" +
+	"\x1bextraction_prompt_config_id\x18\x06 \x01(\tH\x02R\x18extractionPromptConfigId\x88\x01\x01\x12<\n" +
 	"\x18vector_backend_config_id\x18\b \x01(\tH\x03R\x15vectorBackendConfigId\x88\x01\x01B\x10\n" +
 	"\x0e_llm_config_idB\x16\n" +
 	"\x14_embedding_config_idB\x1e\n" +
 	"\x1c_extraction_prompt_config_idB\x1b\n" +
-	"\x19_vector_backend_config_id\"!\n" +
+	"\x19_vector_backend_config_idJ\x04\b\a\x10\b\"!\n" +
 	"\x0fGetTopicRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"O\n" +
 	"\x11ListTopicsRequest\x12\x1b\n" +
@@ -1079,21 +1053,19 @@ const file_creel_v1_topic_proto_rawDesc = "" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\"e\n" +
 	"\x12ListTopicsResponse\x12'\n" +
 	"\x06topics\x18\x01 \x03(\v2\x0f.creel.v1.TopicR\x06topics\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe0\x03\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa7\x03\n" +
 	"\x12UpdateTopicRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12'\n" +
 	"\rllm_config_id\x18\x04 \x01(\tH\x00R\vllmConfigId\x88\x01\x01\x123\n" +
 	"\x13embedding_config_id\x18\x05 \x01(\tH\x01R\x11embeddingConfigId\x88\x01\x01\x12B\n" +
-	"\x1bextraction_prompt_config_id\x18\x06 \x01(\tH\x02R\x18extractionPromptConfigId\x88\x01\x01\x12*\n" +
-	"\x0ememory_enabled\x18\a \x01(\bH\x03R\rmemoryEnabled\x88\x01\x01\x12<\n" +
-	"\x18vector_backend_config_id\x18\b \x01(\tH\x04R\x15vectorBackendConfigId\x88\x01\x01B\x10\n" +
+	"\x1bextraction_prompt_config_id\x18\x06 \x01(\tH\x02R\x18extractionPromptConfigId\x88\x01\x01\x12<\n" +
+	"\x18vector_backend_config_id\x18\b \x01(\tH\x03R\x15vectorBackendConfigId\x88\x01\x01B\x10\n" +
 	"\x0e_llm_config_idB\x16\n" +
 	"\x14_embedding_config_idB\x1e\n" +
-	"\x1c_extraction_prompt_config_idB\x11\n" +
-	"\x0f_memory_enabledB\x1b\n" +
-	"\x19_vector_backend_config_id\"$\n" +
+	"\x1c_extraction_prompt_config_idB\x1b\n" +
+	"\x19_vector_backend_config_idJ\x04\b\a\x10\b\"$\n" +
 	"\x12DeleteTopicRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x15\n" +
 	"\x13DeleteTopicResponse\"\x83\x01\n" +

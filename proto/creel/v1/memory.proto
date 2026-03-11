@@ -7,20 +7,20 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
 service MemoryService {
-  rpc GetMemory(GetMemoryRequest) returns (GetMemoryResponse) {
+  rpc GetMemories(GetMemoriesRequest) returns (GetMemoriesResponse) {
     option (google.api.http) = {
-      get: "/v1/memories/{scope}"
-    };
-  }
-  rpc SearchMemories(SearchMemoriesRequest) returns (SearchMemoriesResponse) {
-    option (google.api.http) = {
-      post: "/v1/memories:search"
-      body: "*"
+      get: "/v1/memories"
     };
   }
   rpc AddMemory(AddMemoryRequest) returns (AddMemoryResponse) {
     option (google.api.http) = {
       post: "/v1/memories"
+      body: "*"
+    };
+  }
+  rpc AddMessages(AddMessagesRequest) returns (AddMessagesResponse) {
+    option (google.api.http) = {
+      post: "/v1/memories:add-messages"
       body: "*"
     };
   }
@@ -37,7 +37,7 @@ service MemoryService {
   }
   rpc ListMemories(ListMemoriesRequest) returns (ListMemoriesResponse) {
     option (google.api.http) = {
-      get: "/v1/memories/{scope}/list"
+      get: "/v1/memories:list"
     };
   }
   rpc ListScopes(ListScopesRequest) returns (ListScopesResponse) {
@@ -63,28 +63,26 @@ message Memory {
   google.protobuf.Timestamp updated_at = 13;
 }
 
-message GetMemoryRequest {
-  string scope = 1;
+message GetMemoriesRequest {
+  repeated string scopes = 1;
 }
 
-message GetMemoryResponse {
+message GetMemoriesResponse {
   repeated Memory memories = 1;
 }
 
-message SearchMemoriesRequest {
+message ConversationMessage {
+  string role = 1;
+  string content = 2;
+}
+
+message AddMessagesRequest {
   string scope = 1;
-  repeated double query_embedding = 2;
-  string query_text = 3;
-  int32 top_k = 4;
+  repeated ConversationMessage messages = 2;
 }
 
-message SearchMemoriesResponse {
-  repeated MemorySearchResult results = 1;
-}
-
-message MemorySearchResult {
-  Memory memory = 1;
-  double score = 2;
+message AddMessagesResponse {
+  repeated string job_ids = 1;
 }
 
 message AddMemoryRequest {

@@ -194,16 +194,5 @@ func (w *EmbeddingWorker) Process(ctx context.Context, job *store.ProcessingJob)
 		return fmt.Errorf("setting document status to ready: %w", err)
 	}
 
-	// If the topic has memory_enabled, create a memory_extraction job.
-	if w.topicStore != nil { // coverage:ignore - best-effort hook after document is already marked ready
-		topicID, err := w.docStore.TopicIDForDocument(ctx, job.DocumentID)
-		if err == nil { // coverage:ignore - best-effort hook after document is already marked ready
-			topic, err := w.topicStore.Get(ctx, topicID)
-			if err == nil && topic.MemoryEnabled { // coverage:ignore - best-effort hook after document is already marked ready
-				_, _ = w.jobStore.Create(ctx, job.DocumentID, "memory_extraction")
-			}
-		}
-	}
-
 	return nil
 }

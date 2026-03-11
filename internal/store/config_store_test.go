@@ -673,7 +673,7 @@ func TestTopicStore_Integration_ConfigBinding(t *testing.T) {
 
 	// Create topic with config bindings.
 	topicStore := NewTopicStore(pool)
-	topic, err := topicStore.Create(ctx, "bound-topic", "Bound Topic", "", "system:test", &llm.ID, &emb.ID, &prompt.ID, false, &vb.ID)
+	topic, err := topicStore.Create(ctx, "bound-topic", "Bound Topic", "", "system:test", &llm.ID, &emb.ID, &prompt.ID, &vb.ID)
 	if err != nil {
 		t.Fatalf("Create topic: %v", err)
 	}
@@ -691,7 +691,7 @@ func TestTopicStore_Integration_ConfigBinding(t *testing.T) {
 	}
 
 	// Create topic without config bindings.
-	topic2, err := topicStore.Create(ctx, "unbound-topic", "Unbound", "", "system:test", nil, nil, nil, false, nil)
+	topic2, err := topicStore.Create(ctx, "unbound-topic", "Unbound", "", "system:test", nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Create topic2: %v", err)
 	}
@@ -700,7 +700,7 @@ func TestTopicStore_Integration_ConfigBinding(t *testing.T) {
 	}
 
 	// Update topic to bind configs.
-	updated, err := topicStore.Update(ctx, topic2.ID, "Unbound Updated", "", &llm.ID, nil, nil, nil, nil)
+	updated, err := topicStore.Update(ctx, topic2.ID, "Unbound Updated", "", &llm.ID, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Update topic2: %v", err)
 	}

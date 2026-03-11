@@ -16,21 +16,22 @@ import (
 )
 
 var (
-	endpointURL   string
-	apiKey        string
-	verifyTLS     bool
-	authority     string
-	grpcEP        config.GRPCEndpoint
-	provider      string
-	model         string
-	embedProvider string
-	embedModel    string
-	ollamaURL     string
-	topicSlug     string
-	topK          int32
-	resumeDocID   string
-	memoryScope   string
-	crossTopic    bool
+	endpointURL      string
+	apiKey           string
+	verifyTLS        bool
+	authority        string
+	grpcEP           config.GRPCEndpoint
+	provider         string
+	model            string
+	embedProvider    string
+	embedModel       string
+	ollamaURL        string
+	topicSlug        string
+	topK             int32
+	resumeDocID      string
+	memoryScope      string
+	memoryReadScopes []string
+	crossTopic       bool
 )
 
 func main() {
@@ -57,7 +58,8 @@ func main() {
 	root.Flags().StringVar(&topicSlug, "topic", "creel-chat", "topic slug for conversation storage")
 	root.Flags().Int32Var(&topK, "top-k", 5, "number of context chunks to retrieve")
 	root.Flags().StringVar(&resumeDocID, "resume", "", "resume a previous session by document ID")
-	root.Flags().StringVar(&memoryScope, "memory-scope", "default", "memory scope for per-principal memories")
+	root.Flags().StringVar(&memoryScope, "memory-scope", "default", "memory scope for writing new memories")
+	root.Flags().StringSliceVar(&memoryReadScopes, "memory-read-scopes", nil, "memory scopes to read from (default: same as --memory-scope)")
 	root.Flags().BoolVar(&crossTopic, "cross-topic", false, "search across all accessible topics instead of just the current one")
 
 	if err := root.Execute(); err != nil {

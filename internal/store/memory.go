@@ -101,6 +101,33 @@ func (s *MemoryStore) GetByScope(ctx context.Context, principal, scope string) (
 	return scanMemories(rows)
 }
 
+// GetByScopes returns all active memories for a principal, optionally filtered by scopes.
+// When scopes is nil or empty, returns all active memories across all scopes.
+func (s *MemoryStore) GetByScopes(ctx context.Context, principal string, scopes []string) ([]*Memory, error) {
+	var rows pgx.Rows
+	var err error
+	if len(scopes) == 0 {
+		rows, err = s.pool.Query(ctx,
+			`SELECT id, principal, scope, content, embedding_id, subject, predicate, object,
+			        source_chunk_id, status, invalidated_at, metadata, created_at, updated_at
+			 FROM memories WHERE principal = $1 AND status = 'active'
+			 ORDER BY created_at`, principal,
+		)
+	} else {
+		rows, err = s.pool.Query(ctx,
+			`SELECT id, principal, scope, content, embedding_id, subject, predicate, object,
+			        source_chunk_id, status, invalidated_at, metadata, created_at, updated_at
+			 FROM memories WHERE principal = $1 AND scope = ANY($2) AND status = 'active'
+			 ORDER BY created_at`, principal, scopes,
+		)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("querying memories by scopes: %w", err)
+	}
+	defer rows.Close()
+	return scanMemories(rows)
+}
+
 // Update modifies a memory's content and metadata.
 func (s *MemoryStore) Update(ctx context.Context, id string, content string, metadata map[string]any) (*Memory, error) {
 	if metadata == nil {
