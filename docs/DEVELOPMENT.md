@@ -221,5 +221,5 @@ dashboard/          Laravel admin dashboard
 ## Useful references
 
 - [Architecture](ARCHITECTURE.md): full design document and phase roadmap
-- [API Reference](API_REFERENCE.md): all 69 RPCs with request/response details
+- [API Reference](API_REFERENCE.md): all 72 RPCs with request/response details
 - [Concepts](CONCEPTS.md): data model and design for integrators
