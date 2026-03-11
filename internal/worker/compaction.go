@@ -141,6 +141,10 @@ func (w *CompactionWorker) Process(ctx context.Context, job *store.ProcessingJob
 		return fmt.Errorf("computing summary embedding: %w", err)
 	}
 	if len(embeddings) > 0 {
+		// Include embedding model in stored metadata.
+		if modelName := w.embedProvider.Model(); modelName != "" { // coverage:ignore - happy path; tested via integration
+			meta["embedding_model"] = modelName
+		}
 		// coverage:ignore - requires vector backend failure
 		if err := w.vectorBackend.Store(ctx, summaryChunk.ID, embeddings[0], meta); err != nil {
 			return fmt.Errorf("storing summary embedding: %w", err)

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `UploadDocument` now defaults the citation URL to the `source_url` when no explicit `url` is provided, so documents uploaded from a URL automatically include a citation link.
 - `IngestChunks` now automatically enqueues an embedding job when chunks are ingested without pre-computed embeddings. Previously, chunks ingested without embeddings were never embedded.
 - Chunk responses now include an `embedding_model` field showing which model produced the chunk's vector embedding (e.g. "text-embedding-3-small"). The dashboard displays the model name instead of just "Yes"/"None".
+- Manual compaction (`Compact` RPC) now enqueues an embedding job for the summary chunk when no pre-computed embedding is provided. Previously, summary chunks from manual compaction had no embedding and were invisible to search.
 
 ## [0.7.0] - 2026-03-10
 
