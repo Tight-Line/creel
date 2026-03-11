@@ -144,7 +144,10 @@ func dial() (*grpc.ClientConn, error) {
 	if authority != "" {
 		opts = append(opts, grpc.WithAuthority(authority))
 	}
-	return grpc.NewClient(grpcEP.Host, opts...)
+	// passthrough:/// bypasses grpc-go's built-in DNS resolver, which does
+	// TXT/SRV lookups that can hang on split-horizon DNS (e.g. macOS with
+	// domain-specific resolvers). The OS resolver handles name resolution.
+	return grpc.NewClient("passthrough:///"+grpcEP.Host, opts...)
 }
 
 func authCtx() context.Context {

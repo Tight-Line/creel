@@ -54,7 +54,10 @@ func run() int {
 		opts = append(opts, grpc.WithAuthority(grpcAuthority))
 	}
 
-	conn, err := grpc.NewClient(ep.Host, opts...)
+	// passthrough:/// bypasses grpc-go's built-in DNS resolver, which does
+	// TXT/SRV lookups that can hang on split-horizon DNS (e.g. macOS with
+	// domain-specific resolvers). The OS resolver handles name resolution.
+	conn, err := grpc.NewClient("passthrough:///"+ep.Host, opts...)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "connecting to creel: %v\n", err)
 		return 1

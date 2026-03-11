@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `CREEL_GRPC_AUTHORITY` option (and `--authority` flag) overrides the `:authority` header and TLS SNI for routing through proxies where the connection hostname differs from the ingress hostname.
 - MCP sidecar deployment template uses `CREEL_GRPC_ENDPOINT` instead of `CREEL_ENDPOINT`.
 
+### Fixed
+
+- gRPC connections no longer hang on macOS split-horizon DNS. All CLI binaries now use the `passthrough:///` resolver scheme so grpc-go delegates name resolution to the OS instead of performing its own TXT/SRV lookups.
+
 ## [0.7.2] - 2026-03-11
 
 ### Changed
