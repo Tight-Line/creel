@@ -21,9 +21,15 @@ func main() {
 }
 
 func run() int {
-	endpoint := envOr("CREEL_ENDPOINT", "127.0.0.1:8443")
+	endpointURL := envOr("CREEL_GRPC_ENDPOINT", "http://127.0.0.1:8443")
 	apiKey := os.Getenv("CREEL_API_KEY")
-	useTLS := os.Getenv("CREEL_TLS") == "true"
+	verifyTLS := os.Getenv("CREEL_VERIFY_TLS") != "false"
+
+	ep, err := config.ParseGRPCEndpoint(endpointURL)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "invalid endpoint: %v\n", err)
+		return 1
+	}
 
 	var opts []grpc.DialOption
 	opts = append(opts,
@@ -32,13 +38,23 @@ func run() int {
 			grpc.MaxCallSendMsgSize(config.MaxGRPCMessageSize),
 		),
 	)
-	if useTLS {
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
+	grpcAuthority := os.Getenv("CREEL_GRPC_AUTHORITY")
+	if ep.TLS {
+		tlsCfg := &tls.Config{
+			InsecureSkipVerify: !verifyTLS, //nolint:gosec // user-controlled flag for self-signed certs
+		}
+		if grpcAuthority != "" {
+			tlsCfg.ServerName = grpcAuthority
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)))
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
+	if grpcAuthority != "" {
+		opts = append(opts, grpc.WithAuthority(grpcAuthority))
+	}
 
-	conn, err := grpc.NewClient(endpoint, opts...)
+	conn, err := grpc.NewClient(ep.Host, opts...)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "connecting to creel: %v\n", err)
 		return 1

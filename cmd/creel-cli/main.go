@@ -21,20 +21,28 @@ import (
 var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 var (
-	endpoint string
-	apiKey   string
-	useTLS   bool
+	endpointURL string
+	apiKey      string
+	verifyTLS   bool
+	authority   string
+	grpcEP      config.GRPCEndpoint
 )
 
 func main() {
 	root := &cobra.Command{
 		Use:   "creel-cli",
 		Short: "Creel CLI client",
+		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
+			var err error
+			grpcEP, err = config.ParseGRPCEndpoint(endpointURL)
+			return err
+		},
 	}
 
-	root.PersistentFlags().StringVar(&endpoint, "endpoint", envOr("CREEL_ENDPOINT", "127.0.0.1:8443"), "gRPC server endpoint")
+	root.PersistentFlags().StringVar(&endpointURL, "endpoint", envOr("CREEL_GRPC_ENDPOINT", "http://127.0.0.1:8443"), "gRPC endpoint URL (https://host or http://host:port)")
 	root.PersistentFlags().StringVar(&apiKey, "api-key", os.Getenv("CREEL_API_KEY"), "API key for authentication")
-	root.PersistentFlags().BoolVar(&useTLS, "tls", false, "use TLS")
+	root.PersistentFlags().BoolVar(&verifyTLS, "verify-tls", os.Getenv("CREEL_VERIFY_TLS") != "false", "verify TLS certificates (set CREEL_VERIFY_TLS=false to skip)")
+	root.PersistentFlags().StringVar(&authority, "authority", os.Getenv("CREEL_GRPC_AUTHORITY"), "override the :authority header (for routing through proxies)")
 
 	root.AddCommand(healthCmd())
 	root.AddCommand(adminCmd())
@@ -61,12 +69,21 @@ func dial() (*grpc.ClientConn, error) {
 			grpc.MaxCallSendMsgSize(config.MaxGRPCMessageSize),
 		),
 	)
-	if useTLS {
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
+	if grpcEP.TLS {
+		tlsCfg := &tls.Config{
+			InsecureSkipVerify: !verifyTLS, //nolint:gosec // user-controlled flag for self-signed certs
+		}
+		if authority != "" {
+			tlsCfg.ServerName = authority
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)))
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	return grpc.NewClient(endpoint, opts...)
+	if authority != "" {
+		opts = append(opts, grpc.WithAuthority(authority))
+	}
+	return grpc.NewClient(grpcEP.Host, opts...)
 }
 
 func authCtx() context.Context {
