@@ -248,11 +248,11 @@ curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   "http://localhost:8080/v1/search" | jq '.results[] | {
     content: .chunk.content[:80],
     score,
-    citation: .documentCitation | {name, author, url}
+    citation: .document_citation | {name, author, url}
   }'
 ```
 
-Notice that each result includes `documentCitation` with the name, author, and URL you provided at upload time.
+Notice that each result includes `document_citation` with the name, author, and URL you provided at upload time.
 
 Search across both topics:
 
@@ -261,8 +261,8 @@ curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   -d "{\"topic_ids\": [\"$FISH_TOPIC\", \"$SKI_TOPIC\"], \"query_text\": \"conditions report\", \"top_k\": 5}" \
   "http://localhost:8080/v1/search" | jq '.results[] | {
     content: .chunk.content[:80],
-    topicId,
-    citation: .documentCitation.name
+    topic_id,
+    citation: .document_citation.name
   }'
 ```
 
@@ -399,7 +399,7 @@ WULFF_ID=$(bin/creel-cli memory list --scope fishing | jq -r '.memories[] | sele
 curl -s -H "Authorization: Bearer $CREEL_API_KEY" \
   -X PATCH \
   -d "{\"content\": \"Favorite fly is the Ausable Wulff in size 14\"}" \
-  "http://localhost:8080/v1/memories/$WULFF_ID" | jq '{id, content, updatedAt}'
+  "http://localhost:8080/v1/memories/$WULFF_ID" | jq '{id, content, updated_at}'
 ```
 
 Delete (soft-invalidate) a memory:
