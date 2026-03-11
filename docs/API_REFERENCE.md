@@ -218,9 +218,8 @@ rpc IngestChunks(IngestChunksRequest) returns (IngestChunksResponse)
 **Permission**: write
 **Behavior**: Batch ingest. For each chunk:
 
-- If `embedding` is provided, stores it directly in the vector backend.
-- If `embedding` is omitted and an embedding provider is configured, the server computes it.
-- Assigns an `embedding_id` linking the chunk metadata to its vector.
+- If `embedding` is provided, stores it directly in the vector backend and sets `embedding_id`.
+- If `embedding` is omitted, the chunk is created without an embedding and a background embedding job is enqueued. The embedding worker computes embeddings using the configured provider (topic-level or default).
 
 If `auto_link_on_ingest` is enabled, fires an async auto-link job via the event bus. The job searches for similar chunks in other topics the caller can access and creates links above the configured similarity threshold. Auto-linking does not block the ingest response.
 
