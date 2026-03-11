@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - gRPC connections no longer hang on macOS split-horizon DNS. All CLI binaries now use the `passthrough:///` resolver scheme so grpc-go delegates name resolution to the OS instead of performing its own TXT/SRV lookups.
 - `creel-chat` now sets `memory_enabled: true` when creating new topics, so memory extraction fires for chat sessions.
 - `GetJob` now handles documentless jobs (e.g. memory maintenance from `AddMemory`) by authorizing via the principal stored in the job's progress data instead of requiring a document.
+- Memory maintenance worker no longer fails with UUID type errors when processing memories. Embedding machinery has been removed from the memory system; memories are fully LLM-managed and returned in bulk by scope.
+- LLM responses wrapped in markdown code fences (`` ```json ... ``` ``) are now correctly parsed by all workers (memory maintenance, memory extraction, semantic chunking).
 
 ## [0.7.2] - 2026-03-11
 

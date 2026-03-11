@@ -7,33 +7,26 @@ import (
 
 	"github.com/Tight-Line/creel/internal/llm"
 	"github.com/Tight-Line/creel/internal/store"
-	"github.com/Tight-Line/creel/internal/vector"
 )
 
 // MemoryMaintenanceWorker processes memory_maintenance jobs by evaluating
 // a candidate fact against existing memories and executing the appropriate action.
 type MemoryMaintenanceWorker struct {
-	memStore      *store.MemoryStore
-	jobStore      *store.JobStore
-	vectorBackend vector.Backend
-	embedProvider EmbeddingProvider
-	llmProvider   llm.Provider
+	memStore    *store.MemoryStore
+	jobStore    *store.JobStore
+	llmProvider llm.Provider
 }
 
 // NewMemoryMaintenanceWorker creates a new memory maintenance worker.
 func NewMemoryMaintenanceWorker(
 	memStore *store.MemoryStore,
 	jobStore *store.JobStore,
-	vectorBackend vector.Backend,
-	embedProvider EmbeddingProvider,
 	llmProvider llm.Provider,
 ) *MemoryMaintenanceWorker {
 	return &MemoryMaintenanceWorker{
-		memStore:      memStore,
-		jobStore:      jobStore,
-		vectorBackend: vectorBackend,
-		embedProvider: embedProvider,
-		llmProvider:   llmProvider,
+		memStore:    memStore,
+		jobStore:    jobStore,
+		llmProvider: llmProvider,
 	}
 }
 
@@ -64,45 +57,10 @@ func (w *MemoryMaintenanceWorker) Process(ctx context.Context, job *store.Proces
 		scope = "default"
 	}
 
-	// Embed the candidate fact.
-	embeddings, err := w.embedProvider.Embed(ctx, []string{candidateFact})
+	// Fetch all existing memories in this scope for the principal.
+	existingMemories, err := w.memStore.GetByScope(ctx, principal, scope)
 	if err != nil {
-		return fmt.Errorf("embedding candidate fact: %w", err)
-	}
-	if len(embeddings) == 0 {
-		return fmt.Errorf("no embedding returned for candidate fact")
-	}
-	factEmbedding := embeddings[0]
-
-	// Search existing memories in the same scope via vector backend (top 10).
-	embeddingIDs, err := w.memStore.EmbeddingIDsByPrincipalScope(ctx, principal, scope)
-	if err != nil {
-		return fmt.Errorf("fetching memory embedding IDs: %w", err)
-	}
-
-	var existingMemories []*store.Memory
-	if len(embeddingIDs) > 0 {
-		filter := vector.Filter{ChunkIDs: embeddingIDs}
-		searchResults, err := w.vectorBackend.Search(ctx, factEmbedding, filter, 10)
-		if err != nil {
-			return fmt.Errorf("searching existing memories: %w", err)
-		}
-
-		if len(searchResults) > 0 {
-			resultEmbIDs := make([]string, len(searchResults))
-			for i, sr := range searchResults {
-				resultEmbIDs[i] = sr.ChunkID
-			}
-			memsByEmbID, err := w.memStore.GetByEmbeddingIDs(ctx, resultEmbIDs)
-			if err != nil {
-				return fmt.Errorf("fetching memories by embedding IDs: %w", err)
-			}
-			for _, sr := range searchResults {
-				if m, ok := memsByEmbID[sr.ChunkID]; ok {
-					existingMemories = append(existingMemories, m)
-				}
-			}
-		}
+		return fmt.Errorf("fetching existing memories: %w", err)
 	}
 
 	// Build the formatted existing memories for the prompt.
@@ -133,7 +91,7 @@ func (w *MemoryMaintenanceWorker) Process(ctx context.Context, job *store.Proces
 
 	switch decision.Action {
 	case "ADD":
-		return w.handleAdd(ctx, candidateFact, principal, scope, factEmbedding)
+		return w.handleAdd(ctx, candidateFact, principal, scope)
 	case "UPDATE":
 		return w.handleUpdate(ctx, decision.MemoryID, decision.MergedContent)
 	case "DELETE":
@@ -145,8 +103,8 @@ func (w *MemoryMaintenanceWorker) Process(ctx context.Context, job *store.Proces
 	}
 }
 
-func (w *MemoryMaintenanceWorker) handleAdd(ctx context.Context, content, principal, scope string, embedding []float64) error {
-	mem, err := w.memStore.Create(ctx, &store.Memory{
+func (w *MemoryMaintenanceWorker) handleAdd(ctx context.Context, content, principal, scope string) error {
+	_, err := w.memStore.Create(ctx, &store.Memory{
 		Principal: principal,
 		Scope:     scope,
 		Content:   content,
@@ -154,17 +112,6 @@ func (w *MemoryMaintenanceWorker) handleAdd(ctx context.Context, content, princi
 	if err != nil {
 		return fmt.Errorf("creating memory: %w", err)
 	}
-
-	// Store embedding in vector backend.
-	embeddingID := fmt.Sprintf("mem_%s", mem.ID)
-	if err := w.vectorBackend.Store(ctx, embeddingID, embedding, nil); err != nil {
-		return fmt.Errorf("storing memory embedding: %w", err)
-	}
-
-	if err := w.memStore.SetEmbeddingID(ctx, mem.ID, embeddingID); err != nil {
-		return fmt.Errorf("setting memory embedding ID: %w", err)
-	}
-
 	return nil
 }
 
@@ -181,24 +128,6 @@ func (w *MemoryMaintenanceWorker) handleUpdate(ctx context.Context, memoryID, me
 	_, err = w.memStore.Update(ctx, memoryID, mergedContent, existing.Metadata)
 	if err != nil {
 		return fmt.Errorf("updating memory: %w", err)
-	}
-
-	// Re-embed the updated content.
-	embeddings, err := w.embedProvider.Embed(ctx, []string{mergedContent})
-	if err != nil {
-		return fmt.Errorf("embedding updated memory: %w", err)
-	}
-	if len(embeddings) == 0 {
-		return fmt.Errorf("no embedding returned for updated memory")
-	}
-
-	embeddingID := fmt.Sprintf("mem_%s", memoryID)
-	if err := w.vectorBackend.Store(ctx, embeddingID, embeddings[0], nil); err != nil {
-		return fmt.Errorf("storing updated memory embedding: %w", err)
-	}
-
-	if err := w.memStore.SetEmbeddingID(ctx, memoryID, embeddingID); err != nil {
-		return fmt.Errorf("setting updated memory embedding ID: %w", err)
 	}
 
 	return nil

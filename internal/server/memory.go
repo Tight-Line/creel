@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -11,31 +10,20 @@ import (
 	pb "github.com/Tight-Line/creel/gen/creel/v1"
 	"github.com/Tight-Line/creel/internal/auth"
 	"github.com/Tight-Line/creel/internal/store"
-	"github.com/Tight-Line/creel/internal/vector"
 )
-
-// EmbeddingProvider computes an embedding vector for a text string.
-type EmbeddingProvider interface {
-	Embed(ctx context.Context, text string) ([]float64, error)
-}
 
 // MemoryServer implements the MemoryService gRPC service.
 type MemoryServer struct {
 	pb.UnimplementedMemoryServiceServer
 	memStore *store.MemoryStore
-	backend  vector.Backend
-	embedder EmbeddingProvider
 	jobStore *store.JobStore
 }
 
 // NewMemoryServer creates a new memory service.
-// The embedder may be nil if no embedding provider is configured.
 // The jobStore may be nil; when set, AddMemory routes through the maintenance worker.
-func NewMemoryServer(memStore *store.MemoryStore, backend vector.Backend, embedder EmbeddingProvider, jobStore *store.JobStore) *MemoryServer {
+func NewMemoryServer(memStore *store.MemoryStore, jobStore *store.JobStore) *MemoryServer {
 	return &MemoryServer{
 		memStore: memStore,
-		backend:  backend,
-		embedder: embedder,
 		jobStore: jobStore,
 	}
 }
@@ -58,7 +46,9 @@ func (s *MemoryServer) GetMemory(ctx context.Context, req *pb.GetMemoryRequest) 
 	return &pb.GetMemoryResponse{Memories: storeMemoriesToProto(memories)}, nil
 }
 
-// SearchMemories performs semantic search within a principal's memories.
+// SearchMemories returns all active memories in a principal's scope.
+// Embedding-based search has been removed; memories are small and LLM-managed,
+// so returning all memories in the scope is the correct approach.
 func (s *MemoryServer) SearchMemories(ctx context.Context, req *pb.SearchMemoriesRequest) (*pb.SearchMemoriesResponse, error) {
 	p := auth.PrincipalFromContext(ctx)
 	if p == nil {
@@ -68,72 +58,6 @@ func (s *MemoryServer) SearchMemories(ctx context.Context, req *pb.SearchMemorie
 		return nil, status.Error(codes.InvalidArgument, "scope is required")
 	}
 
-	topK := int(req.GetTopK())
-	if topK <= 0 {
-		topK = 10
-	}
-
-	// Determine query embedding: use provided embedding, or compute from text.
-	queryEmbedding := req.GetQueryEmbedding()
-	if len(queryEmbedding) == 0 && req.GetQueryText() != "" {
-		if s.embedder == nil {
-			return nil, status.Error(codes.FailedPrecondition, "embedding provider not configured; provide query_embedding directly")
-		}
-		var err error
-		queryEmbedding, err = s.embedder.Embed(ctx, req.GetQueryText())
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "computing embedding: %v", err)
-		}
-	}
-
-	// If we have a query embedding, search via vector backend.
-	if len(queryEmbedding) > 0 {
-		embeddingIDs, err := s.memStore.EmbeddingIDsByPrincipalScope(ctx, p.ID, req.GetScope())
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "fetching embedding IDs: %v", err)
-		}
-
-		if len(embeddingIDs) == 0 {
-			return &pb.SearchMemoriesResponse{}, nil
-		}
-
-		filter := vector.Filter{ChunkIDs: embeddingIDs}
-		searchResults, err := s.backend.Search(ctx, queryEmbedding, filter, topK)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "searching: %v", err)
-		}
-
-		if len(searchResults) == 0 {
-			return &pb.SearchMemoriesResponse{}, nil
-		}
-
-		// Batch-fetch memories by embedding IDs.
-		resultEmbIDs := make([]string, len(searchResults))
-		for i, sr := range searchResults {
-			resultEmbIDs[i] = sr.ChunkID
-		}
-
-		memsByEmbID, err := s.memStore.GetByEmbeddingIDs(ctx, resultEmbIDs)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "fetching memories: %v", err)
-		}
-
-		var results []*pb.MemorySearchResult
-		for _, sr := range searchResults {
-			mem, ok := memsByEmbID[sr.ChunkID]
-			if !ok {
-				continue
-			}
-			results = append(results, &pb.MemorySearchResult{
-				Memory: storeMemoryToProto(mem),
-				Score:  sr.Score,
-			})
-		}
-
-		return &pb.SearchMemoriesResponse{Results: results}, nil
-	}
-
-	// No embedding available; fall back to returning all active memories.
 	memories, err := s.memStore.GetByScope(ctx, p.ID, req.GetScope())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "listing memories: %v", err)
@@ -223,19 +147,6 @@ func (s *MemoryServer) UpdateMemory(ctx context.Context, req *pb.UpdateMemoryReq
 	updated, err := s.memStore.Update(ctx, req.GetId(), content, meta)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "updating memory: %v", err)
-	}
-
-	// Re-compute embedding if provider is available and content changed.
-	if s.embedder != nil && s.backend != nil && content != existing.Content {
-		embedding, embErr := s.embedder.Embed(ctx, updated.Content)
-		if embErr == nil {
-			embeddingID := fmt.Sprintf("mem_%s", updated.ID)
-			storeErr := s.backend.Store(ctx, embeddingID, embedding, nil)
-			if storeErr == nil {
-				_ = s.memStore.SetEmbeddingID(ctx, updated.ID, embeddingID)
-				updated.EmbeddingID = &embeddingID
-			}
-		}
 	}
 
 	return storeMemoryToProto(updated), nil

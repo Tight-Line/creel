@@ -2447,33 +2447,6 @@ func TestMemoryStore_ListScopes_ScanError(t *testing.T) {
 	expectErr(t, err, "scanning scope")
 }
 
-func TestMemoryStore_GetWithEmbedding_QueryError(t *testing.T) {
-	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
-		return nil, errMock
-	}}
-	s := NewMemoryStore(db)
-	_, err := s.GetWithEmbedding(ctx(), "p", "s")
-	expectErr(t, err, "querying memories with embeddings")
-}
-
-func TestMemoryStore_EmbeddingIDsByPrincipalScope_QueryError(t *testing.T) {
-	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
-		return nil, errMock
-	}}
-	s := NewMemoryStore(db)
-	_, err := s.EmbeddingIDsByPrincipalScope(ctx(), "p", "s")
-	expectErr(t, err, "querying embedding IDs")
-}
-
-func TestMemoryStore_EmbeddingIDsByPrincipalScope_ScanError(t *testing.T) {
-	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
-		return &mockRows{nextOnce: true, scanErr: errMock}, nil
-	}}
-	s := NewMemoryStore(db)
-	_, err := s.EmbeddingIDsByPrincipalScope(ctx(), "p", "s")
-	expectErr(t, err, "scanning embedding ID")
-}
-
 func TestMemoryStore_GetMultiple_Empty(t *testing.T) {
 	s := NewMemoryStore(&mockDBTX{})
 	result, err := s.GetMultiple(ctx(), nil)
@@ -2500,35 +2473,6 @@ func TestMemoryStore_GetMultiple_ScanError(t *testing.T) {
 	}}
 	s := NewMemoryStore(db)
 	_, err := s.GetMultiple(ctx(), []string{"id1"})
-	expectErr(t, err, "scanning memory")
-}
-
-func TestMemoryStore_GetByEmbeddingIDs_Empty(t *testing.T) {
-	s := NewMemoryStore(&mockDBTX{})
-	result, err := s.GetByEmbeddingIDs(ctx(), nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result != nil {
-		t.Fatalf("expected nil, got %v", result)
-	}
-}
-
-func TestMemoryStore_GetByEmbeddingIDs_QueryError(t *testing.T) {
-	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
-		return nil, errMock
-	}}
-	s := NewMemoryStore(db)
-	_, err := s.GetByEmbeddingIDs(ctx(), []string{"emb1"})
-	expectErr(t, err, "querying memories by embedding IDs")
-}
-
-func TestMemoryStore_GetByEmbeddingIDs_ScanError(t *testing.T) {
-	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
-		return &mockRows{nextOnce: true, scanErr: errMock}, nil
-	}}
-	s := NewMemoryStore(db)
-	_, err := s.GetByEmbeddingIDs(ctx(), []string{"emb1"})
 	expectErr(t, err, "scanning memory")
 }
 

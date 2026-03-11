@@ -188,53 +188,6 @@ func (s *MemoryStore) ListScopes(ctx context.Context, principal string) ([]strin
 	return scopes, rows.Err()
 }
 
-// SetEmbeddingID updates the embedding_id for a memory.
-func (s *MemoryStore) SetEmbeddingID(ctx context.Context, id, embeddingID string) error {
-	_, err := s.pool.Exec(ctx,
-		`UPDATE memories SET embedding_id = $2 WHERE id = $1`, id, embeddingID)
-	return err
-}
-
-// GetWithEmbedding returns active memories that have embeddings for a principal in a scope.
-func (s *MemoryStore) GetWithEmbedding(ctx context.Context, principal, scope string) ([]*Memory, error) {
-	rows, err := s.pool.Query(ctx,
-		`SELECT id, principal, scope, content, embedding_id, subject, predicate, object,
-		        source_chunk_id, status, invalidated_at, metadata, created_at, updated_at
-		 FROM memories
-		 WHERE principal = $1 AND scope = $2 AND status = 'active' AND embedding_id IS NOT NULL
-		 ORDER BY created_at`, principal, scope,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("querying memories with embeddings: %w", err)
-	}
-	defer rows.Close()
-	return scanMemories(rows)
-}
-
-// EmbeddingIDsByPrincipalScope returns embedding_ids for active memories
-// that have embeddings, for use as vector search filters.
-func (s *MemoryStore) EmbeddingIDsByPrincipalScope(ctx context.Context, principal, scope string) ([]string, error) {
-	rows, err := s.pool.Query(ctx,
-		`SELECT embedding_id FROM memories
-		 WHERE principal = $1 AND scope = $2 AND status = 'active' AND embedding_id IS NOT NULL`,
-		principal, scope,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("querying embedding IDs: %w", err)
-	}
-	defer rows.Close()
-
-	var ids []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, fmt.Errorf("scanning embedding ID: %w", err)
-		}
-		ids = append(ids, id)
-	}
-	return ids, rows.Err()
-}
-
 // GetMultiple retrieves multiple memories by ID in a single query.
 func (s *MemoryStore) GetMultiple(ctx context.Context, ids []string) (map[string]*Memory, error) {
 	if len(ids) == 0 {
@@ -257,34 +210,6 @@ func (s *MemoryStore) GetMultiple(ctx context.Context, ids []string) (map[string
 			return nil, err
 		}
 		result[m.ID] = m
-	}
-	return result, rows.Err()
-}
-
-// GetByEmbeddingIDs retrieves memories by their embedding IDs in a single query.
-func (s *MemoryStore) GetByEmbeddingIDs(ctx context.Context, embeddingIDs []string) (map[string]*Memory, error) {
-	if len(embeddingIDs) == 0 {
-		return nil, nil
-	}
-	rows, err := s.pool.Query(ctx,
-		`SELECT id, principal, scope, content, embedding_id, subject, predicate, object,
-		        source_chunk_id, status, invalidated_at, metadata, created_at, updated_at
-		 FROM memories WHERE embedding_id = ANY($1)`, embeddingIDs,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("querying memories by embedding IDs: %w", err)
-	}
-	defer rows.Close()
-
-	result := make(map[string]*Memory, len(embeddingIDs))
-	for rows.Next() {
-		m, err := scanMemory(rows)
-		if err != nil {
-			return nil, err
-		}
-		if m.EmbeddingID != nil {
-			result[*m.EmbeddingID] = m
-		}
 	}
 	return result, rows.Err()
 }

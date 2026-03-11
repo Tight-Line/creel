@@ -154,32 +154,6 @@ func TestMemoryStore_Integration_CRUD(t *testing.T) {
 		t.Fatal("expected invalidated_at to be set")
 	}
 
-	// SetEmbeddingID
-	if err := s.SetEmbeddingID(ctx, m2.ID, "emb_123"); err != nil {
-		t.Fatalf("setting embedding ID: %v", err)
-	}
-
-	// GetWithEmbedding
-	withEmb, err := s.GetWithEmbedding(ctx, "user:alice", "work")
-	if err != nil {
-		t.Fatalf("getting with embedding: %v", err)
-	}
-	if len(withEmb) != 1 {
-		t.Fatalf("expected 1 memory with embedding, got %d", len(withEmb))
-	}
-	if withEmb[0].EmbeddingID == nil || *withEmb[0].EmbeddingID != "emb_123" {
-		t.Fatalf("expected embedding ID 'emb_123', got %v", withEmb[0].EmbeddingID)
-	}
-
-	// EmbeddingIDsByPrincipalScope
-	embIDs, err := s.EmbeddingIDsByPrincipalScope(ctx, "user:alice", "work")
-	if err != nil {
-		t.Fatalf("getting embedding IDs: %v", err)
-	}
-	if len(embIDs) != 1 || embIDs[0] != "emb_123" {
-		t.Fatalf("expected ['emb_123'], got %v", embIDs)
-	}
-
 	// GetMultiple
 	multi, err := s.GetMultiple(ctx, []string{m.ID, m2.ID})
 	if err != nil {
@@ -187,18 +161,6 @@ func TestMemoryStore_Integration_CRUD(t *testing.T) {
 	}
 	if len(multi) != 2 {
 		t.Fatalf("expected 2 memories, got %d", len(multi))
-	}
-
-	// GetByEmbeddingIDs
-	byEmb, err := s.GetByEmbeddingIDs(ctx, []string{"emb_123"})
-	if err != nil {
-		t.Fatalf("getting by embedding IDs: %v", err)
-	}
-	if len(byEmb) != 1 {
-		t.Fatalf("expected 1 memory, got %d", len(byEmb))
-	}
-	if byEmb["emb_123"].ID != m2.ID {
-		t.Fatalf("expected memory ID %s, got %s", m2.ID, byEmb["emb_123"].ID)
 	}
 
 	// Get not found

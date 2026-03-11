@@ -13,6 +13,11 @@ import (
 	"github.com/Tight-Line/creel/internal/store"
 )
 
+// EmbeddingProvider can embed a single text string into a vector.
+type EmbeddingProvider interface {
+	Embed(ctx context.Context, text string) ([]float64, error)
+}
+
 // RetrievalServer implements the RetrievalService gRPC service.
 type RetrievalServer struct {
 	pb.UnimplementedRetrievalServiceServer
