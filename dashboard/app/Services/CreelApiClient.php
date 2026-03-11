@@ -249,7 +249,7 @@ class CreelApiClient
 
     public function listMemories(string $scope): array
     {
-        return $this->request('GET', "/v1/memories/{$scope}/list")['memories'] ?? [];
+        return $this->request('GET', '/v1/memories:list?' . http_build_query(['scope' => $scope]))['memories'] ?? [];
     }
 
     // Internal
