@@ -39,6 +39,19 @@ func TestMemoryMessagesWorker_MissingMessages(t *testing.T) {
 	}
 }
 
+func TestMemoryMessagesWorker_MalformedMessages(t *testing.T) {
+	w := NewMemoryMessagesWorker(nil, nil)
+	job := &store.ProcessingJob{Progress: map[string]any{
+		"principal": "user1",
+		"scope":     "test",
+		"messages":  "not an array",
+	}}
+	err := w.Process(context.Background(), job)
+	if err == nil || !strings.Contains(err.Error(), "parsing messages") {
+		t.Fatalf("expected parsing error, got: %v", err)
+	}
+}
+
 func TestMemoryMessagesWorker_EmptyMessages(t *testing.T) {
 	w := NewMemoryMessagesWorker(nil, nil)
 	job := &store.ProcessingJob{Progress: map[string]any{
