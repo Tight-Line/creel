@@ -51,23 +51,20 @@
     <div x-data="{ show: { active: true, summary: true, compacted: true } }">
 
         {{-- Filter toggles --}}
-        <div class="flex items-center gap-3 mb-4 text-xs">
-            <span class="text-slate-400 mr-1">Show:</span>
-            <button type="button" @click="show.active = !show.active"
-                    :class="show.active ? 'bg-green-50 border-green-300 text-green-700' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'"
-                    class="flex items-center gap-1.5 px-2.5 py-1 border rounded-full cursor-pointer select-none transition-all">
-                <span class="inline-block w-2 h-2 rounded-full" :class="show.active ? 'bg-green-400' : 'bg-slate-300'"></span> Active
-            </button>
-            <button type="button" @click="show.summary = !show.summary"
-                    :class="show.summary ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'"
-                    class="flex items-center gap-1.5 px-2.5 py-1 border rounded-full cursor-pointer select-none transition-all">
-                <span class="inline-block w-2 h-2 rounded-full" :class="show.summary ? 'bg-blue-400' : 'bg-slate-300'"></span> Summary
-            </button>
-            <button type="button" @click="show.compacted = !show.compacted"
-                    :class="show.compacted ? 'bg-slate-100 border-slate-300 text-slate-600' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'"
-                    class="flex items-center gap-1.5 px-2.5 py-1 border rounded-full cursor-pointer select-none transition-all">
-                <span class="inline-block w-2 h-2 rounded-full" :class="show.compacted ? 'bg-slate-400' : 'bg-slate-300'"></span> Compacted
-            </button>
+        <div class="flex items-center gap-4 mb-4 text-xs text-slate-600">
+            <span class="text-slate-400">Show:</span>
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" x-model="show.active" class="rounded border-slate-300 text-green-500 focus:ring-green-500">
+                <span class="inline-block w-2 h-2 rounded-full bg-green-400"></span> Active
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" x-model="show.summary" class="rounded border-slate-300 text-blue-500 focus:ring-blue-500">
+                <span class="inline-block w-2 h-2 rounded-full bg-blue-400"></span> Summary
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" x-model="show.compacted" class="rounded border-slate-300 text-slate-500 focus:ring-slate-500">
+                <span class="inline-block w-2 h-2 rounded-full bg-slate-300"></span> Compacted
+            </label>
         </div>
 
         {{-- Table --}}
