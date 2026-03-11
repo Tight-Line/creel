@@ -231,7 +231,7 @@ func (s *ChunkStore) ListByDocument(ctx context.Context, documentID string, last
 // MarkCompacted sets chunks to compacted status, recording which summary chunk replaced them.
 func (s *ChunkStore) MarkCompacted(ctx context.Context, chunkIDs []string, summaryChunkID string) error {
 	tag, err := s.pool.Exec(ctx,
-		`UPDATE chunks SET status = 'compacted', compacted_by = $2 WHERE id = ANY($1) AND status = 'active'`,
+		`UPDATE chunks SET status = 'compacted', compacted_by = $2, embedding_id = NULL WHERE id = ANY($1) AND status = 'active'`,
 		chunkIDs, summaryChunkID)
 	if err != nil {
 		return fmt.Errorf("marking chunks as compacted: %w", err)
