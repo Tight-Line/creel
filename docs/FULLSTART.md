@@ -161,12 +161,12 @@ bin/creel-cli upload \
   --content-type text/html
 ```
 
-You can also upload PDF files. The server extracts text from PDFs automatically:
+You can also upload by URL. The server fetches the file and extracts text from PDFs automatically:
 
 ```bash
 bin/creel-cli upload \
   --topic fly-fishing \
-  --file /tmp/regulations.pdf \
+  --source-url "https://www.maine.gov/ifw/docs/25-MDIFW-23-FISHING-LAWBOOK-2026.pdf" \
   --name "Maine Fishing Regulations 2026" \
   --author "Maine IF&W" \
   --content-type application/pdf
@@ -546,6 +546,6 @@ rm -f /tmp/hatch-chart.txt /tmp/rangeley-report.html /tmp/ski-report.txt
 ## Next steps
 
 - [Concepts](CONCEPTS.md): deep dive on the data model, auth, and retrieval modes
-- [API Reference](API_REFERENCE.md): all 69 RPCs
+- [API Reference](API_REFERENCE.md): all 72 RPCs
 - [Deployment](DEPLOYMENT.md): production Helm chart
 - [Architecture](ARCHITECTURE.md): design document and roadmap
