@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REST gateway now returns snake_case JSON field names matching proto definitions, fixing dashboard document editing and other clients that expect proto-style field names.
 - Fixed incorrect chunk listing endpoint and compact CLI flags in FULLSTART guide.
 - Python and TypeScript SDKs now use snake_case consistently for all JSON field names, request bodies, and query parameters, matching the REST gateway's `UseProtoNames` output.
+- `UploadDocument` now defaults the citation URL to the `source_url` when no explicit `url` is provided, so documents uploaded from a URL automatically include a citation link.
 
 ## [0.7.0] - 2026-03-10
 

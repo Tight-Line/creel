@@ -145,7 +145,7 @@ rpc UploadDocument(UploadDocumentRequest) returns (UploadDocumentResponse)
 **Request**: `{topic_id, slug, name, url, author, published_at, metadata, file, source_url, doc_type}`
 **Response**: `{document, job_id}`
 **Permission**: write
-**Behavior**: Accepts a raw file (as bytes) or a `source_url` for the server to fetch. Slug is optional; auto-generated from `name` if omitted. Creates a document record with citation metadata and sets its status to `pending`. Enqueues extraction, chunking, and embedding jobs for asynchronous processing. Returns immediately with the document and a job ID for tracking progress. The document transitions through `processing` to `ready` (or `failed`) as workers complete each stage.
+**Behavior**: Accepts a raw file (as bytes) or a `source_url` for the server to fetch. Slug is optional; auto-generated from `name` if omitted. Creates a document record with citation metadata and sets its status to `pending`. If `source_url` is provided and `url` is not, the source URL is automatically used as the citation URL. An explicit `url` always takes precedence. Enqueues extraction, chunking, and embedding jobs for asynchronous processing. Returns immediately with the document and a job ID for tracking progress. The document transitions through `processing` to `ready` (or `failed`) as workers complete each stage.
 
 ### GetDocument
 
