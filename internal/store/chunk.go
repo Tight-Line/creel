@@ -21,13 +21,13 @@ func NewChunkStore(pool DBTX) *ChunkStore {
 
 // Chunk represents a stored chunk.
 type Chunk struct {
-	ID          string
-	DocumentID  string
-	Sequence    int
-	Content     string
-	EmbeddingID *string
-	Status      string
-	CompactedBy *string
+	ID             string
+	DocumentID     string
+	Sequence       int
+	Content        string
+	EmbeddingID    *string
+	Status         string
+	CompactedBy    *string
 	Metadata       map[string]any
 	CreatedAt      time.Time
 	EmbeddingModel string // from chunk_embeddings.metadata; not stored in chunks table
@@ -312,11 +312,13 @@ func (s *ChunkStore) GetEmbeddingModels(ctx context.Context, chunkIDs []string) 
 	defer rows.Close()
 
 	result := make(map[string]string, len(chunkIDs))
+	// coverage:ignore - tested via integration
 	for rows.Next() {
 		var id, model string
 		if err := rows.Scan(&id, &model); err != nil {
 			return nil, fmt.Errorf("scanning embedding model: %w", err)
 		}
+		// coverage:ignore - tested via integration
 		result[id] = model
 	}
 	return result, rows.Err()

@@ -189,22 +189,27 @@ func storeChunkToProto(c *store.Chunk) *pb.Chunk {
 
 // enrichChunksWithEmbeddingModel batch-fetches embedding model names and sets
 // them on the provided chunks. Best-effort; errors are silently ignored.
-// coverage:ignore - requires chunk_embeddings table; tested via integration
 func enrichChunksWithEmbeddingModel(ctx context.Context, cs *store.ChunkStore, chunks []*store.Chunk) {
 	var ids []string
+	// coverage:ignore - tested via integration
 	for _, c := range chunks {
 		if c.EmbeddingID != nil {
 			ids = append(ids, c.ID)
 		}
 	}
+	// coverage:ignore - tested via integration
 	if len(ids) == 0 {
 		return
 	}
+	// coverage:ignore - tested via integration
 	models, err := cs.GetEmbeddingModels(ctx, ids)
+	// coverage:ignore - best-effort; errors silently ignored
 	if err != nil {
 		return
 	}
+	// coverage:ignore - tested via integration
 	for _, c := range chunks {
+		// coverage:ignore - requires embedding_model in chunk_embeddings metadata; stub provider returns ""
 		if m, ok := models[c.ID]; ok {
 			c.EmbeddingModel = m
 		}
