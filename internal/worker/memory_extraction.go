@@ -96,7 +96,7 @@ func (w *MemoryExtractionWorker) Process(ctx context.Context, job *store.Process
 
 	// Parse the LLM response.
 	var extracted extractionResponse
-	if err := json.Unmarshal([]byte(resp.Content), &extracted); err != nil {
+	if err := json.Unmarshal([]byte(extractJSON(resp.Content)), &extracted); err != nil {
 		return fmt.Errorf("parsing extraction response: %w", err)
 	}
 

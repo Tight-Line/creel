@@ -209,7 +209,7 @@ func (w *ChunkingWorker) splitSemantic(ctx context.Context, text string) ([]stri
 	}
 
 	var chunks []string
-	if err := json.Unmarshal([]byte(content), &chunks); err != nil {
+	if err := json.Unmarshal([]byte(extractJSON(content)), &chunks); err != nil {
 		return nil, fmt.Errorf("parsing LLM chunking response: %w", err)
 	}
 

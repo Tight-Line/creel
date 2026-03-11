@@ -1401,6 +1401,12 @@ creel/
 - [x] Per-topic `vector_backend_config_id` FK (topics can reference a specific vector backend)
 - [x] Vector backend registry (`vector.Registry`) with lazy initialization and factory-based creation
 
+### Phase 10: Scalability & Pagination
+
+- [ ] Cursor-based pagination for unbounded list RPCs (`ListScopes`, `AccessibleTopics`, `ListTopics`, `ListMemories`, `ListDocuments`, etc.). Current implementations return everything, which breaks at scale.
+- [ ] Dashboard memory scope view: show principal + scope + memory count (requires admin-capable `ListScopes` variant that spans principals)
+- [ ] `GetJob` detail view for documentless jobs in dashboard (memory maintenance jobs have no document to link to)
+
 ## 11. Verification
 
 - **Unit tests**: each internal package has tests; vector backend interface has a conformance test suite that all implementations must pass

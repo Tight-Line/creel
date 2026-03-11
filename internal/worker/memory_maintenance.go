@@ -127,7 +127,7 @@ func (w *MemoryMaintenanceWorker) Process(ctx context.Context, job *store.Proces
 	}
 
 	var decision maintenanceResponse
-	if err := json.Unmarshal([]byte(resp.Content), &decision); err != nil {
+	if err := json.Unmarshal([]byte(extractJSON(resp.Content)), &decision); err != nil {
 		return fmt.Errorf("parsing maintenance response: %w", err)
 	}
 
