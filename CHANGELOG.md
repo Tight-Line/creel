@@ -13,10 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `CREEL_VERIFY_TLS=false` option (and `--verify-tls` flag) skips certificate verification for self-signed environments.
 - New `CREEL_GRPC_AUTHORITY` option (and `--authority` flag) overrides the `:authority` header and TLS SNI for routing through proxies where the connection hostname differs from the ingress hostname.
 - MCP sidecar deployment template uses `CREEL_GRPC_ENDPOINT` instead of `CREEL_ENDPOINT`.
+- **Breaking:** `AddMemory` now returns `AddMemoryResponse{job_id}` instead of `Memory`. Memories are processed asynchronously through the maintenance worker, which handles LLM-based deduplication (ADD/UPDATE/DELETE/NOOP) before storing. Poll the returned job via `GetJob` to track progress.
 
 ### Fixed
 
 - gRPC connections no longer hang on macOS split-horizon DNS. All CLI binaries now use the `passthrough:///` resolver scheme so grpc-go delegates name resolution to the OS instead of performing its own TXT/SRV lookups.
+- `creel-chat` now sets `memory_enabled: true` when creating new topics, so memory extraction fires for chat sessions.
+- `GetJob` now handles documentless jobs (e.g. memory maintenance from `AddMemory`) by authorizing via the principal stored in the job's progress data instead of requiring a document.
 
 ## [0.7.2] - 2026-03-11
 

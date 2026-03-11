@@ -220,7 +220,7 @@ func (s *Server) registerTools() {
 		},
 		{
 			"creel_add_memory",
-			"Store a memory observation. Memories persist across sessions and are scoped to the calling principal and a named scope.",
+			"Queue a memory observation for processing. Returns a job_id; the memory maintenance worker handles deduplication. Memories persist across sessions and are scoped to the calling principal and a named scope.",
 			`{"type":"object","properties":{"scope":{"type":"string","description":"Memory scope name (e.g. 'preferences', 'context')"},"content":{"type":"string","description":"The memory content to store"},"subject":{"type":"string","description":"Subject of the observation (optional SPO triple)"},"predicate":{"type":"string","description":"Predicate of the observation"},"object":{"type":"string","description":"Object of the observation"}},"required":["scope","content"]}`,
 		},
 		{

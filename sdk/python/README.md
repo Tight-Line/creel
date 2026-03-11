@@ -130,14 +130,15 @@ for chunk in ctx.chunks:
 ### Memory
 
 ```python
-# Add a memory
-mem = client.add_memory(
+# Add a memory (returns a job_id; processing is async)
+resp = client.add_memory(
     "project-alpha",
     "The deployment deadline is March 15th.",
     subject="deployment",
     predicate="has_deadline",
     object="2026-03-15",
 )
+print(resp.job_id)  # poll via client.get_job(resp.job_id)
 
 # Retrieve all memories in a scope
 memories = client.get_memory("project-alpha")

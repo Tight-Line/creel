@@ -46,10 +46,14 @@ const jobColumns = `id, document_id, job_type, status, progress, error, started_
 // scanJob scans a single job row into a ProcessingJob.
 func scanJob(row pgx.Row) (*ProcessingJob, error) {
 	var j ProcessingJob
+	var docID *string
 	var progressBytes []byte
-	err := row.Scan(&j.ID, &j.DocumentID, &j.JobType, &j.Status, &progressBytes, &j.Error, &j.StartedAt, &j.CompletedAt, &j.CreatedAt)
+	err := row.Scan(&j.ID, &docID, &j.JobType, &j.Status, &progressBytes, &j.Error, &j.StartedAt, &j.CompletedAt, &j.CreatedAt)
 	if err != nil {
 		return nil, err
+	}
+	if docID != nil {
+		j.DocumentID = *docID
 	}
 	if progressBytes != nil {
 		_ = json.Unmarshal(progressBytes, &j.Progress)
@@ -63,9 +67,13 @@ func scanJobRows(rows pgx.Rows) ([]*ProcessingJob, error) {
 	var jobs []*ProcessingJob
 	for rows.Next() {
 		var j ProcessingJob
+		var docID *string
 		var progressBytes []byte
-		if err := rows.Scan(&j.ID, &j.DocumentID, &j.JobType, &j.Status, &progressBytes, &j.Error, &j.StartedAt, &j.CompletedAt, &j.CreatedAt); err != nil {
+		if err := rows.Scan(&j.ID, &docID, &j.JobType, &j.Status, &progressBytes, &j.Error, &j.StartedAt, &j.CompletedAt, &j.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scanning job row: %w", err)
+		}
+		if docID != nil {
+			j.DocumentID = *docID
 		}
 		if progressBytes != nil {
 			_ = json.Unmarshal(progressBytes, &j.Progress)
@@ -104,6 +112,25 @@ func (s *JobStore) CreateWithProgress(ctx context.Context, documentID, jobType s
 	j, err := scanJob(row)
 	if err != nil {
 		return nil, fmt.Errorf("inserting processing job with progress: %w", err)
+	}
+	return j, nil
+}
+
+// CreateDocless inserts a new queued job without a document (document_id = NULL).
+// Used for jobs that are not tied to a specific document, such as memory maintenance
+// triggered by direct AddMemory calls.
+func (s *JobStore) CreateDocless(ctx context.Context, jobType string, progress map[string]any) (*ProcessingJob, error) {
+	progressJSON, err := json.Marshal(progress)
+	if err != nil { // coverage:ignore - map[string]any always marshals successfully
+		return nil, fmt.Errorf("marshaling progress: %w", err)
+	}
+	row := s.pool.QueryRow(ctx,
+		`INSERT INTO processing_jobs (document_id, job_type, progress) VALUES (NULL, $1, $2) RETURNING `+jobColumns,
+		jobType, progressJSON,
+	)
+	j, err := scanJob(row)
+	if err != nil {
+		return nil, fmt.Errorf("inserting docless processing job: %w", err)
 	}
 	return j, nil
 }

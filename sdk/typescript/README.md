@@ -110,7 +110,7 @@ await creel.getContext(documentId, { lastN?, since?, includeSummaries? })
 ```typescript
 await creel.getMemory(scope)
 await creel.searchMemories({ scope?, queryText?, topK? })
-await creel.addMemory({ scope, content, subject?, predicate?, object?, metadata? })
+await creel.addMemory({ scope, content, subject?, predicate?, object?, metadata? })  // returns { job_id }
 await creel.updateMemory(id, { content?, metadata? })
 await creel.deleteMemory(id)
 await creel.listMemories(scope, includeInvalidated?)

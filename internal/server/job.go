@@ -44,6 +44,15 @@ func (s *JobServer) GetJob(ctx context.Context, req *pb.GetJobRequest) (*pb.Proc
 		return nil, status.Error(codes.NotFound, "job not found")
 	}
 
+	// Documentless jobs (e.g. memory maintenance from AddMemory) authorize
+	// by matching the principal in the job's progress data.
+	if job.DocumentID == "" {
+		if principal, _ := job.Progress["principal"].(string); principal != p.ID {
+			return nil, status.Error(codes.PermissionDenied, "not owner of this job")
+		}
+		return storeJobToProto(job), nil
+	}
+
 	topicID, err := s.docStore.TopicIDForDocument(ctx, job.DocumentID)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "document not found")

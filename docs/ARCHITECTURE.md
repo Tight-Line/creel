@@ -241,10 +241,10 @@ Memories are natural language fact statements (e.g., "User specializes in thromb
 ```
 processing_job {
   id:           uuid
-  document_id:  uuid -> document
-  job_type:     enum(extraction, chunking, embedding, memory_extraction, compaction, auto_link)
+  document_id:  uuid -> document (nullable; null for documentless jobs like memory_maintenance from AddMemory)
+  job_type:     enum(extraction, chunking, embedding, memory_extraction, compaction, auto_link, memory_maintenance)
   status:       enum(queued, running, completed, failed)
-  progress:     jsonb (stage-specific progress info)
+  progress:     jsonb (stage-specific progress info; documentless jobs store "principal" here for authorization)
   error:        text (nullable; error message on failure)
   started_at:   timestamp (nullable)
   completed_at: timestamp (nullable)
@@ -509,7 +509,8 @@ Per-principal memory with named scopes. Inspired by Mem0's architecture.
 
 **Explicit memory management:**
 
-- Clients can add, update, or delete specific memories via the Memory API.
+- `AddMemory` queues a `memory_maintenance` job instead of inserting directly. The maintenance worker runs LLM-based deduplication (ADD/UPDATE/DELETE/NOOP) against existing memories before storing. This ensures that both automatic extraction and explicit adds go through the same conflict resolution pipeline.
+- Clients can also update or delete specific memories via the Memory API.
 - "Forget X" in a conversation can trigger explicit deletion if the client supports it.
 
 ### 4.7 Retrieval
@@ -653,7 +654,7 @@ service CompactionService {
 service MemoryService {
   rpc GetMemory(GetMemoryRequest) returns (GetMemoryResponse);
   rpc SearchMemories(SearchMemoriesRequest) returns (SearchMemoriesResponse);
-  rpc AddMemory(AddMemoryRequest) returns (Memory);
+  rpc AddMemory(AddMemoryRequest) returns (AddMemoryResponse);
   rpc UpdateMemory(UpdateMemoryRequest) returns (Memory);
   rpc DeleteMemory(DeleteMemoryRequest) returns (DeleteMemoryResponse);
   rpc ListMemories(ListMemoriesRequest) returns (ListMemoriesResponse);

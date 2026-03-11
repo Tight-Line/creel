@@ -34,7 +34,7 @@ const (
 type MemoryServiceClient interface {
 	GetMemory(ctx context.Context, in *GetMemoryRequest, opts ...grpc.CallOption) (*GetMemoryResponse, error)
 	SearchMemories(ctx context.Context, in *SearchMemoriesRequest, opts ...grpc.CallOption) (*SearchMemoriesResponse, error)
-	AddMemory(ctx context.Context, in *AddMemoryRequest, opts ...grpc.CallOption) (*Memory, error)
+	AddMemory(ctx context.Context, in *AddMemoryRequest, opts ...grpc.CallOption) (*AddMemoryResponse, error)
 	UpdateMemory(ctx context.Context, in *UpdateMemoryRequest, opts ...grpc.CallOption) (*Memory, error)
 	DeleteMemory(ctx context.Context, in *DeleteMemoryRequest, opts ...grpc.CallOption) (*DeleteMemoryResponse, error)
 	ListMemories(ctx context.Context, in *ListMemoriesRequest, opts ...grpc.CallOption) (*ListMemoriesResponse, error)
@@ -69,9 +69,9 @@ func (c *memoryServiceClient) SearchMemories(ctx context.Context, in *SearchMemo
 	return out, nil
 }
 
-func (c *memoryServiceClient) AddMemory(ctx context.Context, in *AddMemoryRequest, opts ...grpc.CallOption) (*Memory, error) {
+func (c *memoryServiceClient) AddMemory(ctx context.Context, in *AddMemoryRequest, opts ...grpc.CallOption) (*AddMemoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Memory)
+	out := new(AddMemoryResponse)
 	err := c.cc.Invoke(ctx, MemoryService_AddMemory_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func (c *memoryServiceClient) ListScopes(ctx context.Context, in *ListScopesRequ
 type MemoryServiceServer interface {
 	GetMemory(context.Context, *GetMemoryRequest) (*GetMemoryResponse, error)
 	SearchMemories(context.Context, *SearchMemoriesRequest) (*SearchMemoriesResponse, error)
-	AddMemory(context.Context, *AddMemoryRequest) (*Memory, error)
+	AddMemory(context.Context, *AddMemoryRequest) (*AddMemoryResponse, error)
 	UpdateMemory(context.Context, *UpdateMemoryRequest) (*Memory, error)
 	DeleteMemory(context.Context, *DeleteMemoryRequest) (*DeleteMemoryResponse, error)
 	ListMemories(context.Context, *ListMemoriesRequest) (*ListMemoriesResponse, error)
@@ -146,7 +146,7 @@ func (UnimplementedMemoryServiceServer) GetMemory(context.Context, *GetMemoryReq
 func (UnimplementedMemoryServiceServer) SearchMemories(context.Context, *SearchMemoriesRequest) (*SearchMemoriesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SearchMemories not implemented")
 }
-func (UnimplementedMemoryServiceServer) AddMemory(context.Context, *AddMemoryRequest) (*Memory, error) {
+func (UnimplementedMemoryServiceServer) AddMemory(context.Context, *AddMemoryRequest) (*AddMemoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddMemory not implemented")
 }
 func (UnimplementedMemoryServiceServer) UpdateMemory(context.Context, *UpdateMemoryRequest) (*Memory, error) {

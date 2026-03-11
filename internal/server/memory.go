@@ -25,15 +25,18 @@ type MemoryServer struct {
 	memStore *store.MemoryStore
 	backend  vector.Backend
 	embedder EmbeddingProvider
+	jobStore *store.JobStore
 }
 
 // NewMemoryServer creates a new memory service.
 // The embedder may be nil if no embedding provider is configured.
-func NewMemoryServer(memStore *store.MemoryStore, backend vector.Backend, embedder EmbeddingProvider) *MemoryServer {
+// The jobStore may be nil; when set, AddMemory routes through the maintenance worker.
+func NewMemoryServer(memStore *store.MemoryStore, backend vector.Backend, embedder EmbeddingProvider, jobStore *store.JobStore) *MemoryServer {
 	return &MemoryServer{
 		memStore: memStore,
 		backend:  backend,
 		embedder: embedder,
+		jobStore: jobStore,
 	}
 }
 
@@ -147,8 +150,9 @@ func (s *MemoryServer) SearchMemories(ctx context.Context, req *pb.SearchMemorie
 	return &pb.SearchMemoriesResponse{Results: results}, nil
 }
 
-// AddMemory creates a new memory for the calling principal.
-func (s *MemoryServer) AddMemory(ctx context.Context, req *pb.AddMemoryRequest) (*pb.Memory, error) {
+// AddMemory queues a memory for creation via the maintenance worker, which
+// handles LLM-based deduplication (ADD/UPDATE/DELETE/NOOP). Returns a job ID.
+func (s *MemoryServer) AddMemory(ctx context.Context, req *pb.AddMemoryRequest) (*pb.AddMemoryResponse, error) {
 	p := auth.PrincipalFromContext(ctx)
 	if p == nil {
 		return nil, status.Error(codes.Unauthenticated, "not authenticated")
@@ -156,52 +160,36 @@ func (s *MemoryServer) AddMemory(ctx context.Context, req *pb.AddMemoryRequest) 
 	if req.GetContent() == "" {
 		return nil, status.Error(codes.InvalidArgument, "content is required")
 	}
+	if s.jobStore == nil {
+		return nil, status.Error(codes.FailedPrecondition, "job store not configured")
+	}
 
 	scope := req.GetScope()
 	if scope == "" {
 		scope = "default"
 	}
 
-	meta := structToMap(req.GetMetadata())
-
-	m := &store.Memory{
-		Principal: p.ID,
-		Scope:     scope,
-		Content:   req.GetContent(),
-		Metadata:  meta,
+	progress := map[string]any{
+		"candidate_fact": req.GetContent(),
+		"principal":      p.ID,
+		"scope":          scope,
 	}
 	if req.GetSubject() != "" {
-		subj := req.GetSubject()
-		m.Subject = &subj
+		progress["subject"] = req.GetSubject()
 	}
 	if req.GetPredicate() != "" {
-		pred := req.GetPredicate()
-		m.Predicate = &pred
+		progress["predicate"] = req.GetPredicate()
 	}
 	if req.GetObject() != "" {
-		obj := req.GetObject()
-		m.Object = &obj
+		progress["object"] = req.GetObject()
 	}
 
-	created, err := s.memStore.Create(ctx, m)
+	job, err := s.jobStore.CreateDocless(ctx, "memory_maintenance", progress)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "creating memory: %v", err)
+		return nil, status.Errorf(codes.Internal, "creating maintenance job: %v", err)
 	}
 
-	// Compute and store embedding if provider is available.
-	if s.embedder != nil && s.backend != nil {
-		embedding, embErr := s.embedder.Embed(ctx, created.Content)
-		if embErr == nil {
-			embeddingID := fmt.Sprintf("mem_%s", created.ID)
-			storeErr := s.backend.Store(ctx, embeddingID, embedding, nil)
-			if storeErr == nil {
-				_ = s.memStore.SetEmbeddingID(ctx, created.ID, embeddingID)
-				created.EmbeddingID = &embeddingID
-			}
-		}
-	}
-
-	return storeMemoryToProto(created), nil
+	return &pb.AddMemoryResponse{JobId: job.ID}, nil
 }
 
 // UpdateMemory updates a memory's content and metadata.

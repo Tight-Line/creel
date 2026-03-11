@@ -100,7 +100,7 @@ Creel provides a per-principal memory system for maintaining long-term facts abo
 - Memories are natural language fact statements (e.g., "User specializes in thrombosis research") maintained automatically by background workers.
 - When new conversation chunks are ingested in a topic with `memory_enabled = true`, workers extract candidate facts and resolve conflicts with existing memories (ADD new facts, UPDATE existing, DELETE contradictions, or NOOP).
 - Clients fetch memory by scope and include it in system prompts.
-- Clients can also explicitly add, update, or delete memories.
+- Clients can also explicitly add, update, or delete memories. `AddMemory` queues a `memory_maintenance` job that runs the same LLM-based deduplication as automatic extraction, so explicitly added memories are checked for conflicts with existing facts before being stored.
 
 ## Compaction
 

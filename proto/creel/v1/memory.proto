@@ -18,7 +18,7 @@ service MemoryService {
       body: "*"
     };
   }
-  rpc AddMemory(AddMemoryRequest) returns (Memory) {
+  rpc AddMemory(AddMemoryRequest) returns (AddMemoryResponse) {
     option (google.api.http) = {
       post: "/v1/memories"
       body: "*"
@@ -94,6 +94,10 @@ message AddMemoryRequest {
   string predicate = 4;
   string object = 5;
   google.protobuf.Struct metadata = 6;
+}
+
+message AddMemoryResponse {
+  string job_id = 1;
 }
 
 message UpdateMemoryRequest {

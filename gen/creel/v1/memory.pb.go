@@ -500,6 +500,50 @@ func (x *AddMemoryRequest) GetMetadata() *structpb.Struct {
 	return nil
 }
 
+type AddMemoryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddMemoryResponse) Reset() {
+	*x = AddMemoryResponse{}
+	mi := &file_creel_v1_memory_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddMemoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddMemoryResponse) ProtoMessage() {}
+
+func (x *AddMemoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_creel_v1_memory_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddMemoryResponse.ProtoReflect.Descriptor instead.
+func (*AddMemoryResponse) Descriptor() ([]byte, []int) {
+	return file_creel_v1_memory_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *AddMemoryResponse) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
 type UpdateMemoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -511,7 +555,7 @@ type UpdateMemoryRequest struct {
 
 func (x *UpdateMemoryRequest) Reset() {
 	*x = UpdateMemoryRequest{}
-	mi := &file_creel_v1_memory_proto_msgTypes[7]
+	mi := &file_creel_v1_memory_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -523,7 +567,7 @@ func (x *UpdateMemoryRequest) String() string {
 func (*UpdateMemoryRequest) ProtoMessage() {}
 
 func (x *UpdateMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_creel_v1_memory_proto_msgTypes[7]
+	mi := &file_creel_v1_memory_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -536,7 +580,7 @@ func (x *UpdateMemoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateMemoryRequest.ProtoReflect.Descriptor instead.
 func (*UpdateMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_creel_v1_memory_proto_rawDescGZIP(), []int{7}
+	return file_creel_v1_memory_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateMemoryRequest) GetId() string {
@@ -569,7 +613,7 @@ type DeleteMemoryRequest struct {
 
 func (x *DeleteMemoryRequest) Reset() {
 	*x = DeleteMemoryRequest{}
-	mi := &file_creel_v1_memory_proto_msgTypes[8]
+	mi := &file_creel_v1_memory_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -581,7 +625,7 @@ func (x *DeleteMemoryRequest) String() string {
 func (*DeleteMemoryRequest) ProtoMessage() {}
 
 func (x *DeleteMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_creel_v1_memory_proto_msgTypes[8]
+	mi := &file_creel_v1_memory_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -594,7 +638,7 @@ func (x *DeleteMemoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMemoryRequest.ProtoReflect.Descriptor instead.
 func (*DeleteMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_creel_v1_memory_proto_rawDescGZIP(), []int{8}
+	return file_creel_v1_memory_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DeleteMemoryRequest) GetId() string {
@@ -612,7 +656,7 @@ type DeleteMemoryResponse struct {
 
 func (x *DeleteMemoryResponse) Reset() {
 	*x = DeleteMemoryResponse{}
-	mi := &file_creel_v1_memory_proto_msgTypes[9]
+	mi := &file_creel_v1_memory_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -624,7 +668,7 @@ func (x *DeleteMemoryResponse) String() string {
 func (*DeleteMemoryResponse) ProtoMessage() {}
 
 func (x *DeleteMemoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_creel_v1_memory_proto_msgTypes[9]
+	mi := &file_creel_v1_memory_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -637,7 +681,7 @@ func (x *DeleteMemoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMemoryResponse.ProtoReflect.Descriptor instead.
 func (*DeleteMemoryResponse) Descriptor() ([]byte, []int) {
-	return file_creel_v1_memory_proto_rawDescGZIP(), []int{9}
+	return file_creel_v1_memory_proto_rawDescGZIP(), []int{10}
 }
 
 type ListMemoriesRequest struct {
@@ -650,7 +694,7 @@ type ListMemoriesRequest struct {
 
 func (x *ListMemoriesRequest) Reset() {
 	*x = ListMemoriesRequest{}
-	mi := &file_creel_v1_memory_proto_msgTypes[10]
+	mi := &file_creel_v1_memory_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -662,7 +706,7 @@ func (x *ListMemoriesRequest) String() string {
 func (*ListMemoriesRequest) ProtoMessage() {}
 
 func (x *ListMemoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_creel_v1_memory_proto_msgTypes[10]
+	mi := &file_creel_v1_memory_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -675,7 +719,7 @@ func (x *ListMemoriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMemoriesRequest.ProtoReflect.Descriptor instead.
 func (*ListMemoriesRequest) Descriptor() ([]byte, []int) {
-	return file_creel_v1_memory_proto_rawDescGZIP(), []int{10}
+	return file_creel_v1_memory_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListMemoriesRequest) GetScope() string {
@@ -701,7 +745,7 @@ type ListMemoriesResponse struct {
 
 func (x *ListMemoriesResponse) Reset() {
 	*x = ListMemoriesResponse{}
-	mi := &file_creel_v1_memory_proto_msgTypes[11]
+	mi := &file_creel_v1_memory_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -713,7 +757,7 @@ func (x *ListMemoriesResponse) String() string {
 func (*ListMemoriesResponse) ProtoMessage() {}
 
 func (x *ListMemoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_creel_v1_memory_proto_msgTypes[11]
+	mi := &file_creel_v1_memory_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -726,7 +770,7 @@ func (x *ListMemoriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMemoriesResponse.ProtoReflect.Descriptor instead.
 func (*ListMemoriesResponse) Descriptor() ([]byte, []int) {
-	return file_creel_v1_memory_proto_rawDescGZIP(), []int{11}
+	return file_creel_v1_memory_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListMemoriesResponse) GetMemories() []*Memory {
@@ -744,7 +788,7 @@ type ListScopesRequest struct {
 
 func (x *ListScopesRequest) Reset() {
 	*x = ListScopesRequest{}
-	mi := &file_creel_v1_memory_proto_msgTypes[12]
+	mi := &file_creel_v1_memory_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -756,7 +800,7 @@ func (x *ListScopesRequest) String() string {
 func (*ListScopesRequest) ProtoMessage() {}
 
 func (x *ListScopesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_creel_v1_memory_proto_msgTypes[12]
+	mi := &file_creel_v1_memory_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -769,7 +813,7 @@ func (x *ListScopesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListScopesRequest.ProtoReflect.Descriptor instead.
 func (*ListScopesRequest) Descriptor() ([]byte, []int) {
-	return file_creel_v1_memory_proto_rawDescGZIP(), []int{12}
+	return file_creel_v1_memory_proto_rawDescGZIP(), []int{13}
 }
 
 type ListScopesResponse struct {
@@ -781,7 +825,7 @@ type ListScopesResponse struct {
 
 func (x *ListScopesResponse) Reset() {
 	*x = ListScopesResponse{}
-	mi := &file_creel_v1_memory_proto_msgTypes[13]
+	mi := &file_creel_v1_memory_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -793,7 +837,7 @@ func (x *ListScopesResponse) String() string {
 func (*ListScopesResponse) ProtoMessage() {}
 
 func (x *ListScopesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_creel_v1_memory_proto_msgTypes[13]
+	mi := &file_creel_v1_memory_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -806,7 +850,7 @@ func (x *ListScopesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListScopesResponse.ProtoReflect.Descriptor instead.
 func (*ListScopesResponse) Descriptor() ([]byte, []int) {
-	return file_creel_v1_memory_proto_rawDescGZIP(), []int{13}
+	return file_creel_v1_memory_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListScopesResponse) GetScopes() []string {
@@ -859,7 +903,9 @@ const file_creel_v1_memory_proto_rawDesc = "" +
 	"\asubject\x18\x03 \x01(\tR\asubject\x12\x1c\n" +
 	"\tpredicate\x18\x04 \x01(\tR\tpredicate\x12\x16\n" +
 	"\x06object\x18\x05 \x01(\tR\x06object\x123\n" +
-	"\bmetadata\x18\x06 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"t\n" +
+	"\bmetadata\x18\x06 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"*\n" +
+	"\x11AddMemoryResponse\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"t\n" +
 	"\x13UpdateMemoryRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x123\n" +
@@ -874,11 +920,11 @@ const file_creel_v1_memory_proto_rawDesc = "" +
 	"\bmemories\x18\x01 \x03(\v2\x10.creel.v1.MemoryR\bmemories\"\x13\n" +
 	"\x11ListScopesRequest\",\n" +
 	"\x12ListScopesResponse\x12\x16\n" +
-	"\x06scopes\x18\x01 \x03(\tR\x06scopes2\xdd\x05\n" +
+	"\x06scopes\x18\x01 \x03(\tR\x06scopes2\xe8\x05\n" +
 	"\rMemoryService\x12b\n" +
 	"\tGetMemory\x12\x1a.creel.v1.GetMemoryRequest\x1a\x1b.creel.v1.GetMemoryResponse\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/v1/memories/{scope}\x12s\n" +
-	"\x0eSearchMemories\x12\x1f.creel.v1.SearchMemoriesRequest\x1a .creel.v1.SearchMemoriesResponse\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/v1/memories:search\x12R\n" +
-	"\tAddMemory\x12\x1a.creel.v1.AddMemoryRequest\x1a\x10.creel.v1.Memory\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/memories\x12]\n" +
+	"\x0eSearchMemories\x12\x1f.creel.v1.SearchMemoriesRequest\x1a .creel.v1.SearchMemoriesResponse\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/v1/memories:search\x12]\n" +
+	"\tAddMemory\x12\x1a.creel.v1.AddMemoryRequest\x1a\x1b.creel.v1.AddMemoryResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/memories\x12]\n" +
 	"\fUpdateMemory\x12\x1d.creel.v1.UpdateMemoryRequest\x1a\x10.creel.v1.Memory\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*2\x11/v1/memories/{id}\x12h\n" +
 	"\fDeleteMemory\x12\x1d.creel.v1.DeleteMemoryRequest\x1a\x1e.creel.v1.DeleteMemoryResponse\"\x19\x82\xd3\xe4\x93\x02\x13*\x11/v1/memories/{id}\x12p\n" +
 	"\fListMemories\x12\x1d.creel.v1.ListMemoriesRequest\x1a\x1e.creel.v1.ListMemoriesResponse\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/v1/memories/{scope}/list\x12d\n" +
@@ -898,7 +944,7 @@ func file_creel_v1_memory_proto_rawDescGZIP() []byte {
 	return file_creel_v1_memory_proto_rawDescData
 }
 
-var file_creel_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_creel_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_creel_v1_memory_proto_goTypes = []any{
 	(*Memory)(nil),                 // 0: creel.v1.Memory
 	(*GetMemoryRequest)(nil),       // 1: creel.v1.GetMemoryRequest
@@ -907,41 +953,42 @@ var file_creel_v1_memory_proto_goTypes = []any{
 	(*SearchMemoriesResponse)(nil), // 4: creel.v1.SearchMemoriesResponse
 	(*MemorySearchResult)(nil),     // 5: creel.v1.MemorySearchResult
 	(*AddMemoryRequest)(nil),       // 6: creel.v1.AddMemoryRequest
-	(*UpdateMemoryRequest)(nil),    // 7: creel.v1.UpdateMemoryRequest
-	(*DeleteMemoryRequest)(nil),    // 8: creel.v1.DeleteMemoryRequest
-	(*DeleteMemoryResponse)(nil),   // 9: creel.v1.DeleteMemoryResponse
-	(*ListMemoriesRequest)(nil),    // 10: creel.v1.ListMemoriesRequest
-	(*ListMemoriesResponse)(nil),   // 11: creel.v1.ListMemoriesResponse
-	(*ListScopesRequest)(nil),      // 12: creel.v1.ListScopesRequest
-	(*ListScopesResponse)(nil),     // 13: creel.v1.ListScopesResponse
-	(*timestamppb.Timestamp)(nil),  // 14: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),        // 15: google.protobuf.Struct
+	(*AddMemoryResponse)(nil),      // 7: creel.v1.AddMemoryResponse
+	(*UpdateMemoryRequest)(nil),    // 8: creel.v1.UpdateMemoryRequest
+	(*DeleteMemoryRequest)(nil),    // 9: creel.v1.DeleteMemoryRequest
+	(*DeleteMemoryResponse)(nil),   // 10: creel.v1.DeleteMemoryResponse
+	(*ListMemoriesRequest)(nil),    // 11: creel.v1.ListMemoriesRequest
+	(*ListMemoriesResponse)(nil),   // 12: creel.v1.ListMemoriesResponse
+	(*ListScopesRequest)(nil),      // 13: creel.v1.ListScopesRequest
+	(*ListScopesResponse)(nil),     // 14: creel.v1.ListScopesResponse
+	(*timestamppb.Timestamp)(nil),  // 15: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),        // 16: google.protobuf.Struct
 }
 var file_creel_v1_memory_proto_depIdxs = []int32{
-	14, // 0: creel.v1.Memory.invalidated_at:type_name -> google.protobuf.Timestamp
-	15, // 1: creel.v1.Memory.metadata:type_name -> google.protobuf.Struct
-	14, // 2: creel.v1.Memory.created_at:type_name -> google.protobuf.Timestamp
-	14, // 3: creel.v1.Memory.updated_at:type_name -> google.protobuf.Timestamp
+	15, // 0: creel.v1.Memory.invalidated_at:type_name -> google.protobuf.Timestamp
+	16, // 1: creel.v1.Memory.metadata:type_name -> google.protobuf.Struct
+	15, // 2: creel.v1.Memory.created_at:type_name -> google.protobuf.Timestamp
+	15, // 3: creel.v1.Memory.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 4: creel.v1.GetMemoryResponse.memories:type_name -> creel.v1.Memory
 	5,  // 5: creel.v1.SearchMemoriesResponse.results:type_name -> creel.v1.MemorySearchResult
 	0,  // 6: creel.v1.MemorySearchResult.memory:type_name -> creel.v1.Memory
-	15, // 7: creel.v1.AddMemoryRequest.metadata:type_name -> google.protobuf.Struct
-	15, // 8: creel.v1.UpdateMemoryRequest.metadata:type_name -> google.protobuf.Struct
+	16, // 7: creel.v1.AddMemoryRequest.metadata:type_name -> google.protobuf.Struct
+	16, // 8: creel.v1.UpdateMemoryRequest.metadata:type_name -> google.protobuf.Struct
 	0,  // 9: creel.v1.ListMemoriesResponse.memories:type_name -> creel.v1.Memory
 	1,  // 10: creel.v1.MemoryService.GetMemory:input_type -> creel.v1.GetMemoryRequest
 	3,  // 11: creel.v1.MemoryService.SearchMemories:input_type -> creel.v1.SearchMemoriesRequest
 	6,  // 12: creel.v1.MemoryService.AddMemory:input_type -> creel.v1.AddMemoryRequest
-	7,  // 13: creel.v1.MemoryService.UpdateMemory:input_type -> creel.v1.UpdateMemoryRequest
-	8,  // 14: creel.v1.MemoryService.DeleteMemory:input_type -> creel.v1.DeleteMemoryRequest
-	10, // 15: creel.v1.MemoryService.ListMemories:input_type -> creel.v1.ListMemoriesRequest
-	12, // 16: creel.v1.MemoryService.ListScopes:input_type -> creel.v1.ListScopesRequest
+	8,  // 13: creel.v1.MemoryService.UpdateMemory:input_type -> creel.v1.UpdateMemoryRequest
+	9,  // 14: creel.v1.MemoryService.DeleteMemory:input_type -> creel.v1.DeleteMemoryRequest
+	11, // 15: creel.v1.MemoryService.ListMemories:input_type -> creel.v1.ListMemoriesRequest
+	13, // 16: creel.v1.MemoryService.ListScopes:input_type -> creel.v1.ListScopesRequest
 	2,  // 17: creel.v1.MemoryService.GetMemory:output_type -> creel.v1.GetMemoryResponse
 	4,  // 18: creel.v1.MemoryService.SearchMemories:output_type -> creel.v1.SearchMemoriesResponse
-	0,  // 19: creel.v1.MemoryService.AddMemory:output_type -> creel.v1.Memory
+	7,  // 19: creel.v1.MemoryService.AddMemory:output_type -> creel.v1.AddMemoryResponse
 	0,  // 20: creel.v1.MemoryService.UpdateMemory:output_type -> creel.v1.Memory
-	9,  // 21: creel.v1.MemoryService.DeleteMemory:output_type -> creel.v1.DeleteMemoryResponse
-	11, // 22: creel.v1.MemoryService.ListMemories:output_type -> creel.v1.ListMemoriesResponse
-	13, // 23: creel.v1.MemoryService.ListScopes:output_type -> creel.v1.ListScopesResponse
+	10, // 21: creel.v1.MemoryService.DeleteMemory:output_type -> creel.v1.DeleteMemoryResponse
+	12, // 22: creel.v1.MemoryService.ListMemories:output_type -> creel.v1.ListMemoriesResponse
+	14, // 23: creel.v1.MemoryService.ListScopes:output_type -> creel.v1.ListScopesResponse
 	17, // [17:24] is the sub-list for method output_type
 	10, // [10:17] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
@@ -960,7 +1007,7 @@ func file_creel_v1_memory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_creel_v1_memory_proto_rawDesc), len(file_creel_v1_memory_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

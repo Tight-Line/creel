@@ -66,7 +66,7 @@ func (m *mockRetrievalClient) GetContext(_ context.Context, _ *pb.GetContextRequ
 
 type mockMemoryClient struct {
 	pb.MemoryServiceClient
-	addResp    *pb.Memory
+	addResp    *pb.AddMemoryResponse
 	addErr     error
 	searchResp *pb.SearchMemoriesResponse
 	searchErr  error
@@ -75,7 +75,7 @@ type mockMemoryClient struct {
 	deleteErr  error
 }
 
-func (m *mockMemoryClient) AddMemory(_ context.Context, _ *pb.AddMemoryRequest, _ ...grpc.CallOption) (*pb.Memory, error) {
+func (m *mockMemoryClient) AddMemory(_ context.Context, _ *pb.AddMemoryRequest, _ ...grpc.CallOption) (*pb.AddMemoryResponse, error) {
 	return m.addResp, m.addErr
 }
 
@@ -104,7 +104,7 @@ func newTestHandler() (*ToolHandler, *mockRetrievalClient, *mockMemoryClient, *m
 		contextResp: &pb.GetContextResponse{},
 	}
 	memory := &mockMemoryClient{
-		addResp:    &pb.Memory{Id: "m1", Scope: "test", Content: "hello"},
+		addResp:    &pb.AddMemoryResponse{JobId: "job-1"},
 		searchResp: &pb.SearchMemoriesResponse{},
 		listResp:   &pb.ListMemoriesResponse{},
 	}
@@ -193,14 +193,14 @@ func TestToolHandler_GetContextBadSince(t *testing.T) {
 
 func TestToolHandler_AddMemory(t *testing.T) {
 	h, _, memory, _, _ := newTestHandler()
-	memory.addResp = &pb.Memory{Id: "m1", Scope: "prefs", Content: "likes fishing"}
+	memory.addResp = &pb.AddMemoryResponse{JobId: "job-1"}
 
 	result, err := h.Execute(context.Background(), "creel_add_memory", json.RawMessage(`{"scope":"prefs","content":"likes fishing"}`))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(result, "likes fishing") {
-		t.Errorf("expected memory content in result, got: %s", result)
+	if !strings.Contains(result, "job-1") {
+		t.Errorf("expected job_id in result, got: %s", result)
 	}
 }
 
