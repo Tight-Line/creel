@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- CLI endpoint is now a URL via `CREEL_GRPC_ENDPOINT` (replaces `CREEL_ENDPOINT`). `https://` enables TLS; `http://host:port` uses plaintext. The separate `--tls` flag is removed.
+- New `CREEL_VERIFY_TLS=false` option (and `--verify-tls` flag) skips certificate verification for self-signed environments.
+- New `CREEL_GRPC_AUTHORITY` option (and `--authority` flag) overrides the `:authority` header and TLS SNI for routing through proxies where the connection hostname differs from the ingress hostname.
+- MCP sidecar deployment template uses `CREEL_GRPC_ENDPOINT` instead of `CREEL_ENDPOINT`.
+
 ## [0.7.2] - 2026-03-11
 
 ### Changed

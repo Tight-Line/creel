@@ -27,7 +27,7 @@ This produces `bin/creel-cli` and `bin/creel-chat`.
 
 ## 3. Source the dev environment
 
-The repository ships with a pre-configured dev API key. Source `.env` to set `CREEL_ENDPOINT` and `CREEL_API_KEY`:
+The repository ships with a pre-configured dev API key. Source `.env` to set `CREEL_GRPC_ENDPOINT` and `CREEL_API_KEY`:
 
 ```bash
 source .env

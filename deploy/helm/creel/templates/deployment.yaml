@@ -121,8 +121,8 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["creel-mcp"]
           env:
-            - name: CREEL_ENDPOINT
-              value: "127.0.0.1:{{ .Values.service.grpc.port }}"
+            - name: CREEL_GRPC_ENDPOINT
+              value: "http://127.0.0.1:{{ .Values.service.grpc.port }}"
             - name: CREEL_API_KEY
               valueFrom:
                 secretKeyRef:
