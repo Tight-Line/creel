@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-03-11
+
 ### Added
 
 - `AddMessages` RPC sends conversation messages for automatic memory extraction. The server creates `memory_messages` jobs that use the LLM to extract facts, then feeds them into the existing memory maintenance pipeline for deduplication.
