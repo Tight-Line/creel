@@ -257,6 +257,10 @@ func (s *DocumentServer) UploadDocument(ctx context.Context, req *pb.UploadDocum
 	if req.GetUrl() != "" {
 		u := req.GetUrl()
 		url = &u
+	} else if hasSourceURL {
+		// Default the citation URL to the source URL when no explicit URL is provided.
+		u := req.GetSourceUrl()
+		url = &u
 	}
 	if req.GetAuthor() != "" {
 		a := req.GetAuthor()

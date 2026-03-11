@@ -220,6 +220,82 @@ func TestDocumentServer_UploadDocument_WithCitationFields(t *testing.T) {
 	}
 }
 
+func TestDocumentServer_UploadDocument_SourceURLDefaultsCitationURL(t *testing.T) {
+	var capturedURL any
+	db := &mockDBTX{
+		queryRowFn: func(_ context.Context, sql string, args ...any) pgx.Row {
+			// CreateWithStatus args: topicID, slug, name, docType, status, metaJSON, url, author, publishedAt
+			if len(args) >= 7 {
+				capturedURL = args[6]
+			}
+			return &mockDocRow{}
+		},
+		execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+			return pgconn.NewCommandTag("INSERT 0 1"), nil
+		},
+	}
+	jobDB := &mockDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockJobRow{}
+		},
+	}
+	f := &mockFetcher{result: &fetch.Result{Data: []byte("fetched"), ContentType: "text/html"}}
+	s := NewDocumentServer(store.NewDocumentStore(db), store.NewJobStore(jobDB), f, &mockAuthorizer{})
+	_, err := s.UploadDocument(systemCtx(), &pb.UploadDocumentRequest{
+		TopicId:   "t",
+		Name:      "n",
+		SourceUrl: "http://example.com/doc.pdf",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	urlPtr, ok := capturedURL.(*string)
+	if !ok || urlPtr == nil {
+		t.Fatal("expected URL to be set from source_url")
+	}
+	if *urlPtr != "http://example.com/doc.pdf" {
+		t.Fatalf("expected URL %q, got %q", "http://example.com/doc.pdf", *urlPtr)
+	}
+}
+
+func TestDocumentServer_UploadDocument_ExplicitURLOverridesSourceURL(t *testing.T) {
+	var capturedURL any
+	db := &mockDBTX{
+		queryRowFn: func(_ context.Context, sql string, args ...any) pgx.Row {
+			if len(args) >= 7 {
+				capturedURL = args[6]
+			}
+			return &mockDocRow{}
+		},
+		execFn: func(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+			return pgconn.NewCommandTag("INSERT 0 1"), nil
+		},
+	}
+	jobDB := &mockDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return &mockJobRow{}
+		},
+	}
+	f := &mockFetcher{result: &fetch.Result{Data: []byte("fetched"), ContentType: "text/html"}}
+	s := NewDocumentServer(store.NewDocumentStore(db), store.NewJobStore(jobDB), f, &mockAuthorizer{})
+	_, err := s.UploadDocument(systemCtx(), &pb.UploadDocumentRequest{
+		TopicId:   "t",
+		Name:      "n",
+		SourceUrl: "http://example.com/doc.pdf",
+		Url:       "https://canonical.example.com/paper",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	urlPtr, ok := capturedURL.(*string)
+	if !ok || urlPtr == nil {
+		t.Fatal("expected URL to be set")
+	}
+	if *urlPtr != "https://canonical.example.com/paper" {
+		t.Fatalf("expected explicit URL %q, got %q", "https://canonical.example.com/paper", *urlPtr)
+	}
+}
+
 func TestDocumentServer_UploadDocument_ContentTypeOverride(t *testing.T) {
 	db := &mockDBTX{
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
