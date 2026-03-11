@@ -40,6 +40,12 @@ service AdminService {
       post: "/v1/admin/accounts/{account_id}/revoke"
     };
   }
+
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/admin/stats"
+    };
+  }
 }
 
 message HealthRequest {}
@@ -93,3 +99,17 @@ message RevokeKeyRequest {
 }
 
 message RevokeKeyResponse {}
+
+message GetStatsRequest {}
+
+message GetStatsResponse {
+  int64 api_key_configs = 1;
+  int64 llm_configs = 2;
+  int64 embedding_configs = 3;
+  int64 extraction_prompt_configs = 4;
+  int64 topics = 5;
+  int64 system_accounts = 6;
+  int64 documents = 7;
+  int64 chunks = 8;
+  int64 memories = 9;
+}

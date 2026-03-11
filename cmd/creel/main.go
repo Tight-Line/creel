@@ -160,7 +160,8 @@ func run() error {
 
 	// Create and wire server.
 	srv := server.New(cfg.Server.GRPCPort, apiKeyValidator, oidcValidator)
-	adminServer := server.NewAdminServer(pool, accountStore, version)
+	statsStore := store.NewStatsStore(pool)
+	adminServer := server.NewAdminServer(pool, accountStore, statsStore, version)
 	topicServer := server.NewTopicServer(topicStore, authorizer, embeddingConfigStore)
 	docServer := server.NewDocumentServer(docStore, jobStore, httpFetcher, authorizer)
 	chunkServer := server.NewChunkServer(chunkStore, docStore, topicStore, jobStore, vectorBackend, authorizer)

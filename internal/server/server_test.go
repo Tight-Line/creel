@@ -89,7 +89,8 @@ func setupTestEnv(t *testing.T) *testEnv {
 
 	// Create gRPC server on a random port.
 	srv := server.New(0, apiKeyValidator, nil)
-	pb.RegisterAdminServiceServer(srv.GRPCServer(), server.NewAdminServer(pool, accountStore, "test"))
+	statsStore := store.NewStatsStore(pool)
+	pb.RegisterAdminServiceServer(srv.GRPCServer(), server.NewAdminServer(pool, accountStore, statsStore, "test"))
 	pb.RegisterTopicServiceServer(srv.GRPCServer(), server.NewTopicServer(topicStore, authorizer, nil))
 	jobStore := store.NewJobStore(pool)
 	pb.RegisterDocumentServiceServer(srv.GRPCServer(), server.NewDocumentServer(docStore, jobStore, nil, authorizer))

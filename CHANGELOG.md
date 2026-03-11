@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - LLM provider now resolves dynamically from the database. When a default LLM config is set, the server uses it to call OpenAI chat completions instead of returning stub responses. Config changes take effect without a restart.
+- `GetStats` admin RPC (`GET /v1/admin/stats`) returns entity counts for all major tables in a single database query. The dashboard now uses this instead of making six separate list calls.
 
 ### Fixed
 

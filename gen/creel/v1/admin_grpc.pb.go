@@ -25,6 +25,7 @@ const (
 	AdminService_DeleteSystemAccount_FullMethodName = "/creel.v1.AdminService/DeleteSystemAccount"
 	AdminService_RotateKey_FullMethodName           = "/creel.v1.AdminService/RotateKey"
 	AdminService_RevokeKey_FullMethodName           = "/creel.v1.AdminService/RevokeKey"
+	AdminService_GetStats_FullMethodName            = "/creel.v1.AdminService/GetStats"
 )
 
 // AdminServiceClient is the client API for AdminService service.
@@ -38,6 +39,7 @@ type AdminServiceClient interface {
 	DeleteSystemAccount(ctx context.Context, in *DeleteSystemAccountRequest, opts ...grpc.CallOption) (*DeleteSystemAccountResponse, error)
 	RotateKey(ctx context.Context, in *RotateKeyRequest, opts ...grpc.CallOption) (*RotateKeyResponse, error)
 	RevokeKey(ctx context.Context, in *RevokeKeyRequest, opts ...grpc.CallOption) (*RevokeKeyResponse, error)
+	GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*GetStatsResponse, error)
 }
 
 type adminServiceClient struct {
@@ -108,6 +110,16 @@ func (c *adminServiceClient) RevokeKey(ctx context.Context, in *RevokeKeyRequest
 	return out, nil
 }
 
+func (c *adminServiceClient) GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*GetStatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetStatsResponse)
+	err := c.cc.Invoke(ctx, AdminService_GetStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AdminServiceServer is the server API for AdminService service.
 // All implementations must embed UnimplementedAdminServiceServer
 // for forward compatibility.
@@ -119,6 +131,7 @@ type AdminServiceServer interface {
 	DeleteSystemAccount(context.Context, *DeleteSystemAccountRequest) (*DeleteSystemAccountResponse, error)
 	RotateKey(context.Context, *RotateKeyRequest) (*RotateKeyResponse, error)
 	RevokeKey(context.Context, *RevokeKeyRequest) (*RevokeKeyResponse, error)
+	GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error)
 	mustEmbedUnimplementedAdminServiceServer()
 }
 
@@ -146,6 +159,9 @@ func (UnimplementedAdminServiceServer) RotateKey(context.Context, *RotateKeyRequ
 }
 func (UnimplementedAdminServiceServer) RevokeKey(context.Context, *RevokeKeyRequest) (*RevokeKeyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RevokeKey not implemented")
+}
+func (UnimplementedAdminServiceServer) GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetStats not implemented")
 }
 func (UnimplementedAdminServiceServer) mustEmbedUnimplementedAdminServiceServer() {}
 func (UnimplementedAdminServiceServer) testEmbeddedByValue()                      {}
@@ -276,6 +292,24 @@ func _AdminService_RevokeKey_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AdminService_GetStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServiceServer).GetStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AdminService_GetStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServiceServer).GetStats(ctx, req.(*GetStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AdminService_ServiceDesc is the grpc.ServiceDesc for AdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -306,6 +340,10 @@ var AdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RevokeKey",
 			Handler:    _AdminService_RevokeKey_Handler,
+		},
+		{
+			MethodName: "GetStats",
+			Handler:    _AdminService_GetStats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
