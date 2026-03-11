@@ -167,6 +167,7 @@ class CreelClient:
             sequence=data.get("sequence", 0),
             content=data.get("content", ""),
             embedding_id=data.get("embedding_id", ""),
+            embedding_model=data.get("embedding_model", ""),
             status=data.get("status", ""),
             compacted_by=data.get("compacted_by", ""),
             metadata=data.get("metadata"),

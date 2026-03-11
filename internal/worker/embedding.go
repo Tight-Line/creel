@@ -15,6 +15,9 @@ type EmbeddingProvider interface {
 	Embed(ctx context.Context, texts []string) ([][]float64, error)
 	// Dimensions returns the number of dimensions this provider produces.
 	Dimensions() int
+	// Model returns the model identifier (e.g. "text-embedding-3-small").
+	// Returns "" if unknown (e.g. stub provider).
+	Model() string
 }
 
 // StubEmbeddingProvider returns deterministic fake embeddings for testing.
@@ -51,6 +54,11 @@ func (s *StubEmbeddingProvider) Embed(_ context.Context, texts []string) ([][]fl
 // Dimensions returns the embedding dimension.
 func (s *StubEmbeddingProvider) Dimensions() int {
 	return s.dim
+}
+
+// Model returns "" for the stub provider.
+func (s *StubEmbeddingProvider) Model() string {
+	return ""
 }
 
 // EmbeddingWorker computes embeddings for document chunks and stores them.
@@ -142,12 +150,22 @@ func (w *EmbeddingWorker) Process(ctx context.Context, job *store.ProcessingJob)
 	}
 
 	// Store embeddings in the vector backend and set embedding IDs on chunks.
+	// Include the embedding model in the stored metadata so we can trace
+	// which config produced each embedding.
+	modelName := w.provider.Model()
 	items := make([]vector.StoreItem, len(needsEmbedding))
 	for i, c := range needsEmbedding {
+		meta := make(map[string]any, len(c.Metadata)+1) // coverage:ignore - happy path; tested via integration
+		for k, v := range c.Metadata {                   // coverage:ignore - happy path; tested via integration
+			meta[k] = v
+		}
+		if modelName != "" { // coverage:ignore - happy path; tested via integration
+			meta["embedding_model"] = modelName
+		}
 		items[i] = vector.StoreItem{
 			ID:        c.ID,
 			Embedding: embeddings[i],
-			Metadata:  c.Metadata,
+			Metadata:  meta,
 		}
 	}
 

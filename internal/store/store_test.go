@@ -795,6 +795,39 @@ func TestChunkStore_ListByDocument_RowsErr(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// ChunkStore.GetEmbeddingModels tests
+// ---------------------------------------------------------------------------
+
+func TestChunkStore_GetEmbeddingModels_Empty(t *testing.T) {
+	s := NewChunkStore(&mockDBTX{})
+	result, err := s.GetEmbeddingModels(ctx(), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != nil {
+		t.Errorf("expected nil, got %v", result)
+	}
+}
+
+func TestChunkStore_GetEmbeddingModels_QueryError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return nil, errMock
+	}}
+	s := NewChunkStore(db)
+	_, err := s.GetEmbeddingModels(ctx(), []string{"chunk-1"})
+	expectErr(t, err, "querying embedding models")
+}
+
+func TestChunkStore_GetEmbeddingModels_ScanError(t *testing.T) {
+	db := &mockDBTX{queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		return &mockRows{nextOnce: true, scanErr: errMock}, nil
+	}}
+	s := NewChunkStore(db)
+	_, err := s.GetEmbeddingModels(ctx(), []string{"chunk-1"})
+	expectErr(t, err, "scanning embedding model")
+}
+
+// ---------------------------------------------------------------------------
 // GrantStore tests
 // ---------------------------------------------------------------------------
 

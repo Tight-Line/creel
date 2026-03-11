@@ -41,6 +41,9 @@ message Chunk {
   string compacted_by = 7;
   google.protobuf.Struct metadata = 8;
   google.protobuf.Timestamp created_at = 9;
+  // The embedding model that produced this chunk's vector (e.g. "text-embedding-3-small").
+  // Empty if the chunk has no embedding or the model is unknown.
+  string embedding_model = 10;
 }
 
 message ChunkInput {

@@ -50,6 +50,13 @@ func TestStubEmbeddingProvider_Dimensions(t *testing.T) {
 	}
 }
 
+func TestStubEmbeddingProvider_Model(t *testing.T) {
+	p := NewStubEmbeddingProvider(4)
+	if p.Model() != "" {
+		t.Errorf("Model() = %q, want empty", p.Model())
+	}
+}
+
 func TestStubEmbeddingProvider_Deterministic(t *testing.T) {
 	p := NewStubEmbeddingProvider(4)
 	embs1, _ := p.Embed(context.Background(), []string{"test"})
@@ -81,6 +88,8 @@ func (p *failingEmbeddingProvider) Dimensions() int {
 	return p.dim
 }
 
+func (p *failingEmbeddingProvider) Model() string { return "" }
+
 // mismatchEmbeddingProvider returns wrong number of embeddings.
 type mismatchEmbeddingProvider struct {
 	dim int
@@ -94,3 +103,5 @@ func (p *mismatchEmbeddingProvider) Embed(_ context.Context, _ []string) ([][]fl
 func (p *mismatchEmbeddingProvider) Dimensions() int {
 	return p.dim
 }
+
+func (p *mismatchEmbeddingProvider) Model() string { return "" }

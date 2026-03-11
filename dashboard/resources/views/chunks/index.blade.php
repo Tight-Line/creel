@@ -138,7 +138,9 @@
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-xs align-top">
-                                @if (!empty($chunk['embedding_id']))
+                                @if (!empty($chunk['embedding_model']))
+                                    <span class="text-green-600" title="{{ $chunk['embedding_id'] }}">{{ $chunk['embedding_model'] }}</span>
+                                @elseif (!empty($chunk['embedding_id']))
                                     <span class="text-green-600" title="{{ $chunk['embedding_id'] }}">Yes</span>
                                 @else
                                     <span class="text-slate-300">None</span>

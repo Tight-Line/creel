@@ -125,6 +125,7 @@ export interface Chunk {
   index: number;
   metadata: Record<string, string>;
   embedding: number[];
+  embedding_model?: string;
   compacted_into?: string;
   created_at: string;
   updated_at: string;

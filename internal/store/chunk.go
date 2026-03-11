@@ -28,8 +28,9 @@ type Chunk struct {
 	EmbeddingID *string
 	Status      string
 	CompactedBy *string
-	Metadata    map[string]any
-	CreatedAt   time.Time
+	Metadata       map[string]any
+	CreatedAt      time.Time
+	EmbeddingModel string // from chunk_embeddings.metadata; not stored in chunks table
 }
 
 // Create inserts a new chunk and returns it.
@@ -291,4 +292,32 @@ func (s *ChunkStore) DocumentTopicID(ctx context.Context, documentID string) (st
 		return "", fmt.Errorf("querying document topic: %w", err)
 	}
 	return topicID, nil
+}
+
+// GetEmbeddingModels returns a map of chunk ID to embedding model name
+// by reading the embedding_model key from chunk_embeddings.metadata.
+func (s *ChunkStore) GetEmbeddingModels(ctx context.Context, chunkIDs []string) (map[string]string, error) {
+	if len(chunkIDs) == 0 {
+		return nil, nil
+	}
+	rows, err := s.pool.Query(ctx,
+		`SELECT chunk_id, metadata->>'embedding_model'
+		 FROM chunk_embeddings
+		 WHERE chunk_id = ANY($1) AND metadata->>'embedding_model' IS NOT NULL`,
+		chunkIDs,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("querying embedding models: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]string, len(chunkIDs))
+	for rows.Next() {
+		var id, model string
+		if err := rows.Scan(&id, &model); err != nil {
+			return nil, fmt.Errorf("scanning embedding model: %w", err)
+		}
+		result[id] = model
+	}
+	return result, rows.Err()
 }

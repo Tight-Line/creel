@@ -90,6 +90,7 @@ class Chunk:
     sequence: int = 0
     content: str = ""
     embedding_id: str = ""
+    embedding_model: str = ""
     status: str = ""
     compacted_by: str = ""
     metadata: Optional[dict[str, Any]] = None
