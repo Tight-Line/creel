@@ -229,6 +229,15 @@ func TestAdminRPCs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DeleteSystemAccount: %v", err)
 	}
+
+	// GetStats.
+	statsResp, err := env.admin.GetStats(ctx, &pb.GetStatsRequest{})
+	if err != nil {
+		t.Fatalf("GetStats: %v", err)
+	}
+	if statsResp.SystemAccounts < 1 {
+		t.Errorf("expected at least 1 system account, got %d", statsResp.SystemAccounts)
+	}
 }
 
 func TestAdminRPCs_ValidationErrors(t *testing.T) {
